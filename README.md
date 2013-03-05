@@ -11,6 +11,6 @@ M to the I to the T.
 Authors
 -------
 
-- Carlos Martín (@cmn)
+- Carlos Martín (@carlosmn)
 - Vicent Martí (@vmg)
 
