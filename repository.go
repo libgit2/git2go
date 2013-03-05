@@ -81,6 +81,18 @@ func (v *Repository) LookupCommit(o *Oid) (*Commit, error) {
 	return commit, nil
 }
 
+func (v *Repository) Walk() (*RevWalk, error) {
+	walk := new(RevWalk)
+	ecode := C.git_revwalk_new(&walk.ptr, v.ptr)
+	if ecode < 0 {
+		return nil, LastError()
+	}
+
+	walk.repo = v
+	runtime.SetFinalizer(walk, freeRevWalk)
+	return walk, nil
+}
+
 /* TODO 
 func (v *Repository) Commit(
 	refname string, author, committer *Signature,
