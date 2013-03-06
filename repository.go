@@ -16,7 +16,7 @@ type Repository struct {
 	ptr *C.git_repository
 }
 
-func Open(path string) (*Repository, error) {
+func OpenRepository(path string) (*Repository, error) {
 	repo := new(Repository)
 
 	cpath := C.CString(path)
@@ -31,7 +31,7 @@ func Open(path string) (*Repository, error) {
 	return repo, nil
 }
 
-func Init(path string, isbare bool) (*Repository, error) {
+func InitRepository(path string, isbare bool) (*Repository, error) {
 	repo := new(Repository)
 
 	cpath := C.CString(path)
