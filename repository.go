@@ -103,6 +103,47 @@ func (v *Repository) LookupBlob(o *Oid) (*Blob, error) {
 	return blob, nil
 }
 
+func (v *Repository) LookupReference(name string) (*Reference, error) {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+	var ptr *C.git_reference
+
+	ecode := C.git_reference_lookup(&ptr, v.ptr, cname)
+	if ecode < 0 {
+		return nil, LastError()
+	}
+
+	return newReferenceFromC(ptr), nil
+}
+
+func (v *Repository) CreateReference(name string, oid *Oid, force bool) (*Reference, error) {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+	var ptr *C.git_reference
+
+	ecode := C.git_reference_create(&ptr, v.ptr, cname, oid.toC(), cbool(force))
+	if ecode < 0 {
+		return nil, LastError()
+	}
+
+	return newReferenceFromC(ptr), nil
+}
+
+func (v *Repository) CreateSymbolicReference(name, target string, force bool) (*Reference, error) {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+	ctarget := C.CString(target)
+	defer C.free(unsafe.Pointer(ctarget))
+	var ptr *C.git_reference
+
+	ecode := C.git_reference_symbolic_create(&ptr, v.ptr, cname, ctarget, cbool(force))
+	if ecode < 0 {
+		return nil, LastError()
+	}
+
+	return newReferenceFromC(ptr), nil
+}
+
 func (v *Repository) Walk() (*RevWalk, error) {
 	walk := new(RevWalk)
 	ecode := C.git_revwalk_new(&walk.ptr, v.ptr)
