@@ -11,7 +11,7 @@ func TestCreateRepoAndStage(t *testing.T) {
 	// figure out where we can create the test repo
 	path, err := ioutil.TempDir("", "git2go")
 	checkFatal(t, err)
-	repo, err := Init(path, false)
+	repo, err := InitRepository(path, false)
 	checkFatal(t, err)
 
 	tmpfile := "README"
