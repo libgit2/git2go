@@ -49,7 +49,7 @@ func (v *Odb) Read(oid *Oid) (obj *OdbObject, err error) {
 		return nil, LastError()
 	}
 
-	runtime.SetFinalizer(obj, freeOdbObject)
+	runtime.SetFinalizer(obj, (*OdbObject).Free)
 	return
 }
 
@@ -57,8 +57,9 @@ type OdbObject struct {
 	ptr *C.git_odb_object
 }
 
-func freeOdbObject(obj *OdbObject) {
-	C.git_odb_object_free(obj.ptr)
+func (v *OdbObject) Free() {
+	runtime.SetFinalizer(v, nil)
+	C.git_odb_object_free(v.ptr)
 }
 
 func (v *OdbObject) Type() int {

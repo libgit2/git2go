@@ -27,7 +27,7 @@ func Open(path string) (*Repository, error) {
 		return nil, LastError()
 	}
 
-	runtime.SetFinalizer(repo, freeRepository)
+	runtime.SetFinalizer(repo, (*Repository).Free)
 	return repo, nil
 }
 
@@ -42,12 +42,13 @@ func Init(path string, isbare bool) (*Repository, error) {
 		return nil, LastError()
 	}
 
-	runtime.SetFinalizer(repo, freeRepository)
+	runtime.SetFinalizer(repo, (*Repository).Free)
 	return repo, nil
 }
 
-func freeRepository(repo *Repository) {
-	C.git_repository_free(repo.ptr)
+func (v *Repository) Free() {
+	runtime.SetFinalizer(v, nil)
+	C.git_repository_free(v.ptr)
 }
 
 func (v *Repository) Config() (*Config, error) {
@@ -127,8 +128,9 @@ func (v *Repository) Commit(
 }
 */
 
-func freeOdb(odb *Odb) {
-	C.git_odb_free(odb.ptr)
+func (v *Odb) Free() {
+	runtime.SetFinalizer(v, nil)
+	C.git_odb_free(v.ptr)
 }
 
 func (v *Repository) Odb() (odb *Odb, err error) {
@@ -137,7 +139,7 @@ func (v *Repository) Odb() (odb *Odb, err error) {
 		return nil, LastError()
 	}
 
-	runtime.SetFinalizer(odb, freeOdb)
+	runtime.SetFinalizer(odb, (*Odb).Free)
 	return
 }
 

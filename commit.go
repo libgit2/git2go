@@ -9,6 +9,7 @@ extern int _go_git_treewalk(git_tree *tree, git_treewalk_mode mode, void *ptr);
 import "C"
 
 import (
+	"runtime"
 	"time"
 )
 
@@ -32,6 +33,8 @@ func (c *Commit) Tree() (*Tree, error) {
 	if err < 0 {
 		return nil, LastError()
 	}
+
+	runtime.SetFinalizer(tree, (*Tree).Free)
 	return tree, nil
 }
 
