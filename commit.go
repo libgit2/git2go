@@ -10,6 +10,7 @@ import "C"
 
 import (
 	"runtime"
+	"unsafe"
 	"time"
 )
 
@@ -73,4 +74,21 @@ func newSignatureFromC(sig *C.git_signature) *Signature {
 func (sig *Signature) Time() time.Time {
 	loc := time.FixedZone("", sig.Offset*60)
 	return time.Unix(sig.UnixTime, 0).In(loc)
+}
+
+func (sig *Signature) toC() (*C.git_signature) {
+	var out *C.git_signature
+
+	name := C.CString(sig.Name)
+	defer C.free(unsafe.Pointer(name))
+
+	email := C.CString(sig.Email)
+	defer C.free(unsafe.Pointer(email))
+
+	ret := C.git_signature_new(&out, name, email, C.git_time_t(sig.UnixTime), C.int(sig.Offset))
+	if ret < 0 {
+		return nil
+	}
+
+	return out
 }

@@ -104,19 +104,22 @@ func (v *Repository) Walk() (*RevWalk, error) {
 	return walk, nil
 }
 
-/* TODO 
-func (v *Repository) Commit(
+func (v *Repository) CreateCommit(
 	refname string, author, committer *Signature,
 	message string, tree *Tree, parents ...*Commit) (*Oid, error) {
 
 	oid := new(Oid)
+
 	cref := C.CString(refname)
 	defer C.free(unsafe.Pointer(cref))
+
 	cmsg := C.CString(message)
 	defer C.free(unsafe.Pointer(cmsg))
-	nparents := len(parents)
+
 	var cparents []*C.git_commit = nil
 	var parentsarg **C.git_commit = nil
+
+	nparents:= len(parents)
 	if nparents > 0 {
 		cparents = make([]*C.git_commit, nparents)
 		for i, v := range parents {
@@ -125,18 +128,23 @@ func (v *Repository) Commit(
 		parentsarg = &cparents[0]
 	}
 
+	authorSig := author.toC()
+	defer C.git_signature_free(authorSig)
+
+	committerSig := committer.toC()
+	defer C.git_signature_free(committerSig)
+
 	ret := C.git_commit_create(
 		oid.toC(), v.ptr, cref,
-		author.git_signature, committer.git_signature,
+		authorSig, committerSig,
 		nil, cmsg, tree.ptr, C.int(nparents), parentsarg)
 
-	if ret < GIT_SUCCESS {
+	if ret < 0 {
 		return nil, LastError()
 	}
 
 	return oid, nil
 }
-*/
 
 func (v *Odb) Free() {
 	runtime.SetFinalizer(v, nil)
