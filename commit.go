@@ -56,24 +56,25 @@ func (c *Commit) Committer() *Signature {
 // Signature
 
 type Signature struct {
-	Name string
+	Name  string
 	Email string
-	UnixTime int64
-	Offset int
+	When  time.Time
 }
 
 func newSignatureFromC(sig *C.git_signature) *Signature {
+	// git stores minutes, go wants seconds
+	loc := time.FixedZone("", int(sig.when.offset)*60)
 	return &Signature{
 		C.GoString(sig.name),
 		C.GoString(sig.email),
-		int64(sig.when.time),
-		int(sig.when.offset),
+		time.Unix(int64(sig.when.time), 0).In(loc),
 	}
 }
 
-func (sig *Signature) Time() time.Time {
-	loc := time.FixedZone("", sig.Offset*60)
-	return time.Unix(sig.UnixTime, 0).In(loc)
+// the offset in mintes, which is what git wants
+func (v *Signature) Offset() int {
+	_, offset := v.When.Zone()
+	return offset/60
 }
 
 func (sig *Signature) toC() (*C.git_signature) {
@@ -85,7 +86,7 @@ func (sig *Signature) toC() (*C.git_signature) {
 	email := C.CString(sig.Email)
 	defer C.free(unsafe.Pointer(email))
 
-	ret := C.git_signature_new(&out, name, email, C.git_time_t(sig.UnixTime), C.int(sig.Offset))
+	ret := C.git_signature_new(&out, name, email, C.git_time_t(sig.When.Unix()), C.int(sig.Offset()))
 	if ret < 0 {
 		return nil
 	}
