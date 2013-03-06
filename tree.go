@@ -9,6 +9,7 @@ extern int _go_git_treewalk(git_tree *tree, git_treewalk_mode mode, void *ptr);
 import "C"
 
 import (
+	"runtime"
 	"unsafe"
 )
 
@@ -31,6 +32,7 @@ func newTreeEntry(entry *C.git_tree_entry) *TreeEntry {
 }
 
 func (t *Tree) Free() {
+	runtime.SetFinalizer(t, nil)
 	C.git_tree_free(t.ptr)
 }
 
@@ -40,6 +42,8 @@ func TreeLookup(repo *Repository, oid *Oid) (*Tree, error) {
 	if err < 0 {
 		return nil, LastError()
 	}
+
+	runtime.SetFinalizer(tree, (*Tree).Free)
 	return tree, nil
 }
 
@@ -99,7 +103,8 @@ type TreeBuilder struct {
 	repo *Repository
 }
 
-func freeTreeBuilder(v *TreeBuilder) {
+func (v *TreeBuilder) Free() {
+	runtime.SetFinalizer(v, nil)
 	C.git_treebuilder_free(v.ptr)
 }
 
