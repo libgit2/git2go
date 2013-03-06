@@ -20,6 +20,10 @@ func (v *Blob) Free() {
 	C.git_object_free(v.ptr)
 }
 
+func (v *Blob) Size() int64 {
+	return int64(C.git_blob_rawsize(v.ptr))
+}
+
 func (v *Blob) Contents() []byte {
 	size := C.int(C.git_blob_rawsize(v.ptr))
 	buffer := unsafe.Pointer(C.git_blob_rawcontent(v.ptr))
