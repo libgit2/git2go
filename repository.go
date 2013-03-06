@@ -161,6 +161,10 @@ func (v *Repository) Odb() (odb *Odb, err error) {
 	return
 }
 
+func (repo *Repository) Path() string {
+	return C.GoString(C.git_repository_path(repo.ptr))
+}
+
 func (v *Repository) TreeBuilder() (*TreeBuilder, error) {
 	bld := new(TreeBuilder)
 	if ret := C.git_treebuilder_create(&bld.ptr, nil); ret < 0 {
