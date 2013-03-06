@@ -92,6 +92,17 @@ func (v *Repository) LookupCommit(o *Oid) (*Commit, error) {
 	return commit, nil
 }
 
+func (v *Repository) LookupBlob(o *Oid) (*Blob, error) {
+	blob := new(Blob)
+	ecode := C.git_blob_lookup(&blob.ptr, v.ptr, o.toC())
+	if ecode < 0 {
+		return nil, LastError()
+	}
+
+	runtime.SetFinalizer(blob, (*Blob).Free)
+	return blob, nil
+}
+
 func (v *Repository) Walk() (*RevWalk, error) {
 	walk := new(RevWalk)
 	ecode := C.git_revwalk_new(&walk.ptr, v.ptr)
