@@ -62,11 +62,25 @@ func (v *OdbObject) Free() {
 	C.git_odb_object_free(v.ptr)
 }
 
-func (v *OdbObject) Type() int {
-	return int(C.git_odb_object_type(v.ptr))
+func (object *OdbObject) Id() (oid *Oid) {
+	return newOidFromC(C.git_odb_object_id(object.ptr))
 }
 
-func (v *OdbObject) Size() int64 {
-	return int64(C.git_odb_object_size(v.ptr))
+func (object *OdbObject) Len() (len uint64) {
+	return uint64(C.git_odb_object_size(object.ptr))
+}
+
+func (object *OdbObject) Data() (data []byte) {
+	var c_blob unsafe.Pointer = C.git_odb_object_data(object.ptr)
+	var blob []byte
+
+	len := int(C.git_odb_object_size(object.ptr))
+
+	sliceHeader := (*reflect.SliceHeader)((unsafe.Pointer(&blob)))
+	sliceHeader.Cap = len
+	sliceHeader.Len = len
+	sliceHeader.Data = uintptr(c_blob)
+
+	return blob
 }
 
