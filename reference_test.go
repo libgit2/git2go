@@ -9,7 +9,7 @@ import (
 
 func TestRefModification(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Path())
+	defer os.RemoveAll(repo.Workdir())
 
 	loc, err := time.LoadLocation("Europe/Berlin")
 	checkFatal(t, err)

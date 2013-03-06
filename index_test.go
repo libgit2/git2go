@@ -23,7 +23,7 @@ func createTestRepo(t *testing.T) *Repository {
 
 func TestCreateRepoAndStage(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Path())
+	defer os.RemoveAll(repo.Workdir())
 
 	idx, err := repo.Index()
 	checkFatal(t, err)

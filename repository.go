@@ -217,6 +217,10 @@ func (repo *Repository) Path() string {
 	return C.GoString(C.git_repository_path(repo.ptr))
 }
 
+func (repo *Repository) Workdir() string {
+	return C.GoString(C.git_repository_workdir(repo.ptr))
+}
+
 func (v *Repository) TreeBuilder() (*TreeBuilder, error) {
 	bld := new(TreeBuilder)
 	if ret := C.git_treebuilder_create(&bld.ptr, nil); ret < 0 {
