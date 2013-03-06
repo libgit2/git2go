@@ -62,6 +62,16 @@ func (v *Repository) Config() (*Config, error) {
 	return config, nil
 }
 
+func (v *Repository) Index() (*Index, error) {
+	var ptr *C.git_index
+	ret := C.git_repository_index(&ptr, v.ptr)
+	if ret < 0 {
+		return nil, LastError()
+	}
+
+	return newIndexFromC(ptr), nil
+}
+
 func (v *Repository) LookupTree(oid *Oid) (*Tree, error) {
 	tree := new(Tree)
 	ret := C.git_tree_lookup(&tree.ptr, v.ptr, oid.toC())
