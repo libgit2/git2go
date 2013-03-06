@@ -7,6 +7,7 @@ package git
 */
 import "C"
 import (
+	"runtime"
 	"unsafe"
 )
 
@@ -14,8 +15,9 @@ type Blob struct {
 	ptr *C.git_object
 }
 
-func freeBlob(blob *Blob) {
-	C.git_object_free(blob.ptr)
+func (v *Blob) Free() {
+	runtime.SetFinalizer(v, nil)
+	C.git_object_free(v.ptr)
 }
 
 func (v *Blob) Contents() []byte {
