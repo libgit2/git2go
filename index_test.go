@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 )
 
-func TestCreateRepoAndStage(t *testing.T) {
+func createTestRepo(t *testing.T) *Repository {
 	// figure out where we can create the test repo
 	path, err := ioutil.TempDir("", "git2go")
 	checkFatal(t, err)
@@ -17,11 +17,17 @@ func TestCreateRepoAndStage(t *testing.T) {
 	tmpfile := "README"
 	err = ioutil.WriteFile(path + "/" + tmpfile, []byte("foo\n"), 0644)
 	checkFatal(t, err)
-	defer os.RemoveAll(path)
+
+	return repo
+}
+
+func TestCreateRepoAndStage(t *testing.T) {
+	repo := createTestRepo(t)
+	defer os.RemoveAll(repo.Workdir())
 
 	idx, err := repo.Index()
 	checkFatal(t, err)
-	err = idx.AddByPath(tmpfile)
+	err = idx.AddByPath("README")
 	checkFatal(t, err)
 	treeId, err := idx.WriteTree()
 	checkFatal(t, err)
@@ -42,5 +48,5 @@ func checkFatal(t *testing.T, err error) {
 		t.Fatal()
 	}
 
-	t.Fatalf("Fail at %v:%v", file, line)
+	t.Fatalf("Fail at %v:%v; %v", file, line, err)
 }
