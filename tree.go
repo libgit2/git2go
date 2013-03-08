@@ -19,7 +19,7 @@ type Tree struct {
 
 type TreeEntry struct {
 	Name string
-	Oid  *Oid
+	Id  *Oid
 	Type int
 }
 
