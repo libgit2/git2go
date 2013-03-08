@@ -31,6 +31,15 @@ func newTreeEntry(entry *C.git_tree_entry) *TreeEntry {
 	}
 }
 
+// Id() and Type() satisfy Object
+func (t *Tree) Id() *Oid {
+	return newOidFromC(C.git_tree_id(t.ptr))
+}
+
+func (t *Tree) Type() int {
+	return OBJ_TREE
+}
+
 func (t *Tree) Free() {
 	runtime.SetFinalizer(t, nil)
 	C.git_tree_free(t.ptr)

@@ -20,6 +20,13 @@ func init() {
 	C.git_threads_init()
 }
 
+// Object interface
+type Object interface {
+	Id()   *Oid
+	Type() int
+}
+
+
 // Oid
 type Oid struct {
 	bytes [20]byte

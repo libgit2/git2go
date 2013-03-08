@@ -15,6 +15,15 @@ type Blob struct {
 	ptr *C.git_object
 }
 
+// Id() and Type() satisfy Object
+func (v *Blob) Id() *Oid {
+	return newOidFromC(C.git_blob_id(v.ptr))
+}
+
+func (v *Blob) Type() int {
+	return OBJ_BLOB
+}
+
 func (v *Blob) Free() {
 	runtime.SetFinalizer(v, nil)
 	C.git_object_free(v.ptr)

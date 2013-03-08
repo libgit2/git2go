@@ -19,8 +19,13 @@ type Commit struct {
 	ptr *C.git_commit
 }
 
+// Id() and Type() satisfy Object
 func (c *Commit) Id() *Oid {
 	return newOidFromC(C.git_commit_id(c.ptr))
+}
+
+func (c *Commit) Type() int {
+	return OBJ_COMMIT
 }
 
 func (c *Commit) Message() string {
