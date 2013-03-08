@@ -43,9 +43,21 @@ func TestRefModification(t *testing.T) {
 	checkFatal(t, err)
 	checkRefType(t, ref, SYMBOLIC)
 
+	if target := ref.Target(); target != nil {
+		t.Fatalf("Expected nil *Oid, got %v", target)
+	}
+
 	ref, err = ref.Resolve()
 	checkFatal(t, err)
 	checkRefType(t, ref, OID)
+
+	if target := ref.Target(); target == nil {
+		t.Fatalf("Expected valid target got nil")
+	}
+
+	if target := ref.SymbolicTarget(); target != "" {
+		t.Fatalf("Expected empty string, got %v", target)
+	}
 
 	if commitId.String() != ref.Target().String() {
 		t.Fatalf("Wrong ref target")

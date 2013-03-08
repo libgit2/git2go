@@ -26,6 +26,10 @@ type Oid struct {
 }
 
 func newOidFromC(coid *C.git_oid) *Oid {
+	if coid == nil {
+		return nil
+	}
+
 	oid := new(Oid)
 	copy(oid.bytes[0:20], C.GoBytes(unsafe.Pointer(coid), 20))
 	return oid
