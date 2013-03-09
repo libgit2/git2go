@@ -41,4 +41,16 @@ func TestObjectPoymorphism(t *testing.T) {
 	if ok {
 		t.Fatalf("*Tree is somehow the same as *Commit")
 	}
+
+	obj, err = repo.LookupObject(tree.Id())
+	checkFatal(t, err)
+
+	_, ok = obj.(*Tree)
+	if !ok {
+		t.Fatalf("LookupObject creates the wrong type")
+	}
+
+	if obj.Type() != OBJ_TREE {
+		t.Fatalf("Type() doesn't agree with dynamic type")
+	}
 }

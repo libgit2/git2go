@@ -7,6 +7,7 @@ package git
 */
 import "C"
 import (
+	"errors"
 	"unsafe"
 	"runtime"
 )
@@ -100,6 +101,25 @@ func (v *Repository) LookupBlob(o *Oid) (*Blob, error) {
 	}
 
 	return newBlobFromC(ptr), nil
+}
+
+func (v *Repository) LookupObject(o *Oid) (Object, error) {
+	var ptr *C.git_object
+	ecode := C.git_object_lookup(&ptr, v.ptr, o.toC(), C.git_otype(OBJ_ANY))
+	if ecode < 0 {
+		return nil, LastError()
+	}
+
+	switch int(C.git_object_type(ptr)) {
+	case OBJ_COMMIT:
+		return newCommitFromC(ptr), nil
+	case OBJ_TREE:
+		return newTreeFromC(ptr), nil
+	case OBJ_BLOB:
+		return newBlobFromC(ptr), nil
+	}
+
+	return nil, errors.New("Unkown object type")
 }
 
 func (v *Repository) LookupReference(name string) (*Reference, error) {
