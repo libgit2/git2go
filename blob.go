@@ -29,6 +29,13 @@ func (v *Blob) Free() {
 	C.git_object_free(v.ptr)
 }
 
+func newBlobFromC(ptr *C.git_blob) *Blob {
+	blob := &Blob{ptr}
+	runtime.SetFinalizer(blob, (*Blob).Free)
+
+	return blob
+}
+
 func (v *Blob) Size() int64 {
 	return int64(C.git_blob_rawsize(v.ptr))
 }

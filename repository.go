@@ -73,34 +73,33 @@ func (v *Repository) Index() (*Index, error) {
 }
 
 func (v *Repository) LookupTree(oid *Oid) (*Tree, error) {
-	tree := new(Tree)
-	ret := C.git_tree_lookup(&tree.ptr, v.ptr, oid.toC())
+	var ptr *C.git_tree
+	ret := C.git_tree_lookup(&ptr, v.ptr, oid.toC())
 	if ret < 0 {
 		return nil, LastError()
 	}
 
-	return tree, nil
+	return newTreeFromC(ptr), nil
 }
 
 func (v *Repository) LookupCommit(o *Oid) (*Commit, error) {
-	commit := new(Commit)
-	ecode := C.git_commit_lookup(&commit.ptr, v.ptr, o.toC())
+	var ptr *C.git_commit
+	ecode := C.git_commit_lookup(&ptr, v.ptr, o.toC())
 	if ecode < 0 {
 		return nil, LastError()
 	}
 
-	return commit, nil
+	return newCommitFromC(ptr), nil
 }
 
 func (v *Repository) LookupBlob(o *Oid) (*Blob, error) {
-	blob := new(Blob)
-	ecode := C.git_blob_lookup(&blob.ptr, v.ptr, o.toC())
+	var ptr *C.git_blob
+	ecode := C.git_blob_lookup(&ptr, v.ptr, o.toC())
 	if ecode < 0 {
 		return nil, LastError()
 	}
 
-	runtime.SetFinalizer(blob, (*Blob).Free)
-	return blob, nil
+	return newBlobFromC(ptr), nil
 }
 
 func (v *Repository) LookupReference(name string) (*Reference, error) {
