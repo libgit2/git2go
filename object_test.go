@@ -53,4 +53,16 @@ func TestObjectPoymorphism(t *testing.T) {
 	if obj.Type() != OBJ_TREE {
 		t.Fatalf("Type() doesn't agree with dynamic type")
 	}
+
+	obj, err = repo.RevparseSingle("HEAD")
+	checkFatal(t, err)
+	if obj.Type() != OBJ_COMMIT || obj.Id().String() != commit.Id().String() {
+		t.Fatalf("Failed to parse the right revision")
+	}
+
+	obj, err = repo.RevparseSingle("HEAD^{tree}")
+	checkFatal(t, err)
+	if obj.Type() != OBJ_TREE || obj.Id().String() != tree.Id().String() {
+		t.Fatalf("Failed to parse the right revision")
+	}
 }

@@ -103,6 +103,19 @@ func (v *Repository) LookupBlob(o *Oid) (*Blob, error) {
 	return newBlobFromC(ptr), nil
 }
 
+func ptrToObject(ptr *C.git_object) Object {
+	switch int(C.git_object_type(ptr)) {
+	case OBJ_COMMIT:
+		return newCommitFromC(ptr)
+	case OBJ_TREE:
+		return newTreeFromC(ptr)
+	case OBJ_BLOB:
+		return newBlobFromC(ptr)
+	}
+
+	return nil
+}
+
 func (v *Repository) LookupObject(o *Oid) (Object, error) {
 	var ptr *C.git_object
 	ecode := C.git_object_lookup(&ptr, v.ptr, o.toC(), C.git_otype(OBJ_ANY))
@@ -110,16 +123,25 @@ func (v *Repository) LookupObject(o *Oid) (Object, error) {
 		return nil, LastError()
 	}
 
-	switch int(C.git_object_type(ptr)) {
-	case OBJ_COMMIT:
-		return newCommitFromC(ptr), nil
-	case OBJ_TREE:
-		return newTreeFromC(ptr), nil
-	case OBJ_BLOB:
-		return newBlobFromC(ptr), nil
+	obj := ptrToObject(ptr)
+	if obj == nil {
+		return nil, errors.New("Unkown object type")
 	}
 
-	return nil, errors.New("Unkown object type")
+	return obj, nil
+}
+
+func (v *Repository) RevparseSingle(spec string) (Object, error) {
+	cspec := C.CString(spec)
+	defer C.free(unsafe.Pointer(cspec))
+
+	var ptr *C.git_object
+	ecode := C.git_revparse_single(&ptr, v.ptr, cspec)
+	if ecode < 0 {
+		return nil, LastError()
+	}
+
+	return ptrToObject(ptr), nil
 }
 
 func (v *Repository) LookupReference(name string) (*Reference, error) {
