@@ -221,6 +221,16 @@ func (repo *Repository) Workdir() string {
 	return C.GoString(C.git_repository_workdir(repo.ptr))
 }
 
+func (repo *Repository) SetWorkdir(workdir string, updateGitlink bool) error {
+	cstr := C.CString(workdir)
+	defer C.free(unsafe.Pointer(cstr))
+
+	if C.git_repository_set_workdir(repo.ptr, cstr, cbool(updateGitlink)) < 0 {
+		return LastError()
+	}
+	return nil
+}
+
 func (v *Repository) TreeBuilder() (*TreeBuilder, error) {
 	bld := new(TreeBuilder)
 	if ret := C.git_treebuilder_create(&bld.ptr, nil); ret < 0 {
