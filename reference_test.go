@@ -4,35 +4,15 @@ import (
 	"os"
 	"runtime"
 	"testing"
-	"time"
 )
 
 func TestRefModification(t *testing.T) {
 	repo := createTestRepo(t)
 	defer os.RemoveAll(repo.Workdir())
 
-	loc, err := time.LoadLocation("Europe/Berlin")
-	checkFatal(t, err)
-	sig := &Signature{
-		Name:  "Rand Om Hacker",
-		Email: "random@hacker.com",
-		When:  time.Date(2013, 03, 06, 14, 30, 0, 0, loc),
-	}
+	commitId, treeId := seedTestRepo(t, repo)
 
-	idx, err := repo.Index()
-	checkFatal(t, err)
-	err = idx.AddByPath("README")
-	checkFatal(t, err)
-	treeId, err := idx.WriteTree()
-	checkFatal(t, err)
-
-	message := "This is a commit\n"
-	tree, err := repo.LookupTree(treeId)
-	checkFatal(t, err)
-	commitId, err := repo.CreateCommit("HEAD", sig, sig, message, tree)
-	checkFatal(t, err)
-
-	_, err = repo.CreateReference("refs/tags/tree", treeId, true)
+	_, err := repo.CreateReference("refs/tags/tree", treeId, true)
 	checkFatal(t, err)
 
 	tag, err := repo.LookupReference("refs/tags/tree")
