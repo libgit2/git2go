@@ -31,20 +31,25 @@ func newTreeEntry(entry *C.git_tree_entry) *TreeEntry {
 	}
 }
 
+// Id() and Type() satisfy Object
+func (t *Tree) Id() *Oid {
+	return newOidFromC(C.git_tree_id(t.ptr))
+}
+
+func (t *Tree) Type() int {
+	return OBJ_TREE
+}
+
 func (t *Tree) Free() {
 	runtime.SetFinalizer(t, nil)
 	C.git_tree_free(t.ptr)
 }
 
-func TreeLookup(repo *Repository, oid *Oid) (*Tree, error) {
-	tree := new(Tree)
-	err := C.git_tree_lookup(&tree.ptr, repo.ptr, oid.toC())
-	if err < 0 {
-		return nil, LastError()
-	}
-
+func newTreeFromC(ptr *C.git_tree) *Tree {
+	tree := &Tree{ptr}
 	runtime.SetFinalizer(tree, (*Tree).Free)
-	return tree, nil
+
+	return tree
 }
 
 func (t *Tree) EntryByName(filename string) *TreeEntry {

@@ -7,10 +7,7 @@ import (
 	"time"
 )
 
-func TestRefModification(t *testing.T) {
-	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
-
+func seedTestRepo(t *testing.T, repo *Repository) (*Oid, *Oid) {
 	loc, err := time.LoadLocation("Europe/Berlin")
 	checkFatal(t, err)
 	sig := &Signature{
@@ -32,7 +29,15 @@ func TestRefModification(t *testing.T) {
 	commitId, err := repo.CreateCommit("HEAD", sig, sig, message, tree)
 	checkFatal(t, err)
 
-	_, err = repo.CreateReference("refs/tags/tree", treeId, true)
+	return commitId, treeId
+}
+
+func TestRefModification(t *testing.T) {
+	repo := createTestRepo(t)
+	defer os.RemoveAll(repo.Workdir())
+	commitId, treeId := seedTestRepo(t, repo)
+
+	_, err := repo.CreateReference("refs/tags/tree", treeId, true)
 	checkFatal(t, err)
 
 	tag, err := repo.LookupReference("refs/tags/tree")
