@@ -19,8 +19,17 @@ type Commit struct {
 	ptr *C.git_commit
 }
 
-func (c *Commit) Id() *Oid {
-	return newOidFromC(C.git_commit_id(c.ptr))
+func (o *Commit) Id() *Oid {
+	return newOidFromC(C.git_commit_id(o.ptr))
+}
+
+func (o *Commit) Type() ObjectType {
+	return OBJ_COMMIT
+}
+
+func (o *Commit) Free() {
+	runtime.SetFinalizer(o, nil)
+	C.git_commit_free(o.ptr)
 }
 
 func (c *Commit) Message() string {
@@ -28,15 +37,14 @@ func (c *Commit) Message() string {
 }
 
 func (c *Commit) Tree() (*Tree, error) {
-	tree := new(Tree)
+	var ptr *C.git_object
 
-	err := C.git_commit_tree(&tree.ptr, c.ptr)
+	err := C.git_commit_tree(&ptr, c.ptr)
 	if err < 0 {
 		return nil, LastError()
 	}
 
-	runtime.SetFinalizer(tree, (*Tree).Free)
-	return tree, nil
+	return allocObject(ptr).(*Tree), nil
 }
 
 func (c *Commit) TreeId() *Oid {

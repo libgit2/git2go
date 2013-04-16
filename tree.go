@@ -17,6 +17,19 @@ type Tree struct {
 	ptr *C.git_tree
 }
 
+func (o *Tree) Id() *Oid {
+	return newOidFromC(C.git_tree_id(o.ptr))
+}
+
+func (o *Tree) Type() ObjectType {
+	return OBJ_TREE
+}
+
+func (o *Tree) Free() {
+	runtime.SetFinalizer(o, nil)
+	C.git_tree_free(o.ptr)
+}
+
 type TreeEntry struct {
 	Name string
 	Id  *Oid
@@ -29,22 +42,6 @@ func newTreeEntry(entry *C.git_tree_entry) *TreeEntry {
 		newOidFromC(C.git_tree_entry_id(entry)),
 		int(C.git_tree_entry_type(entry)),
 	}
-}
-
-func (t *Tree) Free() {
-	runtime.SetFinalizer(t, nil)
-	C.git_tree_free(t.ptr)
-}
-
-func TreeLookup(repo *Repository, oid *Oid) (*Tree, error) {
-	tree := new(Tree)
-	err := C.git_tree_lookup(&tree.ptr, repo.ptr, oid.toC())
-	if err < 0 {
-		return nil, LastError()
-	}
-
-	runtime.SetFinalizer(tree, (*Tree).Free)
-	return tree, nil
 }
 
 func (t *Tree) EntryByName(filename string) *TreeEntry {

@@ -12,15 +12,6 @@ import (
 	"runtime"
 )
 
-var (
-	OBJ_ANY = C.GIT_OBJ_ANY
-	OBJ_BAD = C.GIT_OBJ_BAD
-	OBJ_COMMIT = C.GIT_OBJ_COMMIT
-	OBJ_TREE = C.GIT_OBJ_TREE
-	OBJ_BLOB = C.GIT_OBJ_BLOB
-	OBJ_TAG = C.GIT_OBJ_TAG
-)
-
 type Odb struct {
 	ptr *C.git_odb
 }

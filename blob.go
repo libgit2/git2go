@@ -7,17 +7,25 @@ package git
 */
 import "C"
 import (
-	"runtime"
 	"unsafe"
+	"runtime"
 )
 
 type Blob struct {
-	ptr *C.git_object
+	ptr *C.git_blob
 }
 
-func (v *Blob) Free() {
-	runtime.SetFinalizer(v, nil)
-	C.git_object_free(v.ptr)
+func (o *Blob) Id() *Oid {
+	return newOidFromC(C.git_blob_id(o.ptr))
+}
+
+func (o *Blob) Type() ObjectType {
+	return OBJ_BLOB
+}
+
+func (o *Blob) Free() {
+	runtime.SetFinalizer(o, nil)
+	C.git_blob_free(o.ptr)
 }
 
 func (v *Blob) Size() int64 {
