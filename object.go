@@ -25,25 +25,41 @@ type Object interface {
 	Type() ObjectType
 }
 
+type gitObject struct {
+	ptr *C.git_object
+}
+
+func (o gitObject) Id() *Oid {
+	return newOidFromC(C.git_commit_id(o.ptr))
+}
+
+func (o gitObject) Type() ObjectType {
+	return ObjectType(C.git_object_type(o.ptr))
+}
+
+func (o gitObject) Free() {
+	runtime.SetFinalizer(o, nil)
+	C.git_commit_free(o.ptr)
+}
+
 func allocObject(cobj *C.git_object) Object {
-	var object Object
 
 	switch ObjectType(C.git_object_type(cobj)) {
 	case OBJ_COMMIT:
-		object = &Commit{cobj}
-		runtime.SetFinalizer(object, (*Commit).Free)
+		commit := &Commit{gitObject{cobj}}
+		runtime.SetFinalizer(commit, (*Commit).Free)
+		return commit
 
 	case OBJ_TREE:
-		object = &Tree{cobj}
-		runtime.SetFinalizer(object, (*Tree).Free)
+		tree := &Tree{gitObject{cobj}}
+		runtime.SetFinalizer(tree, (*Tree).Free)
+		return tree
 
 	case OBJ_BLOB:
-		object = &Blob{cobj}
-		runtime.SetFinalizer(object, (*Blob).Free)
-
-	default:
-		return nil
+		blob := &Blob{gitObject{cobj}}
+		runtime.SetFinalizer(blob, (*Blob).Free)
+		return blob
 	}
 
-	return object
+	return nil
 }
