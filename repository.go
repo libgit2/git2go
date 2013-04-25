@@ -217,6 +217,10 @@ func (repo *Repository) Path() string {
 	return C.GoString(C.git_repository_path(repo.ptr))
 }
 
+func (repo *Repository) IsBare() (bool) {
+	return C.git_repository_is_bare(repo.ptr) != 0
+}
+
 func (repo *Repository) Workdir() string {
 	return C.GoString(C.git_repository_workdir(repo.ptr))
 }
