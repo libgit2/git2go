@@ -20,14 +20,14 @@ type Tree struct {
 type TreeEntry struct {
 	Name string
 	Id  *Oid
-	Type int
+	Type ObjectType
 }
 
 func newTreeEntry(entry *C.git_tree_entry) *TreeEntry {
 	return &TreeEntry{
 		C.GoString(C.git_tree_entry_name(entry)),
 		newOidFromC(C.git_tree_entry_id(entry)),
-		int(C.git_tree_entry_type(entry)),
+		ObjectType(C.git_tree_entry_type(entry)),
 	}
 }
 
