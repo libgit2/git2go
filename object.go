@@ -29,6 +29,25 @@ type gitObject struct {
 	ptr *C.git_object
 }
 
+func (t ObjectType) String() (string) {
+	switch (t) {
+	case OBJ_ANY:
+		return "Any"
+	case OBJ_BAD:
+		return "Bad"
+	case OBJ_COMMIT:
+		return "Commit"
+	case OBJ_TREE:
+		return "Tree"
+	case OBJ_BLOB:
+		return "Blob"
+	case OBJ_TAG:
+		return "tag"
+	}
+	// Never reached
+	return ""
+}
+
 func (o gitObject) Id() *Oid {
 	return newOidFromC(C.git_commit_id(o.ptr))
 }
