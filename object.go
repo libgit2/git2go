@@ -56,7 +56,7 @@ func (o gitObject) Type() ObjectType {
 	return ObjectType(C.git_object_type(o.ptr))
 }
 
-func (o gitObject) Free() {
+func (o *gitObject) Free() {
 	runtime.SetFinalizer(o, nil)
 	C.git_commit_free(o.ptr)
 }
