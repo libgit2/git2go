@@ -7,6 +7,7 @@ package git
 */
 import "C"
 import (
+	"bytes"
 	"unsafe"
 )
 
@@ -65,6 +66,33 @@ func (oid *Oid) String() string {
 
 func (oid *Oid) Bytes() []byte {
 	return oid.bytes[0:]
+}
+
+func (oid *Oid) Cmp(oid2 *Oid) int {
+	return bytes.Compare(oid.bytes[:], oid2.bytes[:])
+}
+
+func (oid *Oid) Copy() *Oid {
+	ret := new(Oid)
+	copy(ret.bytes[:], oid.bytes[:])
+	return ret
+}
+
+func (oid *Oid) Equal(oid2 *Oid) bool {
+	return bytes.Equal(oid.bytes[:], oid2.bytes[:])
+}
+
+func (oid *Oid) IsZero() bool {
+	for _, a := range(oid.bytes) {
+		if a != '0' {
+			return false
+		}
+	}
+	return true
+}
+
+func (oid *Oid) NCmp(oid2 *Oid, n uint) int {
+	return bytes.Compare(oid.bytes[:n], oid2.bytes[:n])
 }
 
 type GitError struct {
