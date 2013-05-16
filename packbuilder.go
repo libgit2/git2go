@@ -13,6 +13,7 @@ import "C"
 import (
 	"runtime"
 	"unsafe"
+	"io"
 )
 
 type Packbuilder struct {
@@ -75,8 +76,8 @@ func (pb *Packbuilder) WriteToFile(name string) error {
 }
 
 func (pb *Packbuilder) Write(w io.Writer) error {
-	ch := pb.Foreach()
-	for _, slice := range ch {
+	ch := pb.ForEach()
+	for slice := range ch {
 		_, err := w.Write(slice)
 		if err != nil {
 			return err
