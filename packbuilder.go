@@ -74,6 +74,17 @@ func (pb *Packbuilder) WriteToFile(name string) error {
 	return nil
 }
 
+func (pb *Packbuilder) Write(w io.Writer) error {
+	ch := pb.Foreach()
+	for _, slice := range ch {
+		_, err := w.Write(slice)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (pb *Packbuilder) Written() uint32 {
 	return uint32(C.git_packbuilder_written(pb.ptr))
 }
