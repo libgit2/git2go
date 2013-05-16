@@ -9,6 +9,7 @@ import "C"
 import (
 	"bytes"
 	"unsafe"
+	"strings"
 )
 
 const (
@@ -121,4 +122,30 @@ func ucbool(b bool) C.uint {
 		return C.uint(1)
 	}
 	return C.uint(0)
+}
+
+func Discover(start string, across_fs bool, ceiling_dirs []string) (string, error) {
+	ceildirs := C.CString(strings.Join(ceiling_dirs, string(C.GIT_PATH_LIST_SEPARATOR)))
+	defer C.free(unsafe.Pointer(ceildirs))
+
+	cstart := C.CString(start)
+	defer C.free(unsafe.Pointer(cstart))
+
+	retpath := (*C.char)(C.malloc(C.GIT_PATH_MAX))
+	defer C.free(unsafe.Pointer(retpath))
+
+	var acrfs C.int
+	if across_fs {
+		acrfs = 1
+	} else {
+		acrfs = 0
+	}
+
+	r := C.git_repository_discover(retpath, C.GIT_PATH_MAX, cstart, acrfs, ceildirs)
+
+	if r == 0 {
+		return C.GoString(retpath), nil
+	}
+
+	return "", LastError()
 }
