@@ -134,14 +134,7 @@ func Discover(start string, across_fs bool, ceiling_dirs []string) (string, erro
 	retpath := (*C.char)(C.malloc(C.GIT_PATH_MAX))
 	defer C.free(unsafe.Pointer(retpath))
 
-	var acrfs C.int
-	if across_fs {
-		acrfs = 1
-	} else {
-		acrfs = 0
-	}
-
-	r := C.git_repository_discover(retpath, C.GIT_PATH_MAX, cstart, acrfs, ceildirs)
+	r := C.git_repository_discover(retpath, C.GIT_PATH_MAX, cstart, cbool(across_fs), ceildirs)
 
 	if r == 0 {
 		return C.GoString(retpath), nil
