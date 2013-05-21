@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"unsafe"
 	"strings"
+	"fmt"
 )
 
 const (
@@ -107,6 +108,9 @@ func (e GitError) Error() string{
 
 func LastError() error {
 	err := C.giterr_last()
+	if err == nil {
+		return &GitError{"No message", 0}
+	}
 	return &GitError{C.GoString(err.message), int(err.klass)}
 }
 
