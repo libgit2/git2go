@@ -111,3 +111,76 @@ func (v *Reference) Free() {
 	runtime.SetFinalizer(v, nil)
 	C.git_reference_free(v.ptr)
 }
+
+type ReferenceIterator struct {
+	ptr  *C.git_reference_iterator
+	repo *Repository
+}
+
+// NewReferenceIterator creates a new iterator over reference names
+func (repo *Repository) NewReferenceIterator() (*ReferenceIterator, error) {
+	var ptr *C.git_reference_iterator
+	ret := C.git_reference_iterator_new(&ptr, repo.ptr)
+	if ret < 0 {
+		return nil, LastError()
+	}
+
+	iter := &ReferenceIterator{repo: repo, ptr: ptr}
+	runtime.SetFinalizer(iter, (*ReferenceIterator).Free)
+	return iter, nil
+}
+
+// NewReferenceIteratorGlob creates an iterator over reference names
+// that match the speicified glob. The glob is of the usual fnmatch
+// type.
+func (repo *Repository) NewReferenceIteratorGlob(glob string) (*ReferenceIterator, error) {
+	cstr := C.CString(glob)
+	defer C.free(unsafe.Pointer(cstr))
+	var ptr *C.git_reference_iterator
+	ret := C.git_reference_iterator_glob_new(&ptr, repo.ptr, cstr)
+	if ret < 0 {
+		return nil, LastError()
+	}
+
+	iter := &ReferenceIterator{repo: repo, ptr: ptr}
+	runtime.SetFinalizer(iter, (*ReferenceIterator).Free)
+	return iter, nil
+}
+
+// Next retrieves the next reference name. If the iteration is over,
+// the returned error is git.ErrIterOver
+func (v *ReferenceIterator) Next() (string, error) {
+	var ptr *C.char
+	ret := C.git_reference_next(&ptr, v.ptr)
+	if ret == ITEROVER {
+		return "", ErrIterOver
+	}
+	if ret < 0 {
+		return "", LastError()
+	}
+
+	return C.GoString(ptr), nil
+}
+
+// Create a channel from the iterator. You can use range on the
+// returned channel to iterate over all the references. The channel
+// will be closed in case any error is found.
+func (v *ReferenceIterator) Iter() <-chan string {
+	ch := make(chan string)
+	go func() {
+		defer close(ch)
+		name, err := v.Next()
+		for err == nil {
+			ch <- name
+			name, err = v.Next()
+		}
+	}()
+
+	return ch
+}
+
+// Free the reference iterator
+func (v *ReferenceIterator) Free() {
+	runtime.SetFinalizer(v, nil)
+	C.git_reference_iterator_free(v.ptr)
+}

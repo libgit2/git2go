@@ -8,6 +8,7 @@ package git
 import "C"
 import (
 	"bytes"
+	"errors"
 	"unsafe"
 	"strings"
 )
@@ -16,6 +17,10 @@ const (
 	ITEROVER  = C.GIT_ITEROVER
 	EEXISTS   = C.GIT_EEXISTS
 	ENOTFOUND = C.GIT_ENOTFOUND
+)
+
+var (
+	ErrIterOver = errors.New("Iteration is over")
 )
 
 func init() {
