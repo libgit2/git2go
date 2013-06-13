@@ -53,6 +53,23 @@ func (c *Commit) Committer() *Signature {
 	return newSignatureFromC(ptr)
 }
 
+func (c *Commit) Parent(n uint) *Commit {
+	par := &Commit{}
+	ret := C.git_commit_parent(&par.ptr, c.ptr, C.uint(n))
+	if ret != 0 {
+		return nil
+	}
+	return par
+}
+
+func (c *Commit) ParentId(n uint) *Oid {
+	return newOidFromC(C.git_commit_parent_id(c.ptr, C.uint(n)))
+}
+
+func (c *Commit) ParentCount() uint {
+	return uint(C.git_commit_parentcount(c.ptr))
+}
+
 // Signature
 
 type Signature struct {
