@@ -20,4 +20,8 @@ int _go_git_packbuilder_foreach(git_packbuilder *pb, void *payload)
     return git_packbuilder_foreach(pb, (git_packbuilder_foreach_cb)&packbuilderForEachCb, payload);
 }
 
+int _go_git_odb_foreach(git_odb *db, void *payload)
+{
+    return git_odb_foreach(db, (git_odb_foreach_cb)&odbForEachCb, payload);
+}
 /* EOF */

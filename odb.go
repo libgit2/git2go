@@ -4,6 +4,8 @@ package git
 #cgo pkg-config: libgit2
 #include <git2.h>
 #include <git2/errors.h>
+
+extern int _go_git_odb_foreach(git_odb *db, void *payload);
 */
 import "C"
 import (
@@ -53,6 +55,32 @@ func (v *Odb) Read(oid *Oid) (obj *OdbObject, err error) {
 	return
 }
 
+//export odbForEachCb
+func odbForEachCb(id *C.git_oid, payload unsafe.Pointer) int {
+	ch := *(*chan *Oid)(payload)
+	oid := newOidFromC(id)
+	// Because the channel is unbuffered, we never read our own data. If ch is
+	// readable, the user has sent something on it, which means we should
+	// abort.
+	select {
+	case ch <- oid:
+	case <-ch:
+			return -1
+	}
+	return 0;
+}
+
+func (v *Odb) forEachWrap(ch chan *Oid) {
+	C._go_git_odb_foreach(v.ptr, unsafe.Pointer(&ch))
+	close(ch)
+}
+
+func (v *Odb) ForEach() chan *Oid {
+	ch := make(chan *Oid, 0)
+	go v.forEachWrap(ch)
+	return ch
+}
+
 type OdbObject struct {
 	ptr *C.git_odb_object
 }
@@ -83,4 +111,3 @@ func (object *OdbObject) Data() (data []byte) {
 
 	return blob
 }
-
