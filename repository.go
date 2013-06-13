@@ -72,35 +72,45 @@ func (v *Repository) Index() (*Index, error) {
 	return newIndexFromC(ptr), nil
 }
 
-func (v *Repository) LookupTree(oid *Oid) (*Tree, error) {
-	tree := new(Tree)
-	ret := C.git_tree_lookup(&tree.ptr, v.ptr, oid.toC())
+func (v *Repository) lookupType(oid *Oid, t ObjectType) (Object, error) {
+	var ptr *C.git_object
+	ret := C.git_object_lookup(&ptr, v.ptr, oid.toC(), C.git_otype(t))
 	if ret < 0 {
 		return nil, LastError()
 	}
 
-	return tree, nil
+	return allocObject(ptr), nil
 }
 
-func (v *Repository) LookupCommit(o *Oid) (*Commit, error) {
-	commit := new(Commit)
-	ecode := C.git_commit_lookup(&commit.ptr, v.ptr, o.toC())
-	if ecode < 0 {
-		return nil, LastError()
-	}
-
-	return commit, nil
+func (v *Repository) Lookup(oid *Oid) (Object, error) {
+	return v.lookupType(oid, OBJ_ANY)
 }
 
-func (v *Repository) LookupBlob(o *Oid) (*Blob, error) {
-	blob := new(Blob)
-	ecode := C.git_blob_lookup(&blob.ptr, v.ptr, o.toC())
-	if ecode < 0 {
-		return nil, LastError()
+func (v *Repository) LookupTree(oid *Oid) (*Tree, error) {
+	obj, err := v.lookupType(oid, OBJ_TREE)
+	if err != nil {
+		return nil, err
 	}
 
-	runtime.SetFinalizer(blob, (*Blob).Free)
-	return blob, nil
+	return obj.(*Tree), nil
+}
+
+func (v *Repository) LookupCommit(oid *Oid) (*Commit, error) {
+	obj, err := v.lookupType(oid, OBJ_COMMIT)
+	if err != nil {
+		return nil, err
+	}
+
+	return obj.(*Commit), nil
+}
+
+func (v *Repository) LookupBlob(oid *Oid) (*Blob, error) {
+	obj, err := v.lookupType(oid, OBJ_BLOB)
+	if err != nil {
+		return nil, err
+	}
+
+	return obj.(*Blob), nil
 }
 
 func (v *Repository) LookupReference(name string) (*Reference, error) {
@@ -245,3 +255,15 @@ func (v *Repository) TreeBuilder() (*TreeBuilder, error) {
 	return bld, nil
 }
 
+func (v *Repository) RevparseSingle(spec string) (Object, error) {
+	cspec := C.CString(spec)
+	defer C.free(unsafe.Pointer(cspec))
+
+	var ptr *C.git_object
+	ecode := C.git_revparse_single(&ptr, v.ptr, cspec)
+	if ecode < 0 {
+		return nil, LastError()
+	}
+
+	return allocObject(ptr), nil
+}
