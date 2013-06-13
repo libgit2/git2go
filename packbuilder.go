@@ -76,10 +76,11 @@ func (pb *Packbuilder) WriteToFile(name string) error {
 }
 
 func (pb *Packbuilder) Write(w io.Writer) error {
-	ch := pb.ForEach()
+	ch, stop := pb.ForEach()
 	for slice := range ch {
 		_, err := w.Write(slice)
 		if err != nil {
+			close(stop)
 			return err
 		}
 	}
@@ -90,22 +91,40 @@ func (pb *Packbuilder) Written() uint32 {
 	return uint32(C.git_packbuilder_written(pb.ptr))
 }
 
+type packbuilderCbData struct {
+	ch chan<- []byte
+	stop <-chan bool
+}
+
 //export packbuilderForEachCb
 func packbuilderForEachCb(buf unsafe.Pointer, size C.size_t, payload unsafe.Pointer) int {
-	ch := *(*chan []byte)(payload)
+	data := (*packbuilderCbData)(payload)
+	ch := data.ch
+	stop := data.stop
 
 	slice := C.GoBytes(buf, C.int(size))
-	ch <- slice
+	select {
+	case <- stop:
+		return -1
+	case ch <- slice:
+	}
+
 	return 0
 }
 
-func (pb *Packbuilder) forEachWrap(ch chan []byte) {
-	C._go_git_packbuilder_foreach(pb.ptr, unsafe.Pointer(&ch))
-	close(ch)
+func (pb *Packbuilder) forEachWrap(data *packbuilderCbData) {
+	C._go_git_packbuilder_foreach(pb.ptr, unsafe.Pointer(data))
+	close(data.ch)
 }
 
-func (pb *Packbuilder) ForEach() chan []byte {
-	ch := make(chan []byte, 0)
-	go pb.forEachWrap(ch)
-	return ch
+// Foreach sends the packfile as slices through the "data" channel. If
+// you want to stop the pack-building process (e.g. there's an error
+// writing to the output), close or write a value into the "stop"
+// channel.
+func (pb *Packbuilder) ForEach() (data <-chan []byte, stop chan<- bool) {
+	ch := make(chan []byte)
+	stop := make(chan bool)
+	data := packbuilderCbData{ch, stop}
+	go pb.forEachWrap(&data)
+	return ch, stop
 }
