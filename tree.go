@@ -14,40 +14,24 @@ import (
 )
 
 type Tree struct {
-	ptr *C.git_tree
+	gitObject
 }
 
 type TreeEntry struct {
 	Name string
 	Id  *Oid
-	Type int
+	Type ObjectType
 }
 
 func newTreeEntry(entry *C.git_tree_entry) *TreeEntry {
 	return &TreeEntry{
 		C.GoString(C.git_tree_entry_name(entry)),
 		newOidFromC(C.git_tree_entry_id(entry)),
-		int(C.git_tree_entry_type(entry)),
+		ObjectType(C.git_tree_entry_type(entry)),
 	}
 }
 
-func (t *Tree) Free() {
-	runtime.SetFinalizer(t, nil)
-	C.git_tree_free(t.ptr)
-}
-
-func TreeLookup(repo *Repository, oid *Oid) (*Tree, error) {
-	tree := new(Tree)
-	err := C.git_tree_lookup(&tree.ptr, repo.ptr, oid.toC())
-	if err < 0 {
-		return nil, LastError()
-	}
-
-	runtime.SetFinalizer(tree, (*Tree).Free)
-	return tree, nil
-}
-
-func (t *Tree) EntryByName(filename string) *TreeEntry {
+func (t Tree) EntryByName(filename string) *TreeEntry {
 	cname := C.CString(filename)
 	defer C.free(unsafe.Pointer(cname))
 
@@ -59,7 +43,7 @@ func (t *Tree) EntryByName(filename string) *TreeEntry {
 	return newTreeEntry(entry)
 }
 
-func (t *Tree) EntryByIndex(index uint64) *TreeEntry {
+func (t Tree) EntryByIndex(index uint64) *TreeEntry {
 	entry := C.git_tree_entry_byindex(t.ptr, C.size_t(index))
 	if entry == nil {
 		return nil
@@ -68,7 +52,7 @@ func (t *Tree) EntryByIndex(index uint64) *TreeEntry {
 	return newTreeEntry(entry)
 }
 
-func (t *Tree) EntryCount() uint64 {
+func (t Tree) EntryCount() uint64 {
 	num := C.git_tree_entrycount(t.ptr)
 	return uint64(num)
 }
@@ -84,7 +68,7 @@ func CallbackGitTreeWalk(_root unsafe.Pointer, _entry unsafe.Pointer, ptr unsafe
 	return C.int(callback(root, newTreeEntry(entry)))
 }
 
-func (t *Tree) Walk(callback TreeWalkCallback) error {
+func (t Tree) Walk(callback TreeWalkCallback) error {
 	err := C._go_git_treewalk(
 		t.ptr,
 		C.GIT_TREEWALK_PRE,

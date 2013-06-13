@@ -7,24 +7,18 @@ package git
 */
 import "C"
 import (
-	"runtime"
 	"unsafe"
 )
 
 type Blob struct {
-	ptr *C.git_object
+	gitObject
 }
 
-func (v *Blob) Free() {
-	runtime.SetFinalizer(v, nil)
-	C.git_object_free(v.ptr)
-}
-
-func (v *Blob) Size() int64 {
+func (v Blob) Size() int64 {
 	return int64(C.git_blob_rawsize(v.ptr))
 }
 
-func (v *Blob) Contents() []byte {
+func (v Blob) Contents() []byte {
 	size := C.int(C.git_blob_rawsize(v.ptr))
 	buffer := unsafe.Pointer(C.git_blob_rawcontent(v.ptr))
 	return C.GoBytes(buffer, size)
