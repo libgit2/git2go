@@ -121,7 +121,7 @@ func (pb *Packbuilder) forEachWrap(data *packbuilderCbData) {
 // you want to stop the pack-building process (e.g. there's an error
 // writing to the output), close or write a value into the "stop"
 // channel.
-func (pb *Packbuilder) ForEach() (data <-chan []byte, stop chan<- bool) {
+func (pb *Packbuilder) ForEach() (<-chan []byte, chan<- bool) {
 	ch := make(chan []byte)
 	stop := make(chan bool)
 	data := packbuilderCbData{ch, stop}
