@@ -5,6 +5,7 @@ import (
 	"runtime"
 	"sort"
 	"testing"
+	"time"
 )
 
 func TestRefModification(t *testing.T) {
@@ -98,10 +99,10 @@ func TestIterator(t *testing.T) {
 	}
 
 	// test some manual iteration
-	name, err := iter.Next()
+	name, err := iter.NextName()
 	for err == nil {
 		list = append(list, name)
-		name, err = iter.Next()
+		name, err = iter.NextName()
 	}
 	if err != ErrIterOver {
 		t.Fatal("Iteration not over")
@@ -114,7 +115,7 @@ func TestIterator(t *testing.T) {
 	// test the channel iteration
 	list = []string{}
 	iter, err = repo.NewReferenceIterator()
-	for name := range iter.Iter() {
+	for name := range iter.NameIter() {
 		list = append(list, name)
 	}
 
@@ -128,7 +129,7 @@ func TestIterator(t *testing.T) {
 	}
 
 	list = []string{}
-	for name := range iter.Iter() {
+	for name := range iter.NameIter() {
 		list = append(list, name)
 	}
 
