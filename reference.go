@@ -45,7 +45,7 @@ func (v *Reference) SetSymbolicTarget(target string, sig *Signature, msg string)
 
 	ret := C.git_reference_symbolic_set_target(&ptr, v.ptr, ctarget, csig, cmsg)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	return newReferenceFromC(ptr), nil
@@ -65,7 +65,7 @@ func (v *Reference) SetTarget(target *Oid, sig *Signature, msg string) (*Referen
 
 	ret := C.git_reference_set_target(&ptr, v.ptr, target.toC(), csig, cmsg)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	return newReferenceFromC(ptr), nil
@@ -79,7 +79,7 @@ func (v *Reference) Resolve() (*Reference, error) {
 
 	ret := C.git_reference_resolve(&ptr, v.ptr)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	return newReferenceFromC(ptr), nil
@@ -102,7 +102,7 @@ func (v *Reference) Rename(name string, force bool, sig *Signature, msg string) 
 	ret := C.git_reference_rename(&ptr, v.ptr, cname, cbool(force), csig, cmsg)
 
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	return newReferenceFromC(ptr), nil
@@ -128,7 +128,7 @@ func (v *Reference) Delete() error {
 	ret := C.git_reference_delete(v.ptr)
 
 	if ret < 0 {
-		return LastError()
+		return MakeGitError(ret)
 	}
 
 	return nil
@@ -173,7 +173,7 @@ func (repo *Repository) NewReferenceIterator() (*ReferenceIterator, error) {
 
 	ret := C.git_reference_iterator_new(&ptr, repo.ptr)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	iter := &ReferenceIterator{repo: repo, ptr: ptr}
@@ -194,7 +194,7 @@ func (repo *Repository) NewReferenceIteratorGlob(glob string) (*ReferenceIterato
 
 	ret := C.git_reference_iterator_glob_new(&ptr, repo.ptr, cstr)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	iter := &ReferenceIterator{repo: repo, ptr: ptr}
@@ -215,7 +215,7 @@ func (v *ReferenceIterator) NextName() (string, error) {
 		return "", ErrIterOver
 	}
 	if ret < 0 {
-		return "", LastError()
+		return "", MakeGitError(ret)
 	}
 
 	return C.GoString(ptr), nil

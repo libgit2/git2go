@@ -94,7 +94,7 @@ func (c *Config) LookupInt32(name string) (int32, error) {
 
 	ret := C.git_config_get_int32(&out, c.ptr, cname)
 	if ret < 0 {
-		return 0, LastError()
+		return 0, MakeGitError(ret)
 	}
 
 	return int32(out), nil
@@ -110,7 +110,7 @@ func (c *Config) LookupInt64(name string) (int64, error) {
 
 	ret := C.git_config_get_int64(&out, c.ptr, cname)
 	if ret < 0 {
-		return 0, LastError()
+		return 0, MakeGitError(ret)
 	}
 
 	return int64(out), nil
@@ -125,7 +125,7 @@ func (c *Config) LookupString(name string) (string, error) {
 	defer runtime.UnlockOSThread()
 
 	if ret := C.git_config_get_string(&ptr, c.ptr, cname); ret < 0 {
-		return "", LastError()
+		return "", MakeGitError(ret)
 	}
 
 	return C.GoString(ptr), nil
@@ -220,7 +220,7 @@ func (c *Config) SetString(name, value string) (err error) {
 
 	ret := C.git_config_set_string(c.ptr, cname, cvalue)
 	if ret < 0 {
-		return LastError()
+		return MakeGitError(ret)
 	}
 
 	return nil
