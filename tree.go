@@ -76,7 +76,7 @@ func (t Tree) Walk(callback TreeWalkCallback) error {
 	)
 
 	if err < 0 {
-		return LastError()
+		return MakeGitError(err)
 	}
 
 	return nil
@@ -98,7 +98,7 @@ func (v *TreeBuilder) Insert(filename string, id *Oid, filemode int) (error) {
 
 	err := C.git_treebuilder_insert(nil, v.ptr, cfilename, id.toC(), C.git_filemode_t(filemode))
 	if err < 0 {
-		return LastError()
+		return MakeGitError(err)
 	}
 
 	return nil
@@ -109,7 +109,7 @@ func (v *TreeBuilder) Write() (*Oid, error) {
 	err := C.git_treebuilder_write(oid.toC(), v.repo.ptr, v.ptr)
 
 	if err < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(err)
 	}
 
 	return oid, nil

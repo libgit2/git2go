@@ -24,7 +24,7 @@ func (repo *Repository) NewPackbuilder() (*Packbuilder, error) {
 	builder := &Packbuilder{}
 	ret := C.git_packbuilder_new(&builder.ptr, repo.ptr)
 	if ret != 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 	runtime.SetFinalizer(builder, (*Packbuilder).Free)
 	return builder, nil
@@ -40,7 +40,7 @@ func (pb *Packbuilder) Insert(id *Oid, name string) error {
 	defer C.free(unsafe.Pointer(cname))
 	ret := C.git_packbuilder_insert(pb.ptr, id.toC(), cname)
 	if ret != 0 {
-		return LastError()
+		return MakeGitError(ret)
 	}
 	return nil
 }
@@ -48,7 +48,7 @@ func (pb *Packbuilder) Insert(id *Oid, name string) error {
 func (pb *Packbuilder) InsertCommit(id *Oid) error {
 	ret := C.git_packbuilder_insert_commit(pb.ptr, id.toC())
 	if ret != 0 {
-		return LastError()
+		return MakeGitError(ret)
 	}
 	return nil
 }
@@ -56,7 +56,7 @@ func (pb *Packbuilder) InsertCommit(id *Oid) error {
 func (pb *Packbuilder) InsertTree(id *Oid) error {
 	ret := C.git_packbuilder_insert_tree(pb.ptr, id.toC())
 	if ret != 0 {
-		return LastError()
+		return MakeGitError(ret)
 	}
 	return nil
 }
@@ -70,7 +70,7 @@ func (pb *Packbuilder) WriteToFile(name string) error {
 	defer C.free(unsafe.Pointer(cname))
 	ret := C.git_packbuilder_write(pb.ptr, cname, nil, nil)
 	if ret != 0 {
-		return LastError()
+		return MakeGitError(ret)
 	}
 	return nil
 }
