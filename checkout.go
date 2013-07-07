@@ -62,7 +62,7 @@ func (v *Repository) Checkout(opts *CheckoutOpts) error {
 
 	ret := C.git_checkout_head(v.ptr, &copts)
 	if ret < 0 {
-		return LastError()
+		return MakeGitError(ret)
 	}
 
 	return nil
@@ -75,7 +75,7 @@ func (v *Repository) CheckoutIndex(index *Index, opts *CheckoutOpts) error {
 
 	ret := C.git_checkout_index(v.ptr, index.ptr, &copts)
 	if ret < 0 {
-		return LastError()
+		return MakeGitError(ret)
 	}
 
 	return nil
