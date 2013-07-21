@@ -20,7 +20,7 @@ type Submodule struct {
 type SubmoduleUpdate int
 
 const (
-	SubmoduleUpdateDefault  SubmoduleUpdate = C.GIT_SUBMODULE_UPDATE_DEFAULT
+	SubmoduleUpdateReset    SubmoduleUpdate = C.GIT_SUBMODULE_UPDATE_RESET
 	SubmoduleUpdateCheckout                 = C.GIT_SUBMODULE_UPDATE_CHECKOUT
 	SubmoduleUpdateRebase                   = C.GIT_SUBMODULE_UPDATE_REBASE
 	SubmoduleUpdateMerge                    = C.GIT_SUBMODULE_UPDATE_MERGE
@@ -30,7 +30,7 @@ const (
 type SubmoduleIgnore int
 
 const (
-	SubmoduleIgnoreDefault   SubmoduleIgnore = C.GIT_SUBMODULE_IGNORE_DEFAULT
+	SubmoduleIgnoreReset     SubmoduleIgnore = C.GIT_SUBMODULE_IGNORE_RESET
 	SubmoduleIgnoreNone                      = C.GIT_SUBMODULE_IGNORE_NONE
 	SubmoduleIgnoreUntracked                 = C.GIT_SUBMODULE_IGNORE_UNTRACKED
 	SubmoduleIgnoreDirty                     = C.GIT_SUBMODULE_IGNORE_DIRTY
