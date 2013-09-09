@@ -33,8 +33,13 @@ func TestObjectPoymorphism(t *testing.T) {
 		t.Fatalf("Converting back to *Tree is not ok")
 	}
 
-	if tree2.EntryByName("README") == nil {
+	entry := tree2.EntryByName("README")
+	if entry == nil {
 		t.Fatalf("Tree did not have expected \"README\" entry")
+	}
+
+	if entry.Filemode != FilemodeBlob {
+		t.Fatal("Wrong filemode for \"README\"")
 	}
 
 	_, ok = obj.(*Commit)

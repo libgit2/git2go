@@ -13,6 +13,15 @@ import (
 	"unsafe"
 )
 
+const (
+	FilemodeNew            = C.GIT_FILEMODE_NEW
+	FilemodeTree           = C.GIT_FILEMODE_TREE
+	FilemodeBlob           = C.GIT_FILEMODE_BLOB
+	FilemodeBlobExecutable = C.GIT_FILEMODE_BLOB_EXECUTABLE
+	FilemodeLink           = C.GIT_FILEMODE_LINK
+	FilemodeCommit         = C.GIT_FILEMODE_COMMIT
+)
+
 type Tree struct {
 	gitObject
 }
@@ -21,6 +30,7 @@ type TreeEntry struct {
 	Name string
 	Id  *Oid
 	Type ObjectType
+	Filemode int
 }
 
 func newTreeEntry(entry *C.git_tree_entry) *TreeEntry {
@@ -28,6 +38,7 @@ func newTreeEntry(entry *C.git_tree_entry) *TreeEntry {
 		C.GoString(C.git_tree_entry_name(entry)),
 		newOidFromC(C.git_tree_entry_id(entry)),
 		ObjectType(C.git_tree_entry_type(entry)),
+		int(C.git_tree_entry_filemode(entry)),
 	}
 }
 
