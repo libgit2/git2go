@@ -23,7 +23,7 @@ func (v *Odb) Exists(oid *Oid) bool {
 	return ret != 0
 }
 
-func (v *Odb) Write(data []byte, otype int) (oid *Oid, err error) {
+func (v *Odb) Write(data []byte, otype ObjectType) (oid *Oid, err error) {
 	oid = new(Oid)
 	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&data))
 	ret := C.git_odb_write(oid.toC(), v.ptr, unsafe.Pointer(hdr.Data), C.size_t(hdr.Len), C.git_otype(otype))

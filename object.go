@@ -10,7 +10,7 @@ import "runtime"
 
 type ObjectType int
 
-var (
+const (
 	OBJ_ANY ObjectType = C.GIT_OBJ_ANY
 	OBJ_BAD ObjectType = C.GIT_OBJ_BAD
 	OBJ_COMMIT ObjectType = C.GIT_OBJ_COMMIT
