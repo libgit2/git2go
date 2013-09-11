@@ -35,6 +35,19 @@ const (
 	ConfigLevelHighest ConfigLevel = C.GIT_CONFIG_HIGHEST_LEVEL
 )
 
+type ConfigEntry struct {
+	Name string
+	Value string
+	Level ConfigLevel
+}
+
+func newConfigEntryFromC(centry *C.git_config_entry) *ConfigEntry {
+	return &ConfigEntry{
+		Name: C.GoString(centry.name),
+		Value: C.GoString(centry.value),
+		Level: ConfigLevel(centry.level),
+	}
+}
 
 type Config struct {
 	ptr *C.git_config
@@ -125,6 +138,55 @@ func (c *Config) LookupBool(name string) (bool, error) {
 	}
 
 	return out != 0, nil
+}
+
+func (c *Config) NewMultivarIterator(name, regexp string) (*ConfigIterator, error) {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+
+	var cregexp *C.char
+	if regexp == "" {
+		cregexp = nil
+	} else {
+		cregexp = C.CString(regexp)
+		defer C.free(unsafe.Pointer(cregexp))
+	}
+
+	iter := new(ConfigIterator)
+	ret := C.git_config_multivar_iterator_new(&iter.ptr, c.ptr, cname, cregexp)
+	if ret < 0 {
+		return nil, LastError()
+	}
+
+	runtime.SetFinalizer(iter, (*ConfigIterator).Free)
+	return iter, nil
+}
+
+// NewIterator creates an iterator over each entry in the
+// configuration
+func (c *Config) NewIterator() (*ConfigIterator, error) {
+	iter := new(ConfigIterator)
+	ret := C.git_config_iterator_new(&iter.ptr, c.ptr)
+	if ret < 0 {
+		return nil, LastError()
+	}
+
+	return iter, nil
+}
+
+// NewIteratorGlob creates an iterator over each entry in the
+// configuration whose name matches the given regular expression
+func (c *Config) NewIteratorGlob(regexp string) (*ConfigIterator, error) {
+	iter := new(ConfigIterator)
+	cregexp := C.CString(regexp)
+	defer C.free(unsafe.Pointer(cregexp))
+
+	ret := C.git_config_iterator_glob_new(&iter.ptr, c.ptr, cregexp)
+	if ret < 0 {
+		return nil, LastError()
+	}
+
+	return iter, nil
 }
 
 func (c *Config) SetString(name, value string) (err error) {
@@ -251,3 +313,25 @@ func (c *Config) Refresh() error {
 
 	return nil
 }
+
+type ConfigIterator struct {
+	ptr *C.git_config_iterator
+}
+
+// Next returns the next entry for this iterator
+func (iter *ConfigIterator) Next() (*ConfigEntry, error) {
+	var centry *C.git_config_entry
+
+	ret := C.git_config_next(&centry, iter.ptr)
+	if ret < 0 {
+		return nil, LastError()
+	}
+
+	return newConfigEntryFromC(centry), nil
+}
+
+func (iter *ConfigIterator) Free() {
+	runtime.SetFinalizer(iter, nil)
+	C.free(unsafe.Pointer(iter.ptr))
+}
+
