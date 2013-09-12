@@ -19,11 +19,11 @@ func TestRefModification(t *testing.T) {
 
 	tag, err := repo.LookupReference("refs/tags/tree")
 	checkFatal(t, err)
-	checkRefType(t, tag, OID)
+	checkRefType(t, tag, ReferenceOid)
 
 	ref, err := repo.LookupReference("HEAD")
 	checkFatal(t, err)
-	checkRefType(t, ref, SYMBOLIC)
+	checkRefType(t, ref, ReferenceSymbolic)
 
 	if target := ref.Target(); target != nil {
 		t.Fatalf("Expected nil *Oid, got %v", target)
@@ -31,7 +31,7 @@ func TestRefModification(t *testing.T) {
 
 	ref, err = ref.Resolve()
 	checkFatal(t, err)
-	checkRefType(t, ref, OID)
+	checkRefType(t, ref, ReferenceOid)
 
 	if target := ref.Target(); target == nil {
 		t.Fatalf("Expected valid target got nil")
@@ -49,7 +49,7 @@ func TestRefModification(t *testing.T) {
 	checkFatal(t, err)
 	tag, err = repo.LookupReference("refs/tags/renamed")
 	checkFatal(t, err)
-	checkRefType(t, ref, OID)
+	checkRefType(t, ref, ReferenceOid)
 
 }
 

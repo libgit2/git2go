@@ -11,9 +11,9 @@ import (
 	"unsafe"
 )
 
-var (
-	SYMBOLIC = C.GIT_REF_SYMBOLIC
-	OID      = C.GIT_REF_OID
+const (
+	ReferenceSymbolic = C.GIT_REF_SYMBOLIC
+	ReferenceOid      = C.GIT_REF_OID
 )
 
 type Reference struct {

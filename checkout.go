@@ -16,22 +16,22 @@ import (
 type CheckoutStrategy uint
 
 const (
-	CHECKOUT_NONE                         CheckoutStrategy = C.GIT_CHECKOUT_NONE                         // Dry run, no actual updates
-	CHECKOUT_SAFE                                          = C.GIT_CHECKOUT_SAFE                         // Allow safe updates that cannot overwrite uncommitted data
-	CHECKOUT_SAFE_CREATE                                   = C.GIT_CHECKOUT_SAFE_CREATE                  // Allow safe updates plus creation of missing files
-	CHECKOUT_FORCE                                         = C.GIT_CHECKOUT_FORCE                        // Allow all updates to force working directory to look like index
-	CHECKOUT_ALLOW_CONFLICTS                               = C.GIT_CHECKOUT_ALLOW_CONFLICTS              // Allow checkout to make safe updates even if conflicts are found
-	CHECKOUT_REMOVE_UNTRACKED                              = C.GIT_CHECKOUT_REMOVE_UNTRACKED             // Remove untracked files not in index (that are not ignored)
-	CHECKOUT_REMOVE_IGNORED                                = C.GIT_CHECKOUT_REMOVE_IGNORED               // Remove ignored files not in index
-	CHECKOUT_UPDATE_ONLY                                   = C.GIT_CHECKOUT_UPDATE_ONLY                  // Only update existing files, don't create new ones
-	CHECKOUT_DONT_UPDATE_INDEX                             = C.GIT_CHECKOUT_DONT_UPDATE_INDEX            // Normally checkout updates index entries as it goes; this stops that
-	CHECKOUT_NO_REFRESH                                    = C.GIT_CHECKOUT_NO_REFRESH                   // Don't refresh index/config/etc before doing checkout
-	CHECKOUT_DISABLE_PATHSPEC_MATCH                        = C.GIT_CHECKOUT_DISABLE_PATHSPEC_MATCH       // Treat pathspec as simple list of exact match file paths
-	CHECKOUT_SKIP_UNMERGED                                 = C.GIT_CHECKOUT_SKIP_UNMERGED                // Allow checkout to skip unmerged files (NOT IMPLEMENTED)
-	CHECKOUT_USE_OURS                                      = C.GIT_CHECKOUT_USE_OURS                     // For unmerged files, checkout stage 2 from index (NOT IMPLEMENTED)
-	CHECKOUT_USE_THEIRS                                    = C.GIT_CHECKOUT_USE_THEIRS                   // For unmerged files, checkout stage 3 from index (NOT IMPLEMENTED)
-	CHECKOUT_UPDATE_SUBMODULES                             = C.GIT_CHECKOUT_UPDATE_SUBMODULES            // Recursively checkout submodules with same options (NOT IMPLEMENTED)
-	CHECKOUT_UPDATE_SUBMODULES_IF_CHANGED                  = C.GIT_CHECKOUT_UPDATE_SUBMODULES_IF_CHANGED // Recursively checkout submodules if HEAD moved in super repo (NOT IMPLEMENTED)
+	CheckoutNone                      CheckoutStrategy = C.GIT_CHECKOUT_NONE                         // Dry run, no actual updates
+	CheckoutSafe                                       = C.GIT_CHECKOUT_SAFE                         // Allow safe updates that cannot overwrite uncommitted data
+	CheckoutSafeCreate                                 = C.GIT_CHECKOUT_SAFE_CREATE                  // Allow safe updates plus creation of missing files
+	CheckoutForce                                      = C.GIT_CHECKOUT_FORCE                        // Allow all updates to force working directory to look like index
+	CheckoutAllowConflicts                             = C.GIT_CHECKOUT_ALLOW_CONFLICTS              // Allow checkout to make safe updates even if conflicts are found
+	CheckoutRemoveUntracked                            = C.GIT_CHECKOUT_REMOVE_UNTRACKED             // Remove untracked files not in index (that are not ignored)
+	CheckoutRemoveIgnored                              = C.GIT_CHECKOUT_REMOVE_IGNORED               // Remove ignored files not in index
+	CheckotUpdateOnly                                  = C.GIT_CHECKOUT_UPDATE_ONLY                  // Only update existing files, don't create new ones
+	CheckoutDontUpdateIndex                            = C.GIT_CHECKOUT_DONT_UPDATE_INDEX            // Normally checkout updates index entries as it goes; this stops that
+	CheckoutNoRefresh                                  = C.GIT_CHECKOUT_NO_REFRESH                   // Don't refresh index/config/etc before doing checkout
+	CheckooutDisablePathspecMatch                      = C.GIT_CHECKOUT_DISABLE_PATHSPEC_MATCH       // Treat pathspec as simple list of exact match file paths
+	CheckoutSkipUnmerged                               = C.GIT_CHECKOUT_SKIP_UNMERGED                // Allow checkout to skip unmerged files (NOT IMPLEMENTED)
+	CheckoutUserOurs                                   = C.GIT_CHECKOUT_USE_OURS                     // For unmerged files, checkout stage 2 from index (NOT IMPLEMENTED)
+	CheckoutUseTheirs                                  = C.GIT_CHECKOUT_USE_THEIRS                   // For unmerged files, checkout stage 3 from index (NOT IMPLEMENTED)
+	CheckoutUpdateSubmodules                           = C.GIT_CHECKOUT_UPDATE_SUBMODULES            // Recursively checkout submodules with same options (NOT IMPLEMENTED)
+	CheckoutUpdateSubmodulesIfChanged                  = C.GIT_CHECKOUT_UPDATE_SUBMODULES_IF_CHANGED // Recursively checkout submodules if HEAD moved in super repo (NOT IMPLEMENTED)
 )
 
 type CheckoutOpts struct {

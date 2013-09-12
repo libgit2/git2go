@@ -16,15 +16,19 @@ func TestObjectPoymorphism(t *testing.T) {
 	checkFatal(t, err)
 
 	obj = commit
-	if obj.Type() != OBJ_COMMIT {
+	if obj.Type() != ObjectCommit {
 		t.Fatalf("Wrong object type, expected commit, have %v", obj.Type())
 	}
+
+	commitTree, err := commit.Tree()
+	checkFatal(t, err)
+	commitTree.EntryCount()
 
 	tree, err := repo.LookupTree(treeId)
 	checkFatal(t, err)
 
 	obj = tree
-	if obj.Type() != OBJ_TREE {
+	if obj.Type() != ObjectTree {
 		t.Fatalf("Wrong object type, expected tree, have %v", obj.Type())
 	}
 
@@ -55,19 +59,19 @@ func TestObjectPoymorphism(t *testing.T) {
 		t.Fatalf("Lookup creates the wrong type")
 	}
 
-	if obj.Type() != OBJ_TREE {
+	if obj.Type() != ObjectTree {
 		t.Fatalf("Type() doesn't agree with dynamic type")
 	}
 
 	obj, err = repo.RevparseSingle("HEAD")
 	checkFatal(t, err)
-	if obj.Type() != OBJ_COMMIT || obj.Id().String() != commit.Id().String() {
+	if obj.Type() != ObjectCommit || obj.Id().String() != commit.Id().String() {
 		t.Fatalf("Failed to parse the right revision")
 	}
 
 	obj, err = repo.RevparseSingle("HEAD^{tree}")
 	checkFatal(t, err)
-	if obj.Type() != OBJ_TREE || obj.Id().String() != tree.Id().String() {
+	if obj.Type() != ObjectTree || obj.Id().String() != tree.Id().String() {
 		t.Fatalf("Failed to parse the right revision")
 	}
 }
