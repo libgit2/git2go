@@ -54,6 +54,21 @@ func (t Tree) EntryByName(filename string) *TreeEntry {
 	return newTreeEntry(entry)
 }
 
+// EntryByPath looks up an entry by its full path, recursing into
+// deeper trees if necessary (i.e. if there are slashes in the path)
+func (t Tree) EntryByPath(path string) (*TreeEntry, error) {
+	cpath := C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
+	var entry *C.git_tree_entry
+
+	ret := C.git_tree_entry_bypath(&entry, t.ptr, cpath)
+	if ret < 0 {
+		return nil, LastError()
+	}
+
+	return newTreeEntry(entry), nil
+}
+
 func (t Tree) EntryByIndex(index uint64) *TreeEntry {
 	entry := C.git_tree_entry_byindex(t.ptr, C.size_t(index))
 	if entry == nil {
