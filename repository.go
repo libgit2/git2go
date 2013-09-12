@@ -83,11 +83,11 @@ func (v *Repository) lookupType(oid *Oid, t ObjectType) (Object, error) {
 }
 
 func (v *Repository) Lookup(oid *Oid) (Object, error) {
-	return v.lookupType(oid, OBJ_ANY)
+	return v.lookupType(oid, ObjectAny)
 }
 
 func (v *Repository) LookupTree(oid *Oid) (*Tree, error) {
-	obj, err := v.lookupType(oid, OBJ_TREE)
+	obj, err := v.lookupType(oid, ObjectTree)
 	if err != nil {
 		return nil, err
 	}
@@ -96,7 +96,7 @@ func (v *Repository) LookupTree(oid *Oid) (*Tree, error) {
 }
 
 func (v *Repository) LookupCommit(oid *Oid) (*Commit, error) {
-	obj, err := v.lookupType(oid, OBJ_COMMIT)
+	obj, err := v.lookupType(oid, ObjectCommit)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func (v *Repository) LookupCommit(oid *Oid) (*Commit, error) {
 }
 
 func (v *Repository) LookupBlob(oid *Oid) (*Blob, error) {
-	obj, err := v.lookupType(oid, OBJ_BLOB)
+	obj, err := v.lookupType(oid, ObjectBlob)
 	if err != nil {
 		return nil, err
 	}

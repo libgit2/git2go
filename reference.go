@@ -11,9 +11,10 @@ import (
 	"unsafe"
 )
 
-var (
-	SYMBOLIC = C.GIT_REF_SYMBOLIC
-	OID      = C.GIT_REF_OID
+type ReferenceType int
+const (
+	ReferenceSymbolic ReferenceType = C.GIT_REF_SYMBOLIC
+	ReferenceOid                    = C.GIT_REF_OID
 )
 
 type Reference struct {
@@ -103,8 +104,8 @@ func (v *Reference) Name() string {
 	return C.GoString(C.git_reference_name(v.ptr))
 }
 
-func (v *Reference) Type() int {
-	return int(C.git_reference_type(v.ptr))
+func (v *Reference) Type() ReferenceType {
+	return ReferenceType(C.git_reference_type(v.ptr))
 }
 
 func (v *Reference) Free() {

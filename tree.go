@@ -13,8 +13,9 @@ import (
 	"unsafe"
 )
 
+type Filemode int
 const (
-	FilemodeNew            = C.GIT_FILEMODE_NEW
+	FilemodeNew   Filemode = C.GIT_FILEMODE_NEW
 	FilemodeTree           = C.GIT_FILEMODE_TREE
 	FilemodeBlob           = C.GIT_FILEMODE_BLOB
 	FilemodeBlobExecutable = C.GIT_FILEMODE_BLOB_EXECUTABLE
