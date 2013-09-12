@@ -144,7 +144,7 @@ func compareStringList(t *testing.T, expected, actual []string) {
 	}
 }
 
-func checkRefType(t *testing.T, ref *Reference, kind int) {
+func checkRefType(t *testing.T, ref *Reference, kind ReferenceType) {
 	if ref.Type() == kind {
 		return
 	}
