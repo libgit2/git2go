@@ -154,7 +154,7 @@ func (v *Repository) CreateSymbolicReference(name, target string, force bool) (*
 	return newReferenceFromC(ptr), nil
 }
 
-func (v *Repository) Walk() (*RevWalk, error) {
+func (v *Repository) NewRevWalk() (*RevWalk, error) {
 	walk := new(RevWalk)
 	ecode := C.git_revwalk_new(&walk.ptr, v.ptr)
 	if ecode < 0 {

@@ -10,7 +10,7 @@ func TestWalk(t *testing.T) {
 	defer os.RemoveAll(repo.Workdir())
 	commitId, _ := seedTestRepo(t, repo)
 
-	walk, err := repo.Walk()
+	walk, err := repo.NewRevWalk()
 	checkFatal(t, err)
 	walk.Push(commitId)
 	walk.Sorting(SortTime | SortReverse)
