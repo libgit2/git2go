@@ -125,6 +125,20 @@ func (v *Repository) LookupReference(name string) (*Reference, error) {
 	return newReferenceFromC(ptr), nil
 }
 
+func (v *Repository) LookupRemote(name string) (*Remote, error) {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+
+	var remote *C.git_remote
+	ecode := C.git_remote_load(&remote, v.ptr, cname)
+	if ecode < 0 {
+		return nil, LastError()
+	}
+
+	return newRemoteFromC(remote), nil
+
+}
+
 func (v *Repository) CreateReference(name string, oid *Oid, force bool) (*Reference, error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
@@ -205,6 +219,22 @@ func (v *Repository) CreateCommit(
 	}
 
 	return oid, nil
+}
+
+func (v *Repository) CreateRemote(name, url string) (*Remote, error) {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+
+	curl := C.CString(url)
+	defer C.free(unsafe.Pointer(curl))
+
+	var remote *C.git_remote
+	ret := C.git_remote_create(&remote, v.ptr, cname, curl)
+	if ret < 0 {
+		return nil, LastError()
+	}
+
+	return newRemoteFromC(remote), nil
 }
 
 func (v *Odb) Free() {
