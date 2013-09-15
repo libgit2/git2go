@@ -69,7 +69,7 @@ func (repo *Repository) LookupSubmodule(name string) (*Submodule, error) {
 	sub := new(Submodule)
 	ret := C.git_submodule_lookup(&sub.ptr, repo.ptr, cname)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, makeError(ret)
 	}
 
 	return sub, nil
@@ -85,11 +85,7 @@ func SubmoduleVisitor(csub unsafe.Pointer, name string, cfct unsafe.Pointer) int
 }
 
 func (repo *Repository) ForeachSubmodule(cbk SubmoduleCbk) error {
-	ret := C._go_git_visit_submodule(repo.ptr, unsafe.Pointer(&cbk))
-	if ret < 0 {
-		return LastError()
-	}
-	return nil
+	return makeError(C._go_git_visit_submodule(repo.ptr, unsafe.Pointer(&cbk)))
 }
 
 func (repo *Repository) AddSubmodule(url, path string, use_git_link bool) (*Submodule, error) {
@@ -101,33 +97,22 @@ func (repo *Repository) AddSubmodule(url, path string, use_git_link bool) (*Subm
 	sub := new(Submodule)
 	ret := C.git_submodule_add_setup(&sub.ptr, repo.ptr, curl, cpath, cbool(use_git_link))
 	if ret < 0 {
-		return nil, LastError()
+		return nil, makeError(ret)
 	}
+
 	return sub, nil
 }
 
 func (sub *Submodule) FinalizeAdd() error {
-	ret := C.git_submodule_add_finalize(sub.ptr)
-	if ret < 0 {
-		return LastError()
-	}
-	return nil
+	return makeError(C.git_submodule_add_finalize(sub.ptr))
 }
 
 func (sub *Submodule) AddToIndex(write_index bool) error {
-	ret := C.git_submodule_add_to_index(sub.ptr, cbool(write_index))
-	if ret < 0 {
-		return LastError()
-	}
-	return nil
+	return makeError(C.git_submodule_add_to_index(sub.ptr, cbool(write_index)))
 }
 
 func (sub *Submodule) Save() error {
-	ret := C.git_submodule_save(sub.ptr)
-	if ret < 0 {
-		return LastError()
-	}
-	return nil
+	return makeError(C.git_submodule_save(sub.ptr))
 }
 
 func (sub *Submodule) Owner() *Repository {
@@ -155,11 +140,7 @@ func (sub *Submodule) SetUrl(url string) error {
 	curl := C.CString(url)
 	defer C.free(unsafe.Pointer(curl))
 
-	ret := C.git_submodule_set_url(sub.ptr, curl)
-	if ret < 0 {
-		return LastError()
-	}
-	return nil
+	return makeError(C.git_submodule_set_url(sub.ptr, curl))
 }
 
 func (sub *Submodule) IndexId() *Oid {
@@ -214,50 +195,30 @@ func (sub *Submodule) FetchRecurseSubmodules() bool {
 }
 
 func (sub *Submodule) SetFetchRecurseSubmodules(v bool) error {
-	ret := C.git_submodule_set_fetch_recurse_submodules(sub.ptr, cbool(v))
-	if ret < 0 {
-		return LastError()
-	}
-	return nil
+	return makeError(C.git_submodule_set_fetch_recurse_submodules(sub.ptr, cbool(v)))
 }
 
 func (sub *Submodule) Init(overwrite bool) error {
-	ret := C.git_submodule_init(sub.ptr, cbool(overwrite))
-	if ret < 0 {
-		return LastError()
-	}
-	return nil
+	return makeError(C.git_submodule_init(sub.ptr, cbool(overwrite)))
 }
 
 func (sub *Submodule) Sync() error {
-	ret := C.git_submodule_sync(sub.ptr)
-	if ret < 0 {
-		return LastError()
-	}
-	return nil
+	return makeError(C.git_submodule_sync(sub.ptr))
 }
 
 func (sub *Submodule) Open() (*Repository, error) {
 	repo := new(Repository)
 	ret := C.git_submodule_open(&repo.ptr, sub.ptr)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, makeError(ret)
 	}
 	return repo, nil
 }
 
 func (sub *Submodule) Reload() error {
-	ret := C.git_submodule_reload(sub.ptr)
-	if ret < 0 {
-		return LastError()
-	}
-	return nil
+	return makeError(C.git_submodule_reload(sub.ptr))
 }
 
 func (repo *Repository) ReloadAllSubmodules() error {
-	ret := C.git_submodule_reload_all(repo.ptr)
-	if ret < 0 {
-		return LastError()
-	}
-	return nil
+	return makeError(C.git_submodule_reload_all(repo.ptr))
 }

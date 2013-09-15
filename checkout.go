@@ -60,12 +60,7 @@ func (v *Repository) Checkout(opts *CheckoutOpts) error {
 	var copts C.git_checkout_opts
 	populateCheckoutOpts(&copts, opts)
 
-	ret := C.git_checkout_head(v.ptr, &copts)
-	if ret < 0 {
-		return LastError()
-	}
-
-	return nil
+	return makeError(C.git_checkout_head(v.ptr, &copts))
 }
 
 // Updates files in the working tree to match the content of the index.
@@ -73,10 +68,5 @@ func (v *Repository) CheckoutIndex(index *Index, opts *CheckoutOpts) error {
 	var copts C.git_checkout_opts
 	populateCheckoutOpts(&copts, opts)
 
-	ret := C.git_checkout_index(v.ptr, index.ptr, &copts)
-	if ret < 0 {
-		return LastError()
-	}
-
-	return nil
+	return makeError(C.git_checkout_index(v.ptr, index.ptr, &copts))
 }

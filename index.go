@@ -25,19 +25,14 @@ func (v *Index) AddByPath(path string) error {
 	cstr := C.CString(path)
 	defer C.free(unsafe.Pointer(cstr))
 
-	ret := C.git_index_add_bypath(v.ptr, cstr)
-	if ret < 0 {
-		return LastError()
-	}
-
-	return nil
+	return makeError(C.git_index_add_bypath(v.ptr, cstr))
 }
 
 func (v *Index) WriteTree() (*Oid, error) {
 	oid := new(Oid)
 	ret := C.git_index_write_tree(oid.toC(), v.ptr)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, makeError(ret)
 	}
 
 	return oid, nil

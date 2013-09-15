@@ -68,8 +68,8 @@ func NewOidFromString(s string) (*Oid, error) {
 	cs := C.CString(s)
 	defer C.free(unsafe.Pointer(cs))
 
-	if C.git_oid_fromstr(o.toC(), cs) < 0 {
-		return nil, LastError()
+	if ret := C.git_oid_fromstr(o.toC(), cs); ret < 0 {
+		return nil, makeError(ret)
 	}
 
 	return o, nil
@@ -126,7 +126,7 @@ func ShortenOids(ids []*Oid, minlen int) (int, error) {
 		buf[40] = 0
 		ret = C.git_oid_shorten_add(shorten, (*C.char)(unsafe.Pointer(&buf[0])))
 		if ret < 0 {
-			return int(ret), LastError()
+			return int(ret), makeError(ret)
 		}
 	}
 	return int(ret), nil
@@ -216,5 +216,5 @@ func Discover(start string, across_fs bool, ceiling_dirs []string) (string, erro
 		return C.GoString(retpath), nil
 	}
 
-	return "", LastError()
+	return "", makeError(r)
 }

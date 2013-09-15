@@ -36,7 +36,7 @@ func (v *RevWalk) Push(id *Oid) {
 func (v *RevWalk) PushHead() (err error) {
 	ecode := C.git_revwalk_push_head(v.ptr)
 	if ecode < 0 {
-		err = LastError()
+		err = makeError(ecode)
 	}
 
 	return
@@ -48,7 +48,7 @@ func (v *RevWalk) Next(oid *Oid) (err error) {
 	case ret == ITEROVER:
 		err = io.EOF
 	case ret < 0:
-		err = LastError()
+		err = makeError(ret)
 	}
 
 	return
