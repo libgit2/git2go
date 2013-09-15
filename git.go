@@ -32,7 +32,6 @@ var (
 	ErrNonFastForward = errors.New("non fast-forward update")
 	ErrLocked = errors.New("locked resource")
 	ErrPassthrough = errors.New("pass through")
-	ErrGeneric = errors.New("generic error")
 )
 
 func init() {
@@ -152,7 +151,8 @@ func LastError() error {
 }
 
 // makeError transforms the return code from libgit2 into one of our
-// go-ish error variables
+// go-ish error variables. If ret is C.GIT_ERROR then the result of
+// LastError() is returned
 func makeError(ret C.int) error {
 	switch (ret) {
 	case C.GIT_ITEROVER:
@@ -183,7 +183,7 @@ func makeError(ret C.int) error {
 		return ErrPassthrough
 	}
 
-	return ErrGeneric
+	return LastError()
 }
 
 func cbool(b bool) C.int {
