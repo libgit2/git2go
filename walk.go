@@ -7,10 +7,6 @@ package git
 */
 import "C"
 
-import (
-	"io"
-)
-
 // RevWalk
 
 const (
@@ -43,15 +39,7 @@ func (v *RevWalk) PushHead() (err error) {
 }
 
 func (v *RevWalk) Next(oid *Oid) (err error) {
-	ret := C.git_revwalk_next(oid.toC(), v.ptr)
-	switch {
-	case ret == ITEROVER:
-		err = io.EOF
-	case ret < 0:
-		err = makeError(ret)
-	}
-
-	return
+	return makeError(C.git_revwalk_next(oid.toC(), v.ptr))
 }
 
 type RevWalkIterator func(commit *Commit) bool
@@ -60,7 +48,7 @@ func (v *RevWalk) Iterate(fun RevWalkIterator) (err error) {
 	oid := new(Oid)
 	for {
 		err = v.Next(oid)
-		if err == io.EOF {
+		if err == ErrIterOver {
 			return nil
 		}
 		if err != nil {

@@ -151,11 +151,7 @@ func (repo *Repository) NewReferenceIteratorGlob(glob string) (*ReferenceIterato
 // the returned error is git.ErrIterOver
 func (v *ReferenceIterator) NextName() (string, error) {
 	var ptr *C.char
-	ret := C.git_reference_next_name(&ptr, v.ptr)
-	if ret == ITEROVER {
-		return "", ErrIterOver
-	}
-	if ret < 0 {
+	if ret := C.git_reference_next_name(&ptr, v.ptr); ret < 0 {
 		return "", makeError(ret)
 	}
 
