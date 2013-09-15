@@ -20,7 +20,19 @@ const (
 )
 
 var (
-	ErrIterOver = errors.New("Iteration is over")
+	ErrIterOver = errors.New("iteration is over")
+	ErrNotFound = errors.New("not found")
+	ErrExists = errors.New("item already exists")
+	ErrAmbiguous = errors.New("ambiguous")
+	ErrShortBuffer = errors.New("the given buffer is too short")
+	ErrUser = errors.New("operation aborted by the user")
+	ErrBareRepo = errors.New("the repository is bare")
+	ErrOrphanedHead = errors.New("orphaned HEAD")
+	ErrUnmerged = errors.New("unmerged entries")
+	ErrNonFastForward = errors.New("non fast-forward update")
+	ErrLocked = errors.New("locked resource")
+	ErrPassthrough = errors.New("pass through")
+	ErrGeneric = errors.New("generic error")
 )
 
 func init() {
@@ -130,12 +142,48 @@ func (e GitError) Error() string{
 	return e.Message
 }
 
+// LastError returns the last error set by the library
 func LastError() error {
 	err := C.giterr_last()
 	if err == nil {
 		return &GitError{"No message", 0}
 	}
 	return &GitError{C.GoString(err.message), int(err.klass)}
+}
+
+// makeError transforms the return code from libgit2 into one of our
+// go-ish error variables
+func makeError(ret C.int) error {
+	switch (ret) {
+	case C.GIT_ITEROVER:
+		return ErrIterOver
+	case C.GIT_OK:
+		return nil
+	case C.GIT_ENOTFOUND:
+		return ErrNotFound
+	case C.GIT_EEXISTS:
+		return ErrExists
+	case C.GIT_EAMBIGUOUS:
+		return ErrAmbiguous
+	case C.GIT_EBUFS:
+		return ErrShortBuffer
+	case C.GIT_EUSER:
+		return ErrUser
+	case C.GIT_EBAREREPO:
+		return ErrBareRepo
+	case C.GIT_EORPHANEDHEAD:
+		return ErrOrphanedHead
+	case C.GIT_EUNMERGED:
+		return ErrUnmerged
+	case C.GIT_ENONFASTFORWARD:
+		return ErrNonFastForward
+	case C.GIT_ELOCKED:
+		return ErrLocked
+	case C.GIT_PASSTHROUGH:
+		return ErrPassthrough
+	}
+
+	return ErrGeneric
 }
 
 func cbool(b bool) C.int {
