@@ -72,6 +72,33 @@ func (v *Odb) ForEach() chan *Oid {
 	return ch
 }
 
+// NewReadStream opens a read stream from the ODB. Reading from it will give you the
+// contents of the object.
+func (v *Odb) NewReadStream(id *Oid) (*OdbReadStream, error) {
+	stream := new(OdbReadStream)
+	ret := C.git_odb_open_rstream(&stream.ptr, v.ptr, id.toC())
+	if ret < 0 {
+		return nil, LastError()
+	}
+
+	runtime.SetFinalizer(stream, (*OdbReadStream).Free)
+	return stream, nil
+}
+
+// NewWriteStream opens a write stream to the ODB, which allows you to
+// create a new object in the database. The size and type must be
+// known in advance
+func (v *Odb) NewWriteStream(size int, otype ObjectType) (*OdbWriteStream, error) {
+	stream := new(OdbWriteStream)
+	ret := C.git_odb_open_wstream(&stream.ptr, v.ptr, C.size_t(size), C.git_otype(otype))
+	if ret < 0 {
+		return nil, LastError()
+	}
+
+	runtime.SetFinalizer(stream, (*OdbWriteStream).Free)
+	return stream, nil
+}
+
 type OdbObject struct {
 	ptr *C.git_odb_object
 }
@@ -101,4 +128,69 @@ func (object *OdbObject) Data() (data []byte) {
 	sliceHeader.Data = uintptr(c_blob)
 
 	return blob
+}
+
+type OdbReadStream struct {
+	ptr *C.git_odb_stream
+}
+
+// Read reads from the stream
+func (stream *OdbReadStream) Read(data []byte) (int, error) {
+	header := (*reflect.SliceHeader)(unsafe.Pointer(&data))
+	ptr := (*C.char)(unsafe.Pointer(header.Data))
+	size := C.size_t(header.Cap)
+	ret := C.git_odb_stream_read(stream.ptr, ptr, size)
+	if ret < 0 {
+		return 0, LastError()
+	}
+
+	header.Len = int(ret)
+
+	return len(data), nil
+}
+
+// Close is a dummy function in order to implement the Closer and
+// ReadCloser interfaces
+func (stream *OdbReadStream) Close() error {
+	return nil
+}
+
+func (stream *OdbReadStream) Free() {
+	runtime.SetFinalizer(stream, nil)
+	C.git_odb_stream_free(stream.ptr)
+}
+
+type OdbWriteStream struct {
+	ptr *C.git_odb_stream
+	Id Oid
+}
+
+// Write writes to the stream
+func (stream *OdbWriteStream) Write(data []byte) (int, error) {
+	header := (*reflect.SliceHeader)(unsafe.Pointer(&data))
+	ptr := (*C.char)(unsafe.Pointer(header.Data))
+	size := C.size_t(header.Len)
+
+	ret := C.git_odb_stream_write(stream.ptr, ptr, size)
+	if ret < 0 {
+		return 0, LastError()
+	}
+
+	return len(data), nil
+}
+
+// Close signals that all the data has been written and stores the
+// resulting object id in the stream's Id field.
+func (stream *OdbWriteStream) Close() error {
+	ret := C.git_odb_stream_finalize_write(stream.Id.toC(), stream.ptr)
+	if ret < 0 {
+		return LastError()
+	}
+
+	return nil
+}
+
+func (stream *OdbWriteStream) Free() {
+	runtime.SetFinalizer(stream, nil)
+	C.git_odb_stream_free(stream.ptr)
 }
