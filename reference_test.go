@@ -112,6 +112,24 @@ func TestIterator(t *testing.T) {
 	sort.Strings(list)
 	compareStringList(t, expected, list)
 
+	// test the iterator for full refs, rather than just names
+	iter, err = repo.NewReferenceIterator()
+	checkFatal(t, err)
+	count := 0
+	_, err = iter.Next()
+	for err == nil {
+		count++
+		_, err = iter.Next()
+	}
+	if err != ErrIterOver {
+		t.Fatal("Iteration not over")
+	}
+
+	if count != 4 {
+		t.Fatalf("Wrong number of references returned %v", count)
+	}
+
+
 	// test the channel iteration
 	list = []string{}
 	iter, err = repo.NewReferenceIterator()
