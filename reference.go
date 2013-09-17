@@ -148,7 +148,7 @@ func (repo *Repository) NewReferenceIteratorGlob(glob string) (*ReferenceIterato
 	return iter, nil
 }
 
-// Next retrieves the next reference name. If the iteration is over,
+// NextName retrieves the next reference name. If the iteration is over,
 // the returned error is git.ErrIterOver
 func (v *ReferenceIterator) NextName() (string, error) {
 	var ptr *C.char
@@ -174,6 +174,38 @@ func (v *ReferenceIterator) NameIter() <-chan string {
 		for err == nil {
 			ch <- name
 			name, err = v.NextName()
+		}
+	}()
+
+	return ch
+}
+
+// Next retrieves the next reference. If the iterationis over, the
+// returned error is git.ErrIterOver
+func (v *ReferenceIterator) Next() (*Reference, error) {
+	var ptr *C.git_reference
+	ret := C.git_reference_next(&ptr, v.ptr)
+	if ret == ITEROVER {
+		return nil, ErrIterOver
+	}
+	if ret < 0 {
+		return nil, LastError()
+	}
+
+	return newReferenceFromC(ptr), nil
+}
+
+// Create a channel from the iterator. You can use range on the
+// returned channel to iterate over all the references names. The channel
+// will be closed in case any error is found.
+func (v *ReferenceIterator) Iter() <-chan *Reference {
+	ch := make(chan *Reference)
+	go func() {
+		defer close(ch)
+		name, err := v.Next()
+		for err == nil {
+			ch <- name
+			name, err = v.Next()
 		}
 	}()
 
