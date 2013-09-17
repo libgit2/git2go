@@ -11,12 +11,12 @@ import "runtime"
 type ObjectType int
 
 const (
-	OBJ_ANY ObjectType = C.GIT_OBJ_ANY
-	OBJ_BAD ObjectType = C.GIT_OBJ_BAD
-	OBJ_COMMIT ObjectType = C.GIT_OBJ_COMMIT
-	OBJ_TREE ObjectType = C.GIT_OBJ_TREE
-	OBJ_BLOB ObjectType = C.GIT_OBJ_BLOB
-	OBJ_TAG ObjectType = C.GIT_OBJ_TAG
+	ObjectAny ObjectType = C.GIT_OBJ_ANY
+	ObjectBad            = C.GIT_OBJ_BAD
+	ObjectCommit         = C.GIT_OBJ_COMMIT
+	ObjectTree           = C.GIT_OBJ_TREE
+	ObjectBlob           = C.GIT_OBJ_BLOB
+	ObjectTag            = C.GIT_OBJ_TAG
 )
 
 type Object interface {
@@ -31,17 +31,17 @@ type gitObject struct {
 
 func (t ObjectType) String() (string) {
 	switch (t) {
-	case OBJ_ANY:
+	case ObjectAny:
 		return "Any"
-	case OBJ_BAD:
+	case ObjectBad:
 		return "Bad"
-	case OBJ_COMMIT:
+	case ObjectCommit:
 		return "Commit"
-	case OBJ_TREE:
+	case ObjectTree:
 		return "Tree"
-	case OBJ_BLOB:
+	case ObjectBlob:
 		return "Blob"
-	case OBJ_TAG:
+	case ObjectTag:
 		return "tag"
 	}
 	// Never reached
@@ -64,17 +64,17 @@ func (o *gitObject) Free() {
 func allocObject(cobj *C.git_object) Object {
 
 	switch ObjectType(C.git_object_type(cobj)) {
-	case OBJ_COMMIT:
+	case ObjectCommit:
 		commit := &Commit{gitObject{cobj}}
 		runtime.SetFinalizer(commit, (*Commit).Free)
 		return commit
 
-	case OBJ_TREE:
+	case ObjectTree:
 		tree := &Tree{gitObject{cobj}}
 		runtime.SetFinalizer(tree, (*Tree).Free)
 		return tree
 
-	case OBJ_BLOB:
+	case ObjectBlob:
 		blob := &Blob{gitObject{cobj}}
 		runtime.SetFinalizer(blob, (*Blob).Free)
 		return blob
