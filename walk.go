@@ -8,6 +8,7 @@ import "C"
 
 import (
 	"io"
+	"runtime"
 )
 
 // RevWalk
@@ -34,6 +35,9 @@ func (v *RevWalk) Push(id *Oid) {
 }
 
 func (v *RevWalk) PushHead() (err error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ecode := C.git_revwalk_push_head(v.ptr)
 	if ecode < 0 {
 		err = LastError()
@@ -43,6 +47,9 @@ func (v *RevWalk) PushHead() (err error) {
 }
 
 func (v *RevWalk) Next(oid *Oid) (err error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_revwalk_next(oid.toC(), v.ptr)
 	switch {
 	case ret == ITEROVER:

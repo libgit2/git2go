@@ -9,6 +9,7 @@ import "C"
 import (
 	"bytes"
 	"errors"
+	"runtime"
 	"unsafe"
 	"strings"
 )
@@ -56,6 +57,9 @@ func NewOidFromString(s string) (*Oid, error) {
 	o := new(Oid)
 	cs := C.CString(s)
 	defer C.free(unsafe.Pointer(cs))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	if C.git_oid_fromstr(o.toC(), cs) < 0 {
 		return nil, LastError()
@@ -109,6 +113,10 @@ func ShortenOids(ids []*Oid, minlen int) (int, error) {
 	defer C.git_oid_shorten_free(shorten)
 
 	var ret C.int
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	for _, id := range ids {
 		buf := make([]byte, 41)
 		C.git_oid_fmt((*C.char)(unsafe.Pointer(&buf[0])), id.toC())
@@ -161,6 +169,9 @@ func Discover(start string, across_fs bool, ceiling_dirs []string) (string, erro
 
 	retpath := (*C.char)(C.malloc(C.GIT_PATH_MAX))
 	defer C.free(unsafe.Pointer(retpath))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	r := C.git_repository_discover(retpath, C.GIT_PATH_MAX, cstart, cbool(across_fs), ceildirs)
 

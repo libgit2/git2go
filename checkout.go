@@ -9,6 +9,7 @@ git_checkout_opts git_checkout_opts_init() {
 */
 import "C"
 import (
+	"runtime"
 	"os"
 )
 
@@ -59,6 +60,9 @@ func (v *Repository) Checkout(opts *CheckoutOpts) error {
 	var copts C.git_checkout_opts
 	populateCheckoutOpts(&copts, opts)
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_checkout_head(v.ptr, &copts)
 	if ret < 0 {
 		return LastError()
@@ -71,6 +75,9 @@ func (v *Repository) Checkout(opts *CheckoutOpts) error {
 func (v *Repository) CheckoutIndex(index *Index, opts *CheckoutOpts) error {
 	var copts C.git_checkout_opts
 	populateCheckoutOpts(&copts, opts)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	ret := C.git_checkout_index(v.ptr, index.ptr, &copts)
 	if ret < 0 {

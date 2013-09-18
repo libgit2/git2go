@@ -8,6 +8,7 @@ extern int _go_git_visit_submodule(git_repository *repo, void *fct);
 */
 import "C"
 import (
+	"runtime"
 	"unsafe"
 )
 
@@ -66,6 +67,10 @@ func (repo *Repository) LookupSubmodule(name string) (*Submodule, error) {
 	defer C.free(unsafe.Pointer(cname))
 
 	sub := new(Submodule)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_submodule_lookup(&sub.ptr, repo.ptr, cname)
 	if ret < 0 {
 		return nil, LastError()
@@ -84,6 +89,9 @@ func SubmoduleVisitor(csub unsafe.Pointer, name string, cfct unsafe.Pointer) int
 }
 
 func (repo *Repository) ForeachSubmodule(cbk SubmoduleCbk) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C._go_git_visit_submodule(repo.ptr, unsafe.Pointer(&cbk))
 	if ret < 0 {
 		return LastError()
@@ -98,6 +106,10 @@ func (repo *Repository) AddSubmodule(url, path string, use_git_link bool) (*Subm
 	defer C.free(unsafe.Pointer(cpath))
 
 	sub := new(Submodule)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_submodule_add_setup(&sub.ptr, repo.ptr, curl, cpath, cbool(use_git_link))
 	if ret < 0 {
 		return nil, LastError()
@@ -106,6 +118,9 @@ func (repo *Repository) AddSubmodule(url, path string, use_git_link bool) (*Subm
 }
 
 func (sub *Submodule) FinalizeAdd() error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_submodule_add_finalize(sub.ptr)
 	if ret < 0 {
 		return LastError()
@@ -114,6 +129,9 @@ func (sub *Submodule) FinalizeAdd() error {
 }
 
 func (sub *Submodule) AddToIndex(write_index bool) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_submodule_add_to_index(sub.ptr, cbool(write_index))
 	if ret < 0 {
 		return LastError()
@@ -122,6 +140,9 @@ func (sub *Submodule) AddToIndex(write_index bool) error {
 }
 
 func (sub *Submodule) Save() error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_submodule_save(sub.ptr)
 	if ret < 0 {
 		return LastError()
@@ -153,6 +174,9 @@ func (sub *Submodule) Url() string {
 func (sub *Submodule) SetUrl(url string) error {
 	curl := C.CString(url)
 	defer C.free(unsafe.Pointer(curl))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	ret := C.git_submodule_set_url(sub.ptr, curl)
 	if ret < 0 {
@@ -213,6 +237,9 @@ func (sub *Submodule) FetchRecurseSubmodules() bool {
 }
 
 func (sub *Submodule) SetFetchRecurseSubmodules(v bool) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_submodule_set_fetch_recurse_submodules(sub.ptr, cbool(v))
 	if ret < 0 {
 		return LastError()
@@ -221,6 +248,9 @@ func (sub *Submodule) SetFetchRecurseSubmodules(v bool) error {
 }
 
 func (sub *Submodule) Init(overwrite bool) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_submodule_init(sub.ptr, cbool(overwrite))
 	if ret < 0 {
 		return LastError()
@@ -229,6 +259,9 @@ func (sub *Submodule) Init(overwrite bool) error {
 }
 
 func (sub *Submodule) Sync() error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_submodule_sync(sub.ptr)
 	if ret < 0 {
 		return LastError()
@@ -238,6 +271,10 @@ func (sub *Submodule) Sync() error {
 
 func (sub *Submodule) Open() (*Repository, error) {
 	repo := new(Repository)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_submodule_open(&repo.ptr, sub.ptr)
 	if ret < 0 {
 		return nil, LastError()
@@ -246,6 +283,9 @@ func (sub *Submodule) Open() (*Repository, error) {
 }
 
 func (sub *Submodule) Reload() error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_submodule_reload(sub.ptr)
 	if ret < 0 {
 		return LastError()
@@ -254,6 +294,9 @@ func (sub *Submodule) Reload() error {
 }
 
 func (repo *Repository) ReloadAllSubmodules() error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_submodule_reload_all(repo.ptr)
 	if ret < 0 {
 		return LastError()

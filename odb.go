@@ -25,6 +25,10 @@ func (v *Odb) Exists(oid *Oid) bool {
 func (v *Odb) Write(data []byte, otype ObjectType) (oid *Oid, err error) {
 	oid = new(Oid)
 	hdr := (*reflect.SliceHeader)(unsafe.Pointer(&data))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_odb_write(oid.toC(), v.ptr, unsafe.Pointer(hdr.Data), C.size_t(hdr.Len), C.git_otype(otype))
 
 	if ret < 0 {
@@ -36,6 +40,10 @@ func (v *Odb) Write(data []byte, otype ObjectType) (oid *Oid, err error) {
 
 func (v *Odb) Read(oid *Oid) (obj *OdbObject, err error) {
 	obj = new(OdbObject)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_odb_read(&obj.ptr, v.ptr, oid.toC())
 	if ret < 0 {
 		return nil, LastError()
