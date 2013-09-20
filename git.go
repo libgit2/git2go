@@ -42,6 +42,10 @@ func newOidFromC(coid *C.git_oid) *Oid {
 	return oid
 }
 
+func CopyOid(oid *Oid, coid *C.git_oid) {
+	copy(oid.bytes[0:20], C.GoBytes(unsafe.Pointer(coid), 20))
+}
+
 func NewOid(b []byte) *Oid {
 	oid := new(Oid)
 	copy(oid.bytes[0:20], b[0:20])

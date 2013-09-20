@@ -24,4 +24,20 @@ int _go_git_odb_foreach(git_odb *db, void *payload)
 {
     return git_odb_foreach(db, (git_odb_foreach_cb)&odbForEachCb, payload);
 }
+
+int _go_git_remote_ls(git_remote *remote, void *payload)
+{
+	return git_remote_ls(remote, (git_headlist_cb) remoteHeadlistCb, payload);
+}
+
 /* EOF */
+
+
+
+
+
+
+
+
+
+

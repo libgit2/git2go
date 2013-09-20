@@ -4,6 +4,8 @@ package git
 #cgo pkg-config: libgit2
 #include <git2.h>
 #include <git2/errors.h>
+
+extern int _go_git_remote_ls(git_remote *remote, void *payload);
 */
 import "C"
 import (
@@ -33,6 +35,9 @@ type Remote struct {
 }
 
 func (r *Remote) Connect(direction RemoteDirection) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_remote_connect(r.ptr, C.git_direction(direction))
 	if ret < 0 {
 		return LastError()
@@ -62,12 +67,49 @@ func (r *Remote) Stop() {
 }
 
 func (r *Remote) Save() error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_remote_save(r.ptr)
 	if ret < 0 {
 		return LastError()
 	}
 
 	return nil
+}
+
+func (r *Remote) Ls() ([]*RemoteHead, error) {
+	var data headlistData
+
+	ret := C._go_git_remote_ls(r.ptr, unsafe.Pointer(&data))
+	if ret < 0 {
+		return nil, LastError()
+	}
+
+	return data.slice, nil
+}
+
+func (r *Remote) Download (error) {
+	ret := C.git_remote_download(r.ptr)
+	if ret < 0 {
+		LastError()
+	}
+
+	return nil
+}
+
+type headlistData struct {
+	slice []*RemoteHead
+}
+
+//export remoteHeadlistCb
+func remoteHeadlistCb(rhead *C.git_remote_head, dataptr unsafe.Pointer) int {
+	data := (*headlistData)(dataptr)
+
+	head := newRemoteHeadFromC(rhead)
+	data.slice = append(data.slice, head)
+
+	return 0
 }
 
 func (r *Remote) Free() {
@@ -87,6 +129,27 @@ func newRemoteFromC(ptr *C.git_remote) *Remote {
 	return remote
 }
 
+// remote heads
+
+// RemoteHead represents a reference available in the remote repository.
+type RemoteHead struct {
+	Local bool
+	Oid   Oid
+	Loid  Oid
+	Name  string
+}
+
+func newRemoteHeadFromC(ptr *C.git_remote_head) *RemoteHead {
+	head := &RemoteHead {
+		Local: ptr.local != 0,
+		Name: C.GoString(ptr.name),
+	}
+
+	CopyOid(&head.Oid, &ptr.oid)
+	CopyOid(&head.Loid, &ptr.loid)
+
+	return head
+}
 
 // These belong to the git_remote namespace but don't require any remote
 
