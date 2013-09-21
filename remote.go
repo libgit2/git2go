@@ -30,6 +30,7 @@ const (
 )
 
 type ProgressCb func([]byte) int
+type TransferProgressCb func(*TransferProgress) int
 type UpdateTipsCb func(string, *Oid, *Oid) int
 
 type Remote struct {
@@ -38,6 +39,7 @@ type Remote struct {
 
 	// callbacks
 	Progress   ProgressCb
+	TransferProgress TransferProgressCb
 	UpdateTips UpdateTipsCb
 
 	ptr  *C.git_remote
@@ -98,6 +100,24 @@ func (r *Remote) Ls() ([]*RemoteHead, error) {
 	return data.slice, nil
 }
 
+func (r *Remote) Download() error {
+	ret := C.git_remote_download(r.ptr)
+	if ret < 0 {
+		LastError()
+	}
+
+	return nil
+}
+
+func (r *Remote) Fetch() error {
+	ret := C.git_remote_fetch(r.ptr)
+	if ret < 0 {
+		LastError()
+	}
+
+	return nil
+}
+
 //export remoteProgress
 func remoteProgress(str *C.char, length C.int, data unsafe.Pointer) int {
 	remote := (*Remote)(data)
@@ -108,24 +128,27 @@ func remoteProgress(str *C.char, length C.int, data unsafe.Pointer) int {
 	return 0
 }
 
-//export remoteUpdateTips
-func remoteUpdateTips(str *C.char, a, b *C.git_oid, data unsafe.Pointer) int {
+//export remoteTransferProgress
+func remoteTransferProgress(ptr *C.git_transfer_progress, data unsafe.Pointer) int {
 	remote := (*Remote)(data)
-	if remote.UpdateTips != nil {
-		goa, gob := newOidFromC(a), newOidFromC(b)
-		return remote.UpdateTips(C.GoString(str), goa, gob)
+	if remote.TransferProgress != nil {
+		return remote.TransferProgress(newTransferProgressFromC(ptr))
 	}
 
 	return 0
 }
 
-func (r *Remote) Download() (error) {
-	ret := C.git_remote_download(r.ptr)
-	if ret < 0 {
-		LastError()
+//export remoteUpdateTips
+func remoteUpdateTips(str *C.char, a, b *C.git_oid, data unsafe.Pointer) int {
+	remote := (*Remote)(data)
+	if remote.UpdateTips != nil {
+		var goa, gob Oid
+		CopyOid(&goa, a)
+		CopyOid(&gob, b)
+		return remote.UpdateTips(C.GoString(str), &goa, &gob)
 	}
 
-	return nil
+	return 0
 }
 
 type headlistData struct {
@@ -160,6 +183,24 @@ func newRemoteFromC(ptr *C.git_remote) *Remote {
 	runtime.SetFinalizer(remote, (*Remote).Free)
 
 	return remote
+}
+
+// transfer progress
+
+type TransferProgress struct {
+	TotalObjects    uint
+	IndexedObjects  uint
+	ReceivedObjects uint
+	ReceivedBytes   uint64
+}
+
+func newTransferProgressFromC(ptr *C.git_transfer_progress) *TransferProgress {
+	return &TransferProgress{
+		TotalObjects:    uint(ptr.total_objects),
+		IndexedObjects:  uint(ptr.indexed_objects),
+		ReceivedObjects: uint(ptr.received_objects),
+		ReceivedBytes:   uint64(ptr.received_bytes),
+	}
 }
 
 // remote heads

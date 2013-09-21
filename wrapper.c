@@ -36,6 +36,7 @@ int _go_git_remote_set_callbacks(git_remote *remote, void *payload)
 	git_remote_callbacks cbs = GIT_REMOTE_CALLBACKS_INIT;
 
 	cbs.progress = remoteProgress;
+	cbs.transfer_progress = remoteTransferProgress;
 	cbs.update_tips = remoteUpdateTips;
 	cbs.payload = payload;
 
