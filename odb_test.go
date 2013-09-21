@@ -16,7 +16,7 @@ func TestOdbStream(t *testing.T) {
 
 	str := "hello, world!"
 
-	stream, error := odb.NewWriteStream(len(str), OBJ_BLOB)
+	stream, error := odb.NewWriteStream(len(str), ObjectBlob)
 	checkFatal(t, error)
 	n, error := io.WriteString(stream, str)
 	checkFatal(t, error)
