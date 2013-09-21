@@ -42,14 +42,11 @@ func TestRemoteProgress(t *testing.T) {
 	checkFatal(t, err)
 
 	called := false
-	cbs := RemoteCallbacks{
-	Progress: func(bytes []byte) int {
-			called = true
-			return 1
-		},
+	remote.Progress = func(bytes []byte) int {
+		called = true
+		return 1
 	}
 
-	remote.SetCallbacks(&cbs)
 	remote.Connect(RemoteDirectionFetch)
 	err = remote.Download()
 	if !called {

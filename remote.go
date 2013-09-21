@@ -29,9 +29,17 @@ const (
 	AutotagAll                = C.GIT_REMOTE_DOWNLOAD_TAGS_ALL
 )
 
+type ProgressCb func([]byte) int
+type UpdateTipsCb func(string, *Oid, *Oid) int
+
 type Remote struct {
 	Name string
 	Url  string
+
+	// callbacks
+	Progress   ProgressCb
+	UpdateTips UpdateTipsCb
+
 	ptr  *C.git_remote
 }
 
@@ -90,26 +98,22 @@ func (r *Remote) Ls() ([]*RemoteHead, error) {
 	return data.slice, nil
 }
 
-func (r *Remote) SetCallbacks(callbacks *RemoteCallbacks) {
-	C._go_git_remote_set_callbacks(r.ptr, unsafe.Pointer(callbacks))
-}
-
 //export remoteProgress
 func remoteProgress(str *C.char, length C.int, data unsafe.Pointer) int {
-	callbacks := (*RemoteCallbacks)(data)
-	if callbacks.Progress != nil {
-		return callbacks.Progress(C.GoBytes(unsafe.Pointer(str), length))
+	remote := (*Remote)(data)
+	if remote.Progress != nil {
+		return remote.Progress(C.GoBytes(unsafe.Pointer(str), length))
 	}
 
 	return 0
 }
 
-//export updateTips
-func updateTips(str *C.char, a, b *C.git_oid, data unsafe.Pointer) int {
-	callbacks := (*RemoteCallbacks)(data)
-	goa, gob := newOidFromC(a), newOidFromC(b)
-	if callbacks.UpdateTips != nil {
-		return callbacks.UpdateTips(C.GoString(str), goa, gob)
+//export remoteUpdateTips
+func remoteUpdateTips(str *C.char, a, b *C.git_oid, data unsafe.Pointer) int {
+	remote := (*Remote)(data)
+	if remote.UpdateTips != nil {
+		goa, gob := newOidFromC(a), newOidFromC(b)
+		return remote.UpdateTips(C.GoString(str), goa, gob)
 	}
 
 	return 0
@@ -122,15 +126,6 @@ func (r *Remote) Download() (error) {
 	}
 
 	return nil
-}
-
-type ProgressCb func([]byte) int
-type UpdateTipsCb func(string, *Oid, *Oid) int
-
-//export RemoteCallbacks
-type RemoteCallbacks struct {
-	Progress   ProgressCb
-	UpdateTips UpdateTipsCb
 }
 
 type headlistData struct {
@@ -159,6 +154,9 @@ func newRemoteFromC(ptr *C.git_remote) *Remote {
 		Url:  C.GoString(C.git_remote_url(ptr)),
 	}
 
+	// allways set the callbacks, we'll decide whether to call
+	// them once we're back in go-land
+	C._go_git_remote_set_callbacks(remote.ptr, unsafe.Pointer(remote))
 	runtime.SetFinalizer(remote, (*Remote).Free)
 
 	return remote

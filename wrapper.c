@@ -31,27 +31,15 @@ int _go_git_remote_ls(git_remote *remote, void *payload)
 	return git_remote_ls(remote, (git_headlist_cb) remoteHeadlistCb, payload);
 }
 
-int _go_git_remote_progress(const char *str, int len, void *data)
-{
-	printf("calling remoteProgress\n");
-	return remoteProgress((char *) str, len, data);
-}
-
 int _go_git_remote_set_callbacks(git_remote *remote, void *payload)
 {
 	git_remote_callbacks cbs = GIT_REMOTE_CALLBACKS_INIT;
 
 	cbs.progress = remoteProgress;
-	cbs.update_tips = updateTips;
+	cbs.update_tips = remoteUpdateTips;
 	cbs.payload = payload;
 
 	git_remote_set_callbacks(remote, &cbs);
-}
-
-int _go_git_remote_update_tips(const char *refname, const git_oid *a, const git_oid *b, void *data)
-{
-	printf("calling updateTips\n");
-	return updateTips((char *) refname, (git_oid *) a, (git_oid *) b, data);
 }
 
 /* EOF */
