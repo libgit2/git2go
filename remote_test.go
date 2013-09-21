@@ -35,3 +35,24 @@ func TestRemoteLs(t *testing.T) {
 		}
 	}
 }
+
+func TestRemoteProgress(t *testing.T) {
+	repo := createTestRepo(t)
+	remote, err := repo.CreateRemote("origin", "git://github.com/libgit2/TestGitRepository")
+	checkFatal(t, err)
+
+	called := false
+	cbs := RemoteCallbacks{
+	Progress: func(bytes []byte) int {
+			called = true
+			return 1
+		},
+	}
+
+	remote.SetCallbacks(&cbs)
+	remote.Connect(RemoteDirectionFetch)
+	err = remote.Download()
+	if !called {
+		t.Fatal("Callback not called")
+	}
+}

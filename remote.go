@@ -6,6 +6,7 @@ package git
 #include <git2/errors.h>
 
 extern int _go_git_remote_ls(git_remote *remote, void *payload);
+extern int _go_git_remote_set_callbacks(git_remote *remote, void *payload);
 */
 import "C"
 import (
@@ -89,13 +90,47 @@ func (r *Remote) Ls() ([]*RemoteHead, error) {
 	return data.slice, nil
 }
 
-func (r *Remote) Download (error) {
+func (r *Remote) SetCallbacks(callbacks *RemoteCallbacks) {
+	C._go_git_remote_set_callbacks(r.ptr, unsafe.Pointer(callbacks))
+}
+
+//export remoteProgress
+func remoteProgress(str *C.char, length C.int, data unsafe.Pointer) int {
+	callbacks := (*RemoteCallbacks)(data)
+	if callbacks.Progress != nil {
+		return callbacks.Progress(C.GoBytes(unsafe.Pointer(str), length))
+	}
+
+	return 0
+}
+
+//export updateTips
+func updateTips(str *C.char, a, b *C.git_oid, data unsafe.Pointer) int {
+	callbacks := (*RemoteCallbacks)(data)
+	goa, gob := newOidFromC(a), newOidFromC(b)
+	if callbacks.UpdateTips != nil {
+		return callbacks.UpdateTips(C.GoString(str), goa, gob)
+	}
+
+	return 0
+}
+
+func (r *Remote) Download() (error) {
 	ret := C.git_remote_download(r.ptr)
 	if ret < 0 {
 		LastError()
 	}
 
 	return nil
+}
+
+type ProgressCb func([]byte) int
+type UpdateTipsCb func(string, *Oid, *Oid) int
+
+//export RemoteCallbacks
+type RemoteCallbacks struct {
+	Progress   ProgressCb
+	UpdateTips UpdateTipsCb
 }
 
 type headlistData struct {
