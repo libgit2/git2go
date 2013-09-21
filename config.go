@@ -57,8 +57,10 @@ type Config struct {
 func NewConfig() (*Config, error) {
 	config := new(Config)
 
-	ret := C.git_config_new(&config.ptr)
-	if ret < 0 {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if ret := C.git_config_new(&config.ptr); ret < 0 {
 		return nil, LastError()
 	}
 
@@ -69,6 +71,10 @@ func NewConfig() (*Config, error) {
 func (c *Config) AddFile(path string, level ConfigLevel, force bool) error {
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 
 	ret := C.git_config_add_file_ondisk(c.ptr, cpath, C.git_config_level_t(level), cbool(force))
 	if ret < 0 {
@@ -118,8 +124,7 @@ func (c *Config) LookupString(name string) (string, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_config_get_string(&ptr, c.ptr, cname)
-	if ret < 0 {
+	if ret := C.git_config_get_string(&ptr, c.ptr, cname); ret < 0 {
 		return "", LastError()
 	}
 
@@ -131,6 +136,9 @@ func (c *Config) LookupBool(name string) (bool, error) {
 	var out C.int
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	ret := C.git_config_get_bool(&out, c.ptr, cname)
 	if ret < 0 {
@@ -153,6 +161,10 @@ func (c *Config) NewMultivarIterator(name, regexp string) (*ConfigIterator, erro
 	}
 
 	iter := new(ConfigIterator)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_config_multivar_iterator_new(&iter.ptr, c.ptr, cname, cregexp)
 	if ret < 0 {
 		return nil, LastError()
@@ -166,6 +178,10 @@ func (c *Config) NewMultivarIterator(name, regexp string) (*ConfigIterator, erro
 // configuration
 func (c *Config) NewIterator() (*ConfigIterator, error) {
 	iter := new(ConfigIterator)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_config_iterator_new(&iter.ptr, c.ptr)
 	if ret < 0 {
 		return nil, LastError()
@@ -180,6 +196,9 @@ func (c *Config) NewIteratorGlob(regexp string) (*ConfigIterator, error) {
 	iter := new(ConfigIterator)
 	cregexp := C.CString(regexp)
 	defer C.free(unsafe.Pointer(cregexp))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	ret := C.git_config_iterator_glob_new(&iter.ptr, c.ptr, cregexp)
 	if ret < 0 {
@@ -228,6 +247,9 @@ func (c *Config) SetInt64(name string, value int64) (err error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_config_set_int64(c.ptr, cname, C.int64_t(value))
 	if ret < 0 {
 		return LastError()
@@ -239,6 +261,9 @@ func (c *Config) SetInt64(name string, value int64) (err error) {
 func (c *Config) SetBool(name string, value bool) (err error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	ret := C.git_config_set_bool(c.ptr, cname, cbool(value))
 	if ret < 0 {
@@ -258,6 +283,9 @@ func (c *Config) SetMultivar(name, regexp, value string) (err error) {
 	cvalue := C.CString(value)
 	defer C.free(unsafe.Pointer(cvalue))
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_config_set_multivar(c.ptr, cname, cregexp, cvalue)
 	if ret < 0 {
 		return LastError()
@@ -269,6 +297,9 @@ func (c *Config) SetMultivar(name, regexp, value string) (err error) {
 func (c *Config) Delete(name string) error {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	ret := C.git_config_delete_entry(c.ptr, cname)
 
@@ -282,6 +313,10 @@ func (c *Config) Delete(name string) error {
 // OpenLevel creates a single-level focused config object from a multi-level one
 func (c *Config) OpenLevel(parent *Config, level ConfigLevel) (*Config, error) {
 	config := new(Config)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_config_open_level(&config.ptr, parent.ptr, C.git_config_level_t(level))
 	if ret < 0 {
 		return nil, LastError()
@@ -296,8 +331,11 @@ func OpenOndisk(parent *Config, path string) (*Config, error) {
 	defer C.free(unsafe.Pointer(cpath))
 
 	config := new(Config)
-	ret := C.git_config_open_ondisk(&config.ptr, cpath)
-	if ret < 0 {
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if ret := C.git_config_open_ondisk(&config.ptr, cpath); ret < 0 {
 		return nil, LastError()
 	}
 
@@ -306,8 +344,10 @@ func OpenOndisk(parent *Config, path string) (*Config, error) {
 
 // Refresh refreshes the configuration to reflect any changes made externally e.g. on disk
 func (c *Config) Refresh() error {
-	ret := C.git_config_refresh(c.ptr)
-	if ret < 0 {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if ret := C.git_config_refresh(c.ptr); ret < 0 {
 		return LastError()
 	}
 
