@@ -123,7 +123,8 @@ func ShortenOids(ids []*Oid, minlen int) (int, error) {
 
 type GitError struct {
 	Message string
-	Code int
+	Class   int
+	Code    int
 }
 
 func (e GitError) Error() string{
@@ -133,9 +134,26 @@ func (e GitError) Error() string{
 func LastError() error {
 	err := C.giterr_last()
 	if err == nil {
-		return &GitError{"No message", 0}
+		return &GitError{"No message", 0, -1}
 	}
-	return &GitError{C.GoString(err.message), int(err.klass)}
+	return &GitError{C.GoString(err.message), int(err.klass), -1}
+}
+
+// makeError creates a Go error out of the C error and frees its
+// string
+func makeError(code C.int, err *C.git_error) error {
+	if code == 0 {
+		return nil
+	}
+
+	error := &GitError{
+		Code:    int(code),
+		Class:   int(err.klass),
+		Message: C.GoString(err.message),
+	}
+
+	C.free(unsafe.Pointer(err.message))
+	return error
 }
 
 func cbool(b bool) C.int {
