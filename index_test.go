@@ -22,6 +22,20 @@ func TestCreateRepoAndStage(t *testing.T) {
 	}
 }
 
+func TestIndexTwoCalls(t *testing.T) {
+	repo := createTestRepo(t)
+	defer os.RemoveAll(repo.Workdir())
+
+	idx1, err := repo.Index()
+	checkFatal(t, err)
+	idx2, err := repo.Index()
+	checkFatal(t, err)
+
+	if idx1 != idx2 {
+		t.Fatal("Two Index() calls give different objects")
+	}
+}
+
 func checkFatal(t *testing.T, err error) {
 	if err == nil {
 		return

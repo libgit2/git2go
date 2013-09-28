@@ -13,6 +13,11 @@ import (
 // Repository
 type Repository struct {
 	ptr *C.git_repository
+
+	// These are kept so that two repo.Index() or repo.Odb() calls
+	// return the same object, as we do in the library
+	idx *Index
+	odb *Odb
 }
 
 func OpenRepository(path string) (*Repository, error) {
@@ -72,17 +77,22 @@ func (v *Repository) Config() (*Config, error) {
 }
 
 func (v *Repository) Index() (*Index, error) {
-	var ptr *C.git_index
-
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
+	var ptr *C.git_index
 	ret := C.git_repository_index(&ptr, v.ptr)
 	if ret < 0 {
 		return nil, LastError()
 	}
 
-	return newIndexFromC(ptr), nil
+	if v.idx != nil && v.idx.ptr == ptr {
+		C.git_index_free(ptr) // decrease the refcount
+		return v.idx, nil
+	}
+
+	v.idx = newIndexFromC(ptr)
+	return v.idx, nil
 }
 
 func (v *Repository) lookupType(oid *Oid, t ObjectType) (Object, error) {
@@ -246,18 +256,23 @@ func (v *Odb) Free() {
 	C.git_odb_free(v.ptr)
 }
 
-func (v *Repository) Odb() (odb *Odb, err error) {
-	odb = new(Odb)
-
+func (v *Repository) Odb() (*Odb, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if ret := C.git_repository_odb(&odb.ptr, v.ptr); ret < 0 {
+	var ptr *C.git_odb
+	if ret := C.git_repository_odb(&ptr, v.ptr); ret < 0 {
 		return nil, LastError()
 	}
 
-	runtime.SetFinalizer(odb, (*Odb).Free)
-	return
+	if v.odb != nil && v.odb.ptr == ptr {
+		C.git_odb_free(ptr) // decrease the refcount
+		return v.odb, nil
+	}
+
+
+	v.odb = newOdbFromC(ptr)
+	return v.odb, nil
 }
 
 func (repo *Repository) Path() string {
