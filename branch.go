@@ -35,7 +35,7 @@ type Branch struct {
 	Reference
 }
 
-func (repo *Repository) BranchCreate(branchName string, target *Commit, force bool) (*Reference, error) {
+func (repo *Repository) CreateBranch(branchName string, target *Commit, force bool) (*Reference, error) {
 	ref := new(Reference)
 	cBranchName := C.CString(branchName)
 	cForce := cbool(force)
