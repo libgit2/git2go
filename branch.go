@@ -17,11 +17,11 @@ var ErrEUser = errors.New("Error in user callback function")
 
 type ListFlags uint
 
-type BranchT uint
+type BranchType uint
 
 const (
-	BRANCH_LOCAL  BranchT = C.GIT_BRANCH_LOCAL
-	BRANCH_REMOTE         = C.GIT_BRANCH_REMOTE
+	BRANCH_LOCAL  BranchType = C.GIT_BRANCH_LOCAL
+	BRANCH_REMOTE            = C.GIT_BRANCH_REMOTE
 )
 
 const (
@@ -115,7 +115,7 @@ func (branch *Branch) IsHead() (bool, error) {
 
 }
 
-func (repo *Repository) BranchLookup(branchName string, branchType BranchT) (*Branch, error) {
+func (repo *Repository) BranchLookup(branchName string, branchType BranchType) (*Branch, error) {
 	branch := new(Branch)
 	cName := C.CString(branchName)
 
