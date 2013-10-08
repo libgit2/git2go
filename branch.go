@@ -46,8 +46,8 @@ func (repo *Repository) BranchCreate(branchName string, target *Commit, force bo
 	return ref, nil
 }
 
-func (branch *Branch) BranchDelete() error {
-	if err := C.git_branch_delete(branch.ptr); err < 0 {
+func (b *Branch) BranchDelete() error {
+	if err := C.git_branch_delete(b.ptr); err < 0 {
 		return LastError()
 	}
 	return nil
@@ -90,20 +90,20 @@ func (repo *Repository) BranchForeach(flags ListFlags, callback BranchForeachCB,
 	return err
 }
 
-func (branch *Branch) Move(newBranchName string, force bool) (*Branch, error) {
+func (b *Branch) Move(newBranchName string, force bool) (*Branch, error) {
 	newBranch := new(Branch)
 	cNewBranchName := C.CString(newBranchName)
 	cForce := cbool(force)
 
-	err := C.git_branch_move(&newBranch.ptr, branch.ptr, cNewBranchName, cForce)
+	err := C.git_branch_move(&newBranch.ptr, b.ptr, cNewBranchName, cForce)
 	if err < 0 {
 		return nil, LastError()
 	}
 	return newBranch, nil
 }
 
-func (branch *Branch) IsHead() (bool, error) {
-	isHead := C.git_branch_is_head(branch.ptr)
+func (b *Branch) IsHead() (bool, error) {
+	isHead := C.git_branch_is_head(b.ptr)
 	switch isHead {
 	case 1:
 		return true, nil
@@ -115,22 +115,22 @@ func (branch *Branch) IsHead() (bool, error) {
 
 }
 
-func (repo *Repository) BranchLookup(branchName string, branchType BranchType) (*Branch, error) {
+func (repo *Repository) BranchLookup(branchName string, bt BranchType) (*Branch, error) {
 	branch := new(Branch)
 	cName := C.CString(branchName)
 
-	err := C.git_branch_lookup(&branch.ptr, repo.ptr, cName, C.git_branch_t(branchType))
+	err := C.git_branch_lookup(&branch.ptr, repo.ptr, cName, C.git_branch_t(bt))
 	if err < 0 {
 		return nil, LastError()
 	}
 	return branch, nil
 }
 
-func (branch *Branch) Name() (string, error) {
+func (b *Branch) Name() (string, error) {
 	var cName *C.char
 	defer C.free(unsafe.Pointer(cName))
 
-	err := C.git_branch_name(&cName, branch.ptr)
+	err := C.git_branch_name(&cName, b.ptr)
 	if err < 0 {
 		return "", LastError()
 	}
@@ -159,19 +159,19 @@ func (repo *Repository) RemoteName(canonicalBranchName string) (string, error) {
 	return C.GoString(cBuf), nil
 }
 
-func (branch *Branch) SetUpstream(upstreamName string) error {
+func (b *Branch) SetUpstream(upstreamName string) error {
 	cName := C.CString(upstreamName)
 
-	err := C.git_branch_set_upstream(branch.ptr, cName)
+	err := C.git_branch_set_upstream(b.ptr, cName)
 	if err < 0 {
 		return LastError()
 	}
 	return nil
 }
 
-func (branch *Branch) Upstream() (*Branch, error) {
+func (b *Branch) Upstream() (*Branch, error) {
 	upstream := new(Branch)
-	err := C.git_branch_upstream(&upstream.ptr, branch.ptr)
+	err := C.git_branch_upstream(&upstream.ptr, b.ptr)
 	if err < 0 {
 		return nil, LastError()
 	}
