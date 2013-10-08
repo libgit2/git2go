@@ -115,7 +115,7 @@ func (b *Branch) IsHead() (bool, error) {
 
 }
 
-func (repo *Repository) BranchLookup(branchName string, bt BranchType) (*Branch, error) {
+func (repo *Repository) LookupBranch(branchName string, bt BranchType) (*Branch, error) {
 	branch := new(Branch)
 	cName := C.CString(branchName)
 
