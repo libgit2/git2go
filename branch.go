@@ -15,9 +15,9 @@ import (
 
 var ErrEUser = errors.New("Error in user callback function")
 
-type ListFlags uint
-
 type BranchType uint
+
+type ListFlags BranchType
 
 const (
 	BRANCH_LOCAL  BranchType = C.GIT_BRANCH_LOCAL
@@ -62,12 +62,18 @@ func (repo *Repository) BranchForeach(flags ListFlags, callback BranchForeachCB,
 	}
 
 	for {
+		var branchLocal bool
+		var branchRemote bool
+
 		ref, err := iter.Next()
 		if err == ErrIterOver {
 			break
 		}
 
-		if (flags == ListFlags(BRANCH_LOCAL)) && strings.HasPrefix(ref.Name(), REFS_HEADS_DIR) {
+		if flags&ListFlags(BRANCH_LOCAL) > 0 {
+			branchLocal = true
+		}
+		if branchLocal && strings.HasPrefix(ref.Name(), REFS_HEADS_DIR) {
 			name := strings.TrimPrefix(ref.Name(), REFS_HEADS_DIR)
 			err = callback(name, ListFlags(BRANCH_LOCAL), payload)
 			if err != nil {
@@ -75,7 +81,10 @@ func (repo *Repository) BranchForeach(flags ListFlags, callback BranchForeachCB,
 			}
 		}
 
-		if (flags == ListFlags(BRANCH_REMOTE)) && strings.HasPrefix(ref.Name(), REFS_REMOTES_DIR) {
+		if flags&ListFlags(BRANCH_REMOTE) > 0 {
+			branchRemote = true
+		}
+		if branchRemote && strings.HasPrefix(ref.Name(), REFS_REMOTES_DIR) {
 			name := strings.TrimPrefix(ref.Name(), REFS_REMOTES_DIR)
 			err = callback(name, ListFlags(BRANCH_REMOTE), payload)
 			if err != nil {
