@@ -8,16 +8,10 @@ package git
 import "C"
 
 import (
-	"errors"
-	"strings"
 	"unsafe"
 )
 
-var ErrEUser = errors.New("Error in user callback function")
-
 type BranchType uint
-
-type ListFlags BranchType
 
 const (
 	BRANCH_LOCAL  BranchType = C.GIT_BRANCH_LOCAL
@@ -51,52 +45,6 @@ func (b *Branch) BranchDelete() error {
 		return LastError()
 	}
 	return nil
-}
-
-type BranchForeachCB func(name string, flags ListFlags, payload interface{}) error
-
-func (repo *Repository) BranchForeach(flags ListFlags, callback BranchForeachCB, payload interface{}) error {
-	iter, err := repo.NewReferenceIterator()
-	if err != nil {
-		return err
-	}
-
-	for {
-		var branchLocal bool
-		var branchRemote bool
-
-		ref, err := iter.Next()
-		if err == ErrIterOver {
-			break
-		}
-
-		if flags&ListFlags(BRANCH_LOCAL) > 0 {
-			branchLocal = true
-		}
-		if branchLocal && strings.HasPrefix(ref.Name(), REFS_HEADS_DIR) {
-			name := strings.TrimPrefix(ref.Name(), REFS_HEADS_DIR)
-			err = callback(name, ListFlags(BRANCH_LOCAL), payload)
-			if err != nil {
-				return err
-			}
-		}
-
-		if flags&ListFlags(BRANCH_REMOTE) > 0 {
-			branchRemote = true
-		}
-		if branchRemote && strings.HasPrefix(ref.Name(), REFS_REMOTES_DIR) {
-			name := strings.TrimPrefix(ref.Name(), REFS_REMOTES_DIR)
-			err = callback(name, ListFlags(BRANCH_REMOTE), payload)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	if err == ErrIterOver {
-		err = nil
-	}
-	return err
 }
 
 func (b *Branch) Move(newBranchName string, force bool) (*Branch, error) {
