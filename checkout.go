@@ -1,7 +1,6 @@
 package git
 
 /*
-#cgo pkg-config: libgit2
 #include <git2.h>
 git_checkout_opts git_checkout_opts_init() {
 	git_checkout_opts ret = GIT_CHECKOUT_OPTS_INIT;

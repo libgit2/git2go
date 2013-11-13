@@ -1,7 +1,6 @@
 package git
 
 /*
-#cgo pkg-config: libgit2
 #include <git2.h>
 #include <git2/errors.h>
 */
