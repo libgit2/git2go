@@ -12,6 +12,7 @@ extern int _go_git_packbuilder_foreach(git_packbuilder *pb, void *payload);
 import "C"
 import (
 	"io"
+	"os"
 	"runtime"
 	"unsafe"
 )
@@ -65,10 +66,10 @@ func (pb *Packbuilder) ObjectCount() uint32 {
 	return uint32(C.git_packbuilder_object_count(pb.ptr))
 }
 
-func (pb *Packbuilder) WriteToFile(name string) error {
+func (pb *Packbuilder) WriteToFile(name string, mode os.FileMode) error {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
-	ret := C.git_packbuilder_write(pb.ptr, cname, nil, nil)
+	ret := C.git_packbuilder_write(pb.ptr, cname, C.uint(mode.Perm()), nil, nil)
 	if ret != 0 {
 		return LastError()
 	}
