@@ -41,7 +41,7 @@ func (t ObjectType) String() (string) {
 	case ObjectBlob:
 		return "Blob"
 	case ObjectTag:
-		return "tag"
+		return "Tag"
 	}
 	// Never reached
 	return ""
