@@ -5,11 +5,11 @@ package git
 #include <git2.h>
 #include <git2/errors.h>
 
-extern int _go_git_remote_ls(git_remote *remote, void *payload);
 extern int _go_git_remote_set_callbacks(git_remote *remote, void *payload);
 */
 import "C"
 import (
+	"reflect"
 	"runtime"
 	"unsafe"
 )
@@ -90,14 +90,29 @@ func (r *Remote) Save() error {
 }
 
 func (r *Remote) Ls() ([]*RemoteHead, error) {
-	var data headlistData
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
-	ret := C._go_git_remote_ls(r.ptr, unsafe.Pointer(&data))
+	var cheads **C.git_remote_head
+	var slice  []*C.git_remote_head
+	var csize C.size_t
+
+	ret := C.git_remote_ls(&cheads, &csize, r.ptr)
 	if ret < 0 {
 		return nil, LastError()
 	}
 
-	return data.slice, nil
+	sliceHeader := (*reflect.SliceHeader)((unsafe.Pointer(&slice)))
+        sliceHeader.Cap = int(csize)
+        sliceHeader.Len = int(csize)
+        sliceHeader.Data = uintptr(unsafe.Pointer(cheads))
+
+	heads := make([]*RemoteHead, csize)
+	for i, h := range slice {
+		heads[i] = newRemoteHeadFromC(h)
+	}
+
+	return heads, nil
 }
 
 func (r *Remote) Download() error {
@@ -155,7 +170,6 @@ type headlistData struct {
 	slice []*RemoteHead
 }
 
-//export remoteHeadlistCb
 func remoteHeadlistCb(rhead *C.git_remote_head, dataptr unsafe.Pointer) int {
 	data := (*headlistData)(dataptr)
 
