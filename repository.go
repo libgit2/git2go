@@ -58,6 +58,7 @@ func (v *Repository) Config() (*Config, error) {
 		return nil, LastError()
 	}
 
+	runtime.SetFinalizer(config, (*Config).Free)
 	return config, nil
 }
 

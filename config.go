@@ -6,6 +6,7 @@ package git
 */
 import "C"
 import (
+	"runtime"
 	"unsafe"
 )
 
@@ -65,4 +66,9 @@ func (c *Config) Set(name, value string) (err error) {
 	}
 
 	return nil
+}
+
+func (c *Config) Free() {
+	runtime.SetFinalizer(c, nil)
+	C.git_config_free(c.ptr)
 }
