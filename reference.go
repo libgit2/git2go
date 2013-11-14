@@ -34,7 +34,7 @@ func (v *Reference) SetSymbolicTarget(target string) (*Reference, error) {
 
 	ret := C.git_reference_symbolic_set_target(&ptr, v.ptr, ctarget)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, makeError(ret)
 	}
 
 	return newReferenceFromC(ptr), nil
@@ -45,7 +45,7 @@ func (v *Reference) SetTarget(target *Oid) (*Reference, error) {
 
 	ret := C.git_reference_set_target(&ptr, v.ptr, target.toC())
 	if ret < 0 {
-		return nil, LastError()
+		return nil, makeError(ret)
 	}
 
 	return newReferenceFromC(ptr), nil
@@ -56,7 +56,7 @@ func (v *Reference) Resolve() (*Reference, error) {
 
 	ret := C.git_reference_resolve(&ptr, v.ptr)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, makeError(ret)
 	}
 
 	return newReferenceFromC(ptr), nil
@@ -70,7 +70,7 @@ func (v *Reference) Rename(name string, force bool) (*Reference, error) {
 	ret := C.git_reference_rename(&ptr, v.ptr, cname, cbool(force))
 
 	if ret < 0 {
-		return nil, LastError()
+		return nil, makeError(ret)
 	}
 
 	return newReferenceFromC(ptr), nil
@@ -93,7 +93,7 @@ func (v *Reference) Delete() error {
 	ret := C.git_reference_delete(v.ptr)
 
 	if ret < 0 {
-		return LastError()
+		return makeError(ret)
 	}
 
 	return nil
@@ -122,7 +122,7 @@ func (repo *Repository) NewReferenceIterator() (*ReferenceIterator, error) {
 	var ptr *C.git_reference_iterator
 	ret := C.git_reference_iterator_new(&ptr, repo.ptr)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, makeError(ret)
 	}
 
 	iter := &ReferenceIterator{repo: repo, ptr: ptr}
@@ -139,7 +139,7 @@ func (repo *Repository) NewReferenceIteratorGlob(glob string) (*ReferenceIterato
 	var ptr *C.git_reference_iterator
 	ret := C.git_reference_iterator_glob_new(&ptr, repo.ptr, cstr)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, makeError(ret)
 	}
 
 	iter := &ReferenceIterator{repo: repo, ptr: ptr}
@@ -151,12 +151,8 @@ func (repo *Repository) NewReferenceIteratorGlob(glob string) (*ReferenceIterato
 // the returned error is git.ErrIterOver
 func (v *ReferenceIterator) NextName() (string, error) {
 	var ptr *C.char
-	ret := C.git_reference_next_name(&ptr, v.ptr)
-	if ret == ITEROVER {
-		return "", ErrIterOver
-	}
-	if ret < 0 {
-		return "", LastError()
+	if ret := C.git_reference_next_name(&ptr, v.ptr); ret < 0 {
+		return "", makeError(ret)
 	}
 
 	return C.GoString(ptr), nil

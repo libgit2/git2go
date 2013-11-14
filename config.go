@@ -20,7 +20,7 @@ func (c *Config) LookupInt32(name string) (v int32, err error) {
 
 	ret := C.git_config_get_int32(&out, c.ptr, cname)
 	if ret < 0 {
-		return 0, LastError()
+		return 0, makeError(ret)
 	}
 
 	return int32(out), nil
@@ -33,7 +33,7 @@ func (c *Config) LookupInt64(name string) (v int64, err error) {
 
 	ret := C.git_config_get_int64(&out, c.ptr, cname)
 	if ret < 0 {
-		return 0, LastError()
+		return 0, makeError(ret)
 	}
 
 	return int64(out), nil
@@ -46,7 +46,7 @@ func (c *Config) LookupString(name string) (v string, err error) {
 
 	ret := C.git_config_get_string(&ptr, c.ptr, cname)
 	if ret < 0 {
-		return "", LastError()
+		return "", makeError(ret)
 	}
 
 	return C.GoString(ptr), nil
@@ -59,10 +59,5 @@ func (c *Config) Set(name, value string) (err error) {
 	cvalue := C.CString(value)
 	defer C.free(unsafe.Pointer(cvalue))
 
-	ret := C.git_config_set_string(c.ptr, cname, cvalue)
-	if ret < 0 {
-		return LastError()
-	}
-
-	return nil
+	return makeError(C.git_config_set_string(c.ptr, cname, cvalue))
 }

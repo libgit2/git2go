@@ -64,7 +64,7 @@ func (t Tree) EntryByPath(path string) (*TreeEntry, error) {
 
 	ret := C.git_tree_entry_bypath(&entry, t.ptr, cpath)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, makeError(ret)
 	}
 
 	return newTreeEntry(entry), nil
@@ -102,11 +102,7 @@ func (t Tree) Walk(callback TreeWalkCallback) error {
 		unsafe.Pointer(&callback),
 	)
 
-	if err < 0 {
-		return LastError()
-	}
-
-	return nil
+	return makeError(err)
 }
 
 type TreeBuilder struct {
@@ -123,12 +119,7 @@ func (v *TreeBuilder) Insert(filename string, id *Oid, filemode int) (error) {
 	cfilename := C.CString(filename)
 	defer C.free(unsafe.Pointer(cfilename))
 
-	err := C.git_treebuilder_insert(nil, v.ptr, cfilename, id.toC(), C.git_filemode_t(filemode))
-	if err < 0 {
-		return LastError()
-	}
-
-	return nil
+	return makeError(C.git_treebuilder_insert(nil, v.ptr, cfilename, id.toC(), C.git_filemode_t(filemode)))
 }
 
 func (v *TreeBuilder) Write() (*Oid, error) {
@@ -136,7 +127,7 @@ func (v *TreeBuilder) Write() (*Oid, error) {
 	err := C.git_treebuilder_write(oid.toC(), v.repo.ptr, v.ptr)
 
 	if err < 0 {
-		return nil, LastError()
+		return nil, makeError(err)
 	}
 
 	return oid, nil
