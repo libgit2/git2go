@@ -9,8 +9,8 @@ extern int _go_git_treewalk(git_tree *tree, git_treewalk_mode mode, void *ptr);
 import "C"
 
 import (
-	"unsafe"
 	"time"
+	"unsafe"
 )
 
 // Commit
@@ -48,12 +48,13 @@ func (c Commit) Committer() *Signature {
 }
 
 func (c *Commit) Parent(n uint) *Commit {
-	par := &Commit{}
-	ret := C.git_commit_parent(&par.ptr, c.ptr, C.uint(n))
+	var cobj *C.git_object
+	ret := C.git_commit_parent(&cobj, c.ptr, C.uint(n))
 	if ret != 0 {
 		return nil
 	}
-	return par
+
+	return allocObject(cobj).(*Commit)
 }
 
 func (c *Commit) ParentId(n uint) *Oid {
@@ -85,10 +86,10 @@ func newSignatureFromC(sig *C.git_signature) *Signature {
 // the offset in mintes, which is what git wants
 func (v *Signature) Offset() int {
 	_, offset := v.When.Zone()
-	return offset/60
+	return offset / 60
 }
 
-func (sig *Signature) toC() (*C.git_signature) {
+func (sig *Signature) toC() *C.git_signature {
 	var out *C.git_signature
 
 	name := C.CString(sig.Name)

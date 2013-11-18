@@ -6,8 +6,8 @@ package git
 */
 import "C"
 import (
-	"unsafe"
 	"runtime"
+	"unsafe"
 )
 
 // Repository
@@ -58,6 +58,7 @@ func (v *Repository) Config() (*Config, error) {
 		return nil, LastError()
 	}
 
+	runtime.SetFinalizer(config, (*Config).Free)
 	return config, nil
 }
 
@@ -180,7 +181,7 @@ func (v *Repository) CreateCommit(
 	var cparents []*C.git_commit = nil
 	var parentsarg **C.git_commit = nil
 
-	nparents:= len(parents)
+	nparents := len(parents)
 	if nparents > 0 {
 		cparents = make([]*C.git_commit, nparents)
 		for i, v := range parents {
@@ -226,7 +227,7 @@ func (repo *Repository) Path() string {
 	return C.GoString(C.git_repository_path(repo.ptr))
 }
 
-func (repo *Repository) IsBare() (bool) {
+func (repo *Repository) IsBare() bool {
 	return C.git_repository_is_bare(repo.ptr) != 0
 }
 
@@ -249,6 +250,7 @@ func (v *Repository) TreeBuilder() (*TreeBuilder, error) {
 	if ret := C.git_treebuilder_create(&bld.ptr, nil); ret < 0 {
 		return nil, LastError()
 	}
+	runtime.SetFinalizer(bld, (*TreeBuilder).Free)
 
 	bld.repo = v
 	return bld, nil
