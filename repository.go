@@ -15,6 +15,8 @@ type Repository struct {
 	ptr *C.git_repository
 }
 
+type InitCustomBackend func(**C.git_repository, **C.git_odb) int
+
 func OpenRepository(path string) (*Repository, error) {
 	repo := new(Repository)
 
@@ -43,6 +45,23 @@ func InitRepository(path string, isbare bool) (*Repository, error) {
 
 	runtime.SetFinalizer(repo, (*Repository).Free)
 	return repo, nil
+}
+
+func InitRepositoryWCustomOdbBackend(initStrategy InitCustomBackend) (*Repository, *Odb, error) {
+	// init return vars
+  repo := new(Repository)
+	odb := new(Odb)
+
+  // run initStrategy abstract function
+	ret := initStrategy(&repo.ptr, &odb.ptr)
+	if ret < 0 {
+		return nil, nil, LastError()
+	}
+
+	// cleanup and return
+	runtime.SetFinalizer(repo, (*Repository).Free)
+	runtime.SetFinalizer(odb, (*Odb).Free)
+	return repo, odb, nil
 }
 
 func (v *Repository) Free() {
