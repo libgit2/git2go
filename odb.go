@@ -17,6 +17,10 @@ type Odb struct {
 	ptr *C.git_odb
 }
 
+type OdbBackend struct {
+  ptr *C.git_odb_backend
+}
+
 func (v *Odb) Exists(oid *Oid) bool {
 	ret := C.git_odb_exists(v.ptr, oid.toC())
 	return ret != 0
