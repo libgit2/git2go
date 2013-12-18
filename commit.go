@@ -9,6 +9,7 @@ extern int _go_git_treewalk(git_tree *tree, git_treewalk_mode mode, void *ptr);
 import "C"
 
 import (
+	"runtime"
 	"time"
 	"unsafe"
 )
@@ -24,6 +25,9 @@ func (c Commit) Message() string {
 
 func (c Commit) Tree() (*Tree, error) {
 	var ptr *C.git_object
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	err := C.git_commit_tree(&ptr, c.ptr)
 	if err < 0 {

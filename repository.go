@@ -21,6 +21,9 @@ func OpenRepository(path string) (*Repository, error) {
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_repository_open(&repo.ptr, cpath)
 	if ret < 0 {
 		return nil, LastError()
@@ -35,6 +38,9 @@ func InitRepository(path string, isbare bool) (*Repository, error) {
 
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	ret := C.git_repository_init(&repo.ptr, cpath, ucbool(isbare))
 	if ret < 0 {
@@ -53,6 +59,9 @@ func (v *Repository) Free() {
 func (v *Repository) Config() (*Config, error) {
 	config := new(Config)
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_repository_config(&config.ptr, v.ptr)
 	if ret < 0 {
 		return nil, LastError()
@@ -64,6 +73,10 @@ func (v *Repository) Config() (*Config, error) {
 
 func (v *Repository) Index() (*Index, error) {
 	var ptr *C.git_index
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_repository_index(&ptr, v.ptr)
 	if ret < 0 {
 		return nil, LastError()
@@ -74,6 +87,10 @@ func (v *Repository) Index() (*Index, error) {
 
 func (v *Repository) lookupType(oid *Oid, t ObjectType) (Object, error) {
 	var ptr *C.git_object
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_object_lookup(&ptr, v.ptr, oid.toC(), C.git_otype(t))
 	if ret < 0 {
 		return nil, LastError()
@@ -118,6 +135,9 @@ func (v *Repository) LookupReference(name string) (*Reference, error) {
 	defer C.free(unsafe.Pointer(cname))
 	var ptr *C.git_reference
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ecode := C.git_reference_lookup(&ptr, v.ptr, cname)
 	if ecode < 0 {
 		return nil, LastError()
@@ -130,6 +150,9 @@ func (v *Repository) CreateReference(name string, oid *Oid, force bool) (*Refere
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 	var ptr *C.git_reference
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	ecode := C.git_reference_create(&ptr, v.ptr, cname, oid.toC(), cbool(force))
 	if ecode < 0 {
@@ -146,6 +169,9 @@ func (v *Repository) CreateSymbolicReference(name, target string, force bool) (*
 	defer C.free(unsafe.Pointer(ctarget))
 	var ptr *C.git_reference
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ecode := C.git_reference_symbolic_create(&ptr, v.ptr, cname, ctarget, cbool(force))
 	if ecode < 0 {
 		return nil, LastError()
@@ -156,6 +182,10 @@ func (v *Repository) CreateSymbolicReference(name, target string, force bool) (*
 
 func (v *Repository) Walk() (*RevWalk, error) {
 	walk := new(RevWalk)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ecode := C.git_revwalk_new(&walk.ptr, v.ptr)
 	if ecode < 0 {
 		return nil, LastError()
@@ -196,6 +226,9 @@ func (v *Repository) CreateCommit(
 	committerSig := committer.toC()
 	defer C.git_signature_free(committerSig)
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_commit_create(
 		oid.toC(), v.ptr, cref,
 		authorSig, committerSig,
@@ -215,6 +248,10 @@ func (v *Odb) Free() {
 
 func (v *Repository) Odb() (odb *Odb, err error) {
 	odb = new(Odb)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	if ret := C.git_repository_odb(&odb.ptr, v.ptr); ret < 0 {
 		return nil, LastError()
 	}
@@ -239,6 +276,9 @@ func (repo *Repository) SetWorkdir(workdir string, updateGitlink bool) error {
 	cstr := C.CString(workdir)
 	defer C.free(unsafe.Pointer(cstr))
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	if C.git_repository_set_workdir(repo.ptr, cstr, cbool(updateGitlink)) < 0 {
 		return LastError()
 	}
@@ -247,6 +287,10 @@ func (repo *Repository) SetWorkdir(workdir string, updateGitlink bool) error {
 
 func (v *Repository) TreeBuilder() (*TreeBuilder, error) {
 	bld := new(TreeBuilder)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	if ret := C.git_treebuilder_create(&bld.ptr, nil); ret < 0 {
 		return nil, LastError()
 	}
@@ -261,6 +305,10 @@ func (v *Repository) RevparseSingle(spec string) (Object, error) {
 	defer C.free(unsafe.Pointer(cspec))
 
 	var ptr *C.git_object
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ecode := C.git_revparse_single(&ptr, v.ptr, cspec)
 	if ecode < 0 {
 		return nil, LastError()

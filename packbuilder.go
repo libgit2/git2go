@@ -22,6 +22,10 @@ type Packbuilder struct {
 
 func (repo *Repository) NewPackbuilder() (*Packbuilder, error) {
 	builder := &Packbuilder{}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_packbuilder_new(&builder.ptr, repo.ptr)
 	if ret != 0 {
 		return nil, LastError()
@@ -38,6 +42,10 @@ func (pb *Packbuilder) Free() {
 func (pb *Packbuilder) Insert(id *Oid, name string) error {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_packbuilder_insert(pb.ptr, id.toC(), cname)
 	if ret != 0 {
 		return LastError()
@@ -46,6 +54,9 @@ func (pb *Packbuilder) Insert(id *Oid, name string) error {
 }
 
 func (pb *Packbuilder) InsertCommit(id *Oid) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_packbuilder_insert_commit(pb.ptr, id.toC())
 	if ret != 0 {
 		return LastError()
@@ -54,6 +65,9 @@ func (pb *Packbuilder) InsertCommit(id *Oid) error {
 }
 
 func (pb *Packbuilder) InsertTree(id *Oid) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_packbuilder_insert_tree(pb.ptr, id.toC())
 	if ret != 0 {
 		return LastError()
@@ -68,6 +82,10 @@ func (pb *Packbuilder) ObjectCount() uint32 {
 func (pb *Packbuilder) WriteToFile(name string, mode os.FileMode) error {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_packbuilder_write(pb.ptr, cname, C.uint(mode.Perm()), nil, nil)
 	if ret != 0 {
 		return LastError()
