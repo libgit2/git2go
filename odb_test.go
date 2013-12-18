@@ -33,3 +33,17 @@ func TestOdbStream(t *testing.T) {
 		t.Fatal("Wrong data written")
 	}
 }
+
+func TestOdbTwoCalls(t *testing.T) {
+	repo := createTestRepo(t)
+	defer os.RemoveAll(repo.Workdir())
+
+	odb1, err := repo.Odb()
+	checkFatal(t, err)
+	odb2, err := repo.Odb()
+	checkFatal(t, err)
+
+	if odb1 != odb2 {
+		t.Fatal("Two Odb() calls return different objects")
+	}
+}

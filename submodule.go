@@ -153,7 +153,7 @@ func (sub *Submodule) Save() error {
 func (sub *Submodule) Owner() *Repository {
 	repo := C.git_submodule_owner(sub.ptr)
 	//FIXME: how to handle dangling references ?
-	return &Repository{repo}
+	return &Repository{ptr: repo}
 }
 
 func (sub *Submodule) Name() string {

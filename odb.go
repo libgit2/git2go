@@ -17,6 +17,12 @@ type Odb struct {
 	ptr *C.git_odb
 }
 
+func newOdbFromC(ptr *C.git_odb) *Odb {
+	odb := &Odb{ptr}
+	runtime.SetFinalizer(odb, (*Odb).Free)
+	return odb
+}
+
 func (v *Odb) Exists(oid *Oid) bool {
 	ret := C.git_odb_exists(v.ptr, oid.toC())
 	return ret != 0
