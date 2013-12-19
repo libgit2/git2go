@@ -15,8 +15,6 @@ type Repository struct {
 	ptr *C.git_repository
 }
 
-type InitCustomBackend func(**C.git_odb_backend) int
-
 func OpenRepository(path string) (*Repository, error) {
 	repo := new(Repository)
 
@@ -47,34 +45,16 @@ func InitRepository(path string, isbare bool) (*Repository, error) {
 	return repo, nil
 }
 
-func InitRepositoryWCustomOdbBackend(initStrategy InitCustomBackend, priority int) (*Repository, *Odb, error) {
-	// inits
-	repo := new(Repository)
-	odb := new(Odb)
-	backend := new(OdbBackend)
+func InitRepositoryByWrapOdb(odb *Odb) (repo *Repository, err error) {
+  repo = new(Repository)
 
-	// wrap routine w/abstract function
-	ret := C.git_odb_new(&odb.ptr)
-	if ret >= 0 {
-		ret = C.git_repository_wrap_odb(&repo.ptr, odb.ptr)
+  ret := C.git_repository_wrap_odb(&repo.ptr, odb.ptr)
+  if ret < 0 {
+    return nil, LastError()
 	}
 
-	if ret >= 0 {
-		ret = C.int(initStrategy(&backend.ptr))
-	}
-
-	if ret >= 0 {
-		ret = C.git_odb_add_backend(odb.ptr, backend.ptr, C.int(priority))
-	}
-
-	// cleanup and return
-	if ret < 0 {
-		return nil, nil, LastError()
-	}
-
-	runtime.SetFinalizer(repo, (*Repository).Free)
-	runtime.SetFinalizer(odb, (*Odb).Free)
-	return repo, odb, nil
+  runtime.SetFinalizer(repo, (*Repository).Free)
+  return
 }
 
 func (v *Repository) Free() {
