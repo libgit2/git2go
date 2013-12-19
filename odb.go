@@ -22,7 +22,7 @@ type OdbBackend struct {
   Ptr *C.git_odb_backend
 }
 
-func InitOdb() (odb *Odb, err error) {
+func NewOdb() (odb *Odb, err error) {
   odb = new(Odb)
 
   ret := C.git_odb_new(&odb.ptr)

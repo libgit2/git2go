@@ -45,7 +45,7 @@ func InitRepository(path string, isbare bool) (*Repository, error) {
 	return repo, nil
 }
 
-func InitRepositoryByWrapOdb(odb *Odb) (repo *Repository, err error) {
+func NewRepositoryWrapOdb(odb *Odb) (repo *Repository, err error) {
   repo = new(Repository)
 
   ret := C.git_repository_wrap_odb(&repo.ptr, odb.ptr)
