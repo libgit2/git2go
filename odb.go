@@ -17,7 +17,6 @@ type Odb struct {
 	ptr *C.git_odb
 }
 
-// OdbBackends need public Ptrs: client apps init the backend
 type OdbBackend struct {
   ptr *C.git_odb_backend
 }
