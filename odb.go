@@ -19,7 +19,7 @@ type Odb struct {
 
 // OdbBackends need public Ptrs: client apps init the backend
 type OdbBackend struct {
-  Ptr *C.git_odb_backend
+  ptr *C.git_odb_backend
 }
 
 func NewOdb() (odb *Odb, err error) {
@@ -34,8 +34,14 @@ func NewOdb() (odb *Odb, err error) {
   return
 }
 
+func NewOdbBackendFromC(ptr *C.git_odb_backend) (backend *OdbBackend) {
+  backend = &OdbBackend{ptr}
+  return
+}
+
+
 func (v *Odb) AddBackend(backend *OdbBackend, priority int) (err error) {
-  ret := C.git_odb_add_backend(v.ptr, backend.Ptr, C.int(priority))
+  ret := C.git_odb_add_backend(v.ptr, backend.ptr, C.int(priority))
   if ret < 0 {
     err = LastError()
   }
