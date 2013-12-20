@@ -166,19 +166,6 @@ func remoteUpdateTips(str *C.char, a, b *C.git_oid, data unsafe.Pointer) int {
 	return 0
 }
 
-type headlistData struct {
-	slice []*RemoteHead
-}
-
-func remoteHeadlistCb(rhead *C.git_remote_head, dataptr unsafe.Pointer) int {
-	data := (*headlistData)(dataptr)
-
-	head := newRemoteHeadFromC(rhead)
-	data.slice = append(data.slice, head)
-
-	return 0
-}
-
 func (r *Remote) Free() {
 	runtime.SetFinalizer(r, nil)
 	C.git_remote_free(r.ptr)
