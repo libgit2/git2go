@@ -4,12 +4,8 @@ package git
 #include <git2.h>
 #include <git2/errors.h>
 
-static git_remote_callbacks git_remote_callbacks_init() {
-	git_remote_callbacks ret = GIT_REMOTE_CALLBACKS_INIT;
-	return ret;
-}
-
-extern void _setup_callbacks(git_remote_callbacks *callbacks);
+extern void _go_git_setup_callbacks(git_remote_callbacks *callbacks);
+extern git_remote_callbacks _go_git_remote_callbacks_init();
 
 */
 import "C"
@@ -41,11 +37,11 @@ type RemoteCallbacks struct {
 }
 
 func populateRemoteCallbacks(ptr *C.git_remote_callbacks, callbacks *RemoteCallbacks) {
-	*ptr = C.git_remote_callbacks_init()
+	*ptr = C._go_git_remote_callbacks_init()
 	if callbacks == nil {
 		return
 	}
-	C._setup_callbacks(ptr)
+	C._go_git_setup_callbacks(ptr)
 	ptr.payload = unsafe.Pointer(callbacks)
 }
 
