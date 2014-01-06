@@ -37,6 +37,17 @@ func Clone(url string, path string, options *CloneOptions) (*Repository, error) 
 	var copts C.git_clone_options
 	populateCloneOptions(&copts, options)
 
+	// finish populating clone options here so we can defer CString free
+	if len(options.RemoteName) != 0 {
+		copts.remote_name = C.CString(options.RemoteName)
+		defer C.free(unsafe.Pointer(copts.remote_name))
+	}
+
+	if len(options.CheckoutBranch) != 0 {
+		copts.checkout_branch = C.CString(options.CheckoutBranch)
+		defer C.free(unsafe.Pointer(copts.checkout_branch))
+	}
+
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 	ret := C.git_clone(&repo.ptr, curl, cpath, &copts)

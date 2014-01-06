@@ -43,4 +43,12 @@ git_remote_callbacks _go_git_remote_callbacks_init() {
 	return ret;
 }
 
+void _go_git_set_strarray_n(git_strarray *array, char *str, size_t n) {
+	array->strings[n] = str;
+}
+
+char *_go_git_get_strarray_n(git_strarray *array, size_t n) {
+	return array->strings[n];
+}
+
 /* EOF */
