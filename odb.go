@@ -83,12 +83,12 @@ func (v *Odb) ForEach() chan *Oid {
 func (v *Odb) Hash(data []byte, otype ObjectType) (oid *Oid, err error) {
 	oid = new(Oid)
 	header := (*reflect.SliceHeader)(unsafe.Pointer(&data))
-	ptr := (*C.char)(unsafe.Pointer(header.Data))
+	ptr := unsafe.Pointer(header.Data)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_odb_hash(oid.toC(), unsafe.Pointer(ptr), C.size_t(header.Len), C.git_otype(otype));
+	ret := C.git_odb_hash(oid.toC(), ptr, C.size_t(header.Len), C.git_otype(otype));
 	if ret < 0 {
 		err = LastError()
 	}
