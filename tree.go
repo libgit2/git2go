@@ -62,6 +62,9 @@ func (t Tree) EntryByPath(path string) (*TreeEntry, error) {
 	defer C.free(unsafe.Pointer(cpath))
 	var entry *C.git_tree_entry
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_tree_entry_bypath(&entry, t.ptr, cpath)
 	if ret < 0 {
 		return nil, LastError()
@@ -96,6 +99,9 @@ func CallbackGitTreeWalk(_root unsafe.Pointer, _entry unsafe.Pointer, ptr unsafe
 }
 
 func (t Tree) Walk(callback TreeWalkCallback) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	err := C._go_git_treewalk(
 		t.ptr,
 		C.GIT_TREEWALK_PRE,
@@ -123,6 +129,9 @@ func (v *TreeBuilder) Insert(filename string, id *Oid, filemode int) (error) {
 	cfilename := C.CString(filename)
 	defer C.free(unsafe.Pointer(cfilename))
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	err := C.git_treebuilder_insert(nil, v.ptr, cfilename, id.toC(), C.git_filemode_t(filemode))
 	if err < 0 {
 		return LastError()
@@ -133,6 +142,10 @@ func (v *TreeBuilder) Insert(filename string, id *Oid, filemode int) (error) {
 
 func (v *TreeBuilder) Write() (*Oid, error) {
 	oid := new(Oid)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	err := C.git_treebuilder_write(oid.toC(), v.repo.ptr, v.ptr)
 
 	if err < 0 {

@@ -32,6 +32,9 @@ func (v *Reference) SetSymbolicTarget(target string) (*Reference, error) {
 	ctarget := C.CString(target)
 	defer C.free(unsafe.Pointer(ctarget))
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_reference_symbolic_set_target(&ptr, v.ptr, ctarget)
 	if ret < 0 {
 		return nil, LastError()
@@ -43,6 +46,9 @@ func (v *Reference) SetSymbolicTarget(target string) (*Reference, error) {
 func (v *Reference) SetTarget(target *Oid) (*Reference, error) {
 	var ptr *C.git_reference
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_reference_set_target(&ptr, v.ptr, target.toC())
 	if ret < 0 {
 		return nil, LastError()
@@ -53,6 +59,9 @@ func (v *Reference) SetTarget(target *Oid) (*Reference, error) {
 
 func (v *Reference) Resolve() (*Reference, error) {
 	var ptr *C.git_reference
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	ret := C.git_reference_resolve(&ptr, v.ptr)
 	if ret < 0 {
@@ -66,6 +75,9 @@ func (v *Reference) Rename(name string, force bool) (*Reference, error) {
 	var ptr *C.git_reference
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	ret := C.git_reference_rename(&ptr, v.ptr, cname, cbool(force))
 
@@ -90,6 +102,9 @@ func (v *Reference) SymbolicTarget() string {
 }
 
 func (v *Reference) Delete() error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_reference_delete(v.ptr)
 
 	if ret < 0 {
@@ -120,6 +135,10 @@ type ReferenceIterator struct {
 // NewReferenceIterator creates a new iterator over reference names
 func (repo *Repository) NewReferenceIterator() (*ReferenceIterator, error) {
 	var ptr *C.git_reference_iterator
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_reference_iterator_new(&ptr, repo.ptr)
 	if ret < 0 {
 		return nil, LastError()
@@ -137,6 +156,10 @@ func (repo *Repository) NewReferenceIteratorGlob(glob string) (*ReferenceIterato
 	cstr := C.CString(glob)
 	defer C.free(unsafe.Pointer(cstr))
 	var ptr *C.git_reference_iterator
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_reference_iterator_glob_new(&ptr, repo.ptr, cstr)
 	if ret < 0 {
 		return nil, LastError()
@@ -151,6 +174,10 @@ func (repo *Repository) NewReferenceIteratorGlob(glob string) (*ReferenceIterato
 // the returned error is git.ErrIterOver
 func (v *ReferenceIterator) NextName() (string, error) {
 	var ptr *C.char
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_reference_next_name(&ptr, v.ptr)
 	if ret == ITEROVER {
 		return "", ErrIterOver
