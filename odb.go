@@ -5,12 +5,13 @@ package git
 #include <git2/errors.h>
 
 extern int _go_git_odb_foreach(git_odb *db, void *payload);
+extern void _go_git_odb_backend_free(git_odb_backend *backend);
 */
 import "C"
 import (
-	"unsafe"
 	"reflect"
 	"runtime"
+	"unsafe"
 )
 
 type Odb struct {
@@ -18,33 +19,33 @@ type Odb struct {
 }
 
 type OdbBackend struct {
-  ptr *C.git_odb_backend
+	ptr *C.git_odb_backend
 }
 
 func NewOdb() (odb *Odb, err error) {
-  odb = new(Odb)
+	odb = new(Odb)
 
-  ret := C.git_odb_new(&odb.ptr)
-  if ret < 0 {
-    return nil, LastError()
-  }
+	ret := C.git_odb_new(&odb.ptr)
+	if ret < 0 {
+		return nil, LastError()
+	}
 
-  runtime.SetFinalizer(odb, (*Odb).Free)
-  return
+	runtime.SetFinalizer(odb, (*Odb).Free)
+	return
 }
 
 func NewOdbBackendFromC(ptr *C.git_odb_backend) (backend *OdbBackend) {
-  backend = &OdbBackend{ptr}
-  return
+	backend = &OdbBackend{ptr}
+	return
 }
 
-
 func (v *Odb) AddBackend(backend *OdbBackend, priority int) (err error) {
-  ret := C.git_odb_add_backend(v.ptr, backend.ptr, C.int(priority))
-  if ret < 0 {
-    err = LastError()
-  }
-  return nil
+	ret := C.git_odb_add_backend(v.ptr, backend.ptr, C.int(priority))
+	if ret < 0 {
+		backend.Free()
+		err = LastError()
+	}
+	return nil
 }
 
 func (v *Odb) Exists(oid *Oid) bool {
@@ -93,9 +94,9 @@ func odbForEachCb(id *C.git_oid, payload unsafe.Pointer) int {
 	select {
 	case ch <- oid:
 	case <-ch:
-			return -1
+		return -1
 	}
-	return 0;
+	return 0
 }
 
 func (v *Odb) forEachWrap(ch chan *Oid) {
@@ -134,6 +135,10 @@ func (v *Odb) NewWriteStream(size int, otype ObjectType) (*OdbWriteStream, error
 
 	runtime.SetFinalizer(stream, (*OdbWriteStream).Free)
 	return stream, nil
+}
+
+func (v *OdbBackend) Free() {
+	C._go_git_odb_backend_free(v.ptr)
 }
 
 type OdbObject struct {
@@ -199,7 +204,7 @@ func (stream *OdbReadStream) Free() {
 
 type OdbWriteStream struct {
 	ptr *C.git_odb_stream
-	Id Oid
+	Id  Oid
 }
 
 // Write writes to the stream
