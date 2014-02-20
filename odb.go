@@ -8,9 +8,9 @@ extern int _go_git_odb_foreach(git_odb *db, void *payload);
 */
 import "C"
 import (
-	"unsafe"
 	"reflect"
 	"runtime"
+	"unsafe"
 )
 
 type Odb struct {
@@ -63,9 +63,9 @@ func odbForEachCb(id *C.git_oid, payload unsafe.Pointer) int {
 	select {
 	case ch <- oid:
 	case <-ch:
-			return -1
+		return -1
 	}
-	return 0;
+	return 0
 }
 
 func (v *Odb) forEachWrap(ch chan *Oid) {
@@ -169,7 +169,7 @@ func (stream *OdbReadStream) Free() {
 
 type OdbWriteStream struct {
 	ptr *C.git_odb_stream
-	Id Oid
+	Id  Oid
 }
 
 // Write writes to the stream

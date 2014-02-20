@@ -146,15 +146,22 @@ func (v *Repository) LookupReference(name string) (*Reference, error) {
 	return newReferenceFromC(ptr), nil
 }
 
-func (v *Repository) CreateReference(name string, oid *Oid, force bool) (*Reference, error) {
+func (v *Repository) CreateReference(name string, oid *Oid, force bool, sig *Signature, msg string) (*Reference, error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
+
+	csig := sig.toC()
+	defer C.free(unsafe.Pointer(csig))
+
+	cmsg := C.CString(msg)
+	defer C.free(unsafe.Pointer(cmsg))
+
 	var ptr *C.git_reference
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_reference_create(&ptr, v.ptr, cname, oid.toC(), cbool(force))
+	ecode := C.git_reference_create(&ptr, v.ptr, cname, oid.toC(), cbool(force), csig, cmsg)
 	if ecode < 0 {
 		return nil, LastError()
 	}
@@ -162,17 +169,25 @@ func (v *Repository) CreateReference(name string, oid *Oid, force bool) (*Refere
 	return newReferenceFromC(ptr), nil
 }
 
-func (v *Repository) CreateSymbolicReference(name, target string, force bool) (*Reference, error) {
+func (v *Repository) CreateSymbolicReference(name, target string, force bool, sig *Signature, msg string) (*Reference, error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
+
 	ctarget := C.CString(target)
 	defer C.free(unsafe.Pointer(ctarget))
-	var ptr *C.git_reference
+
+	csig := sig.toC()
+	defer C.free(unsafe.Pointer(csig))
+
+	cmsg := C.CString(msg)
+	defer C.free(unsafe.Pointer(cmsg))
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_reference_symbolic_create(&ptr, v.ptr, cname, ctarget, cbool(force))
+	var ptr *C.git_reference
+
+	ecode := C.git_reference_symbolic_create(&ptr, v.ptr, cname, ctarget, cbool(force), csig, cmsg)
 	if ecode < 0 {
 		return nil, LastError()
 	}
@@ -232,7 +247,7 @@ func (v *Repository) CreateCommit(
 	ret := C.git_commit_create(
 		oid.toC(), v.ptr, cref,
 		authorSig, committerSig,
-		nil, cmsg, tree.ptr, C.int(nparents), parentsarg)
+		nil, cmsg, tree.ptr, C.size_t(nparents), parentsarg)
 
 	if ret < 0 {
 		return nil, LastError()
