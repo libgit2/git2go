@@ -146,6 +146,20 @@ func (v *Repository) LookupReference(name string) (*Reference, error) {
 	return newReferenceFromC(ptr), nil
 }
 
+func (v *Repository) Head() (*Reference, error) {
+	var ptr *C.git_reference
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C.git_repository_head(&ptr, v.ptr)
+	if ecode < 0 {
+		return nil, LastError()
+	}
+
+	return newReferenceFromC(ptr), nil
+}
+
 func (v *Repository) CreateReference(name string, oid *Oid, force bool) (*Reference, error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
@@ -239,6 +253,23 @@ func (v *Repository) CreateCommit(
 	}
 
 	return oid, nil
+}
+
+func (v *Repository) DiffTreeToTree(oldTree, newTree *Tree) *Diff {
+	var diffPtr *C.git_diff
+	var oldPtr, newPtr *C.git_tree
+
+	if oldTree != nil {
+		oldPtr = oldTree.gitObject.ptr
+	}
+
+	if newTree != nil {
+		newPtr = newTree.gitObject.ptr
+	}
+
+	C.git_diff_tree_to_tree(&diffPtr, v.ptr, oldPtr, newPtr, nil)
+
+	return newDiff(diffPtr)
 }
 
 func (v *Odb) Free() {
