@@ -28,18 +28,22 @@ func newReferenceFromC(ptr *C.git_reference) *Reference {
 	return ref
 }
 
-func (v *Reference) SetSymbolicTarget(target, logMsg string) (*Reference, error) {
+func (v *Reference) SetSymbolicTarget(target string, sig *Signature, msg string) (*Reference, error) {
 	var ptr *C.git_reference
+
 	ctarget := C.CString(target)
 	defer C.free(unsafe.Pointer(ctarget))
 
-	cLogMsg := C.CString(logMsg)
-	defer C.free(unsafe.Pointer(cLogMsg))
+	csig := sig.toC()
+	defer C.free(unsafe.Pointer(csig))
+
+	cmsg := C.CString(msg)
+	defer C.free(unsafe.Pointer(cmsg))
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_reference_symbolic_set_target(&ptr, v.ptr, ctarget, nil, cLogMsg)
+	ret := C.git_reference_symbolic_set_target(&ptr, v.ptr, ctarget, csig, cmsg)
 	if ret < 0 {
 		return nil, LastError()
 	}
@@ -47,16 +51,16 @@ func (v *Reference) SetSymbolicTarget(target, logMsg string) (*Reference, error)
 	return newReferenceFromC(ptr), nil
 }
 
-func (v *Reference) SetTarget(target *Oid, logMsg string) (*Reference, error) {
+func (v *Reference) SetTarget(target *Oid, sig *Signature, msg string) (*Reference, error) {
 	var ptr *C.git_reference
 
-	cLogMsg := C.CString(logMsg)
-	defer C.free(unsafe.Pointer(cLogMsg))
+	csig := sig.toC()
+	defer C.free(unsafe.Pointer(csig))
 
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
+	cmsg := C.CString(msg)
+	defer C.free(unsafe.Pointer(cmsg))
 
-	ret := C.git_reference_set_target(&ptr, v.ptr, target.toC(), nil, cLogMsg)
+	ret := C.git_reference_set_target(&ptr, v.ptr, target.toC(), csig, cmsg)
 	if ret < 0 {
 		return nil, LastError()
 	}

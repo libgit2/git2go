@@ -56,6 +56,14 @@ const (
 	SubmoduleStatusWdUntracked                     = C.GIT_SUBMODULE_STATUS_WD_UNTRACKED
 )
 
+type SubmoduleRecurse int
+
+const (
+	SubmoduleRecurseNo       SubmoduleRecurse = C.GIT_SUBMODULE_RECURSE_NO
+	SubmoduleRecurseYes                       = C.GIT_SUBMODULE_RECURSE_YES
+	SubmoduleRecurseOndemand                  = C.GIT_SUBMODULE_RECURSE_ONDEMAND
+)
+
 func SubmoduleStatusIsUnmodified(status int) bool {
 	o := SubmoduleStatus(status) & ^(SubmoduleStatusInHead | SubmoduleStatusInIndex |
 		SubmoduleStatusInConfig | SubmoduleStatusInWd)
@@ -236,15 +244,7 @@ func (sub *Submodule) FetchRecurseSubmodules() bool {
 	return true
 }
 
-func (sub *Submodule) SetFetchRecurseSubmodules(v bool) error {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	recurse := 0
-	if v {
-		recurse = 1
-	}
-
+func (sub *Submodule) SetFetchRecurseSubmodules(recurse SubmoduleRecurse) error {
 	ret := C.git_submodule_set_fetch_recurse_submodules(sub.ptr, C.git_submodule_recurse_t(recurse))
 	if ret < 0 {
 		return LastError()

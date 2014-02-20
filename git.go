@@ -168,7 +168,7 @@ func Discover(start string, across_fs bool, ceiling_dirs []string) (string, erro
 	defer C.free(unsafe.Pointer(cstart))
 
 	retpath := (*C.git_buf)(C.malloc(C.GIT_PATH_MAX))
-	defer C.free(unsafe.Pointer(retpath))
+	defer C.git_buf_free(retpath)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
