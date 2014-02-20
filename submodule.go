@@ -59,7 +59,8 @@ const (
 type SubmoduleRecurse int
 
 const (
-	SubmoduleRecurseNo       SubmoduleRecurse = C.GIT_SUBMODULE_RECURSE_NO
+	SubmoduleRecurseReset    SubmoduleRecurse = C.GIT_SUBMODULE_RECURSE_RESET
+	SubmoduleRecurseNo                        = C.GIT_SUBMODULE_RECURSE_NO
 	SubmoduleRecurseYes                       = C.GIT_SUBMODULE_RECURSE_YES
 	SubmoduleRecurseOndemand                  = C.GIT_SUBMODULE_RECURSE_ONDEMAND
 )
