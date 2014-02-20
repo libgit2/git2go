@@ -14,11 +14,12 @@ import (
 // RevWalk
 
 type SortType uint
+
 const (
-	SortNone SortType = C.GIT_SORT_NONE
-	SortTopological   = C.GIT_SORT_TOPOLOGICAL
-	SortTime          = C.GIT_SORT_TIME
-	SortReverse       = C.GIT_SORT_REVERSE
+	SortNone        SortType = C.GIT_SORT_NONE
+	SortTopological          = C.GIT_SORT_TOPOLOGICAL
+	SortTime                 = C.GIT_SORT_TIME
+	SortReverse              = C.GIT_SORT_REVERSE
 )
 
 type RevWalk struct {

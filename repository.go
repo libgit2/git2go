@@ -146,15 +146,18 @@ func (v *Repository) LookupReference(name string) (*Reference, error) {
 	return newReferenceFromC(ptr), nil
 }
 
-func (v *Repository) CreateReference(name string, oid *Oid, force bool) (*Reference, error) {
+func (v *Repository) CreateReference(name string, oid *Oid, force bool, logMsg string) (*Reference, error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 	var ptr *C.git_reference
 
+	cLogMsg := C.CString(logMsg)
+	defer C.free(unsafe.Pointer(cLogMsg))
+
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_reference_create(&ptr, v.ptr, cname, oid.toC(), cbool(force))
+	ecode := C.git_reference_create(&ptr, v.ptr, cname, oid.toC(), cbool(force), nil, cLogMsg)
 	if ecode < 0 {
 		return nil, LastError()
 	}
@@ -162,17 +165,19 @@ func (v *Repository) CreateReference(name string, oid *Oid, force bool) (*Refere
 	return newReferenceFromC(ptr), nil
 }
 
-func (v *Repository) CreateSymbolicReference(name, target string, force bool) (*Reference, error) {
+func (v *Repository) CreateSymbolicReference(name, target string, force bool, logMsg string) (*Reference, error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 	ctarget := C.CString(target)
 	defer C.free(unsafe.Pointer(ctarget))
+	cLogMsg := C.CString(logMsg)
+	defer C.free(unsafe.Pointer(cLogMsg))
 	var ptr *C.git_reference
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_reference_symbolic_create(&ptr, v.ptr, cname, ctarget, cbool(force))
+	ecode := C.git_reference_symbolic_create(&ptr, v.ptr, cname, ctarget, cbool(force), nil, cLogMsg)
 	if ecode < 0 {
 		return nil, LastError()
 	}
@@ -232,7 +237,7 @@ func (v *Repository) CreateCommit(
 	ret := C.git_commit_create(
 		oid.toC(), v.ptr, cref,
 		authorSig, committerSig,
-		nil, cmsg, tree.ptr, C.int(nparents), parentsarg)
+		nil, cmsg, tree.ptr, C.size_t(nparents), parentsarg)
 
 	if ret < 0 {
 		return nil, LastError()

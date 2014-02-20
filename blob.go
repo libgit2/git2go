@@ -22,4 +22,3 @@ func (v Blob) Contents() []byte {
 	buffer := unsafe.Pointer(C.git_blob_rawcontent(v.ptr))
 	return C.GoBytes(buffer, size)
 }
-

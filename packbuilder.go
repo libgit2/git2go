@@ -110,7 +110,7 @@ func (pb *Packbuilder) Written() uint32 {
 }
 
 type packbuilderCbData struct {
-	ch chan<- []byte
+	ch   chan<- []byte
 	stop <-chan bool
 }
 
@@ -122,7 +122,7 @@ func packbuilderForEachCb(buf unsafe.Pointer, size C.size_t, payload unsafe.Poin
 
 	slice := C.GoBytes(buf, C.int(size))
 	select {
-	case <- stop:
+	case <-stop:
 		return -1
 	case ch <- slice:
 	}

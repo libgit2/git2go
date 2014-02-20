@@ -240,7 +240,12 @@ func (sub *Submodule) SetFetchRecurseSubmodules(v bool) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_submodule_set_fetch_recurse_submodules(sub.ptr, cbool(v))
+	recurse := 0
+	if v {
+		recurse = 1
+	}
+
+	ret := C.git_submodule_set_fetch_recurse_submodules(sub.ptr, C.git_submodule_recurse_t(recurse))
 	if ret < 0 {
 		return LastError()
 	}

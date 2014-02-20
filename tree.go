@@ -14,13 +14,14 @@ import (
 )
 
 type Filemode int
+
 const (
-	FilemodeNew   Filemode = C.GIT_FILEMODE_NEW
-	FilemodeTree           = C.GIT_FILEMODE_TREE
-	FilemodeBlob           = C.GIT_FILEMODE_BLOB
-	FilemodeBlobExecutable = C.GIT_FILEMODE_BLOB_EXECUTABLE
-	FilemodeLink           = C.GIT_FILEMODE_LINK
-	FilemodeCommit         = C.GIT_FILEMODE_COMMIT
+	FilemodeNew            Filemode = C.GIT_FILEMODE_NEW
+	FilemodeTree                    = C.GIT_FILEMODE_TREE
+	FilemodeBlob                    = C.GIT_FILEMODE_BLOB
+	FilemodeBlobExecutable          = C.GIT_FILEMODE_BLOB_EXECUTABLE
+	FilemodeLink                    = C.GIT_FILEMODE_LINK
+	FilemodeCommit                  = C.GIT_FILEMODE_COMMIT
 )
 
 type Tree struct {
@@ -28,9 +29,9 @@ type Tree struct {
 }
 
 type TreeEntry struct {
-	Name string
-	Id  *Oid
-	Type ObjectType
+	Name     string
+	Id       *Oid
+	Type     ObjectType
 	Filemode int
 }
 
@@ -116,7 +117,7 @@ func (t Tree) Walk(callback TreeWalkCallback) error {
 }
 
 type TreeBuilder struct {
-	ptr *C.git_treebuilder
+	ptr  *C.git_treebuilder
 	repo *Repository
 }
 
@@ -125,7 +126,7 @@ func (v *TreeBuilder) Free() {
 	C.git_treebuilder_free(v.ptr)
 }
 
-func (v *TreeBuilder) Insert(filename string, id *Oid, filemode int) (error) {
+func (v *TreeBuilder) Insert(filename string, id *Oid, filemode int) error {
 	cfilename := C.CString(filename)
 	defer C.free(unsafe.Pointer(cfilename))
 
