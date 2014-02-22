@@ -170,7 +170,7 @@ func (repo *Repository) NewReferenceIterator() (*ReferenceIterator, error) {
 // NewReferenceIteratorGlob creates an iterator over reference names
 // that match the speicified glob. The glob is of the usual fnmatch
 // type.
-func (repo *Repository) NewReferenceIteratorGlob(glob string, signature *Signature, message string) (*ReferenceIterator, error) {
+func (repo *Repository) NewReferenceIteratorGlob(glob string) (*ReferenceIterator, error) {
 	cstr := C.CString(glob)
 	defer C.free(unsafe.Pointer(cstr))
 	var ptr *C.git_reference_iterator
