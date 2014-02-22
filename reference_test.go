@@ -14,7 +14,17 @@ func TestRefModification(t *testing.T) {
 
 	commitId, treeId := seedTestRepo(t, repo)
 
-	_, err := repo.CreateReference("refs/tags/tree", treeId, true)
+	loc, err := time.LoadLocation("Europe/Berlin")
+	checkFatal(t, err)
+        sig := Signature {
+		Name:  "Rand Om Hacker",
+		Email: "random@hacker.com",
+		When:  time.Date(2013, 03, 06, 14, 30, 0, 0, loc),
+        }
+
+        message := "this is a test"
+
+	_, err = repo.CreateReference("refs/tags/tree", treeId, true, &sig, message)
 	checkFatal(t, err)
 
 	tag, err := repo.LookupReference("refs/tags/tree")
@@ -45,7 +55,11 @@ func TestRefModification(t *testing.T) {
 		t.Fatalf("Wrong ref target")
 	}
 
-	_, err = tag.Rename("refs/tags/renamed", false)
+	if target := ref.SymbolicTarget(); target != "" {
+		t.Fatalf("Expected empty string, got %v", target)
+	}
+
+	_, err = tag.Rename("refs/tags/renamed", false, &sig, message)
 	checkFatal(t, err)
 	tag, err = repo.LookupReference("refs/tags/renamed")
 	checkFatal(t, err)
@@ -78,13 +92,13 @@ func TestIterator(t *testing.T) {
 	commitId, err := repo.CreateCommit("HEAD", sig, sig, message, tree)
 	checkFatal(t, err)
 
-	_, err = repo.CreateReference("refs/heads/one", commitId, true)
+	_, err = repo.CreateReference("refs/heads/one", commitId, true, sig, message)
 	checkFatal(t, err)
 
-	_, err = repo.CreateReference("refs/heads/two", commitId, true)
+	_, err = repo.CreateReference("refs/heads/two", commitId, true, sig, message)
 	checkFatal(t, err)
 
-	_, err = repo.CreateReference("refs/heads/three", commitId, true)
+	_, err = repo.CreateReference("refs/heads/three", commitId, true, sig, message)
 	checkFatal(t, err)
 
 	iter, err := repo.NewReferenceIterator()

@@ -236,11 +236,20 @@ func (sub *Submodule) FetchRecurseSubmodules() bool {
 	return true
 }
 
-func (sub *Submodule) SetFetchRecurseSubmodules(v bool) error {
+type SubmoduleRecurseType int
+
+const (
+	SubmoduleRecurseReset SubmoduleRecurseType  = C.GIT_SUBMODULE_RECURSE_RESET
+	SubmoduleRecurseNo                          = C.GIT_SUBMODULE_RECURSE_NO
+	SubmoduleRecurseYes                         = C.GIT_SUBMODULE_RECURSE_YES
+	SubmoduleRecurseOnDemand                    = C.GIT_SUBMODULE_RECURSE_ONDEMAND
+)
+
+func (sub *Submodule) SetFetchRecurseSubmodules(mode SubmoduleRecurseType) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_submodule_set_fetch_recurse_submodules(sub.ptr, cbool(v))
+	ret := C.git_submodule_set_fetch_recurse_submodules(sub.ptr, C.git_submodule_recurse_t(mode))
 	if ret < 0 {
 		return LastError()
 	}
