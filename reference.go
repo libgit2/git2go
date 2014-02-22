@@ -27,15 +27,21 @@ func newReferenceFromC(ptr *C.git_reference) *Reference {
 	return ref
 }
 
-func (v *Reference) SetSymbolicTarget(target string) (*Reference, error) {
+func (v *Reference) SetSymbolicTarget(target string, signature *Signature, message string) (*Reference, error) {
 	var ptr *C.git_reference
 	ctarget := C.CString(target)
 	defer C.free(unsafe.Pointer(ctarget))
 
+	csignature := signature.toC()
+	defer C.git_signature_free(csignature)
+
+	cmessage := C.CString(message)
+	defer C.free(unsafe.Pointer(cmessage))
+	
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_reference_symbolic_set_target(&ptr, v.ptr, ctarget)
+	ret := C.git_reference_symbolic_set_target(&ptr, v.ptr, ctarget, csignature, cmessage)
 	if ret < 0 {
 		return nil, LastError()
 	}
@@ -43,13 +49,19 @@ func (v *Reference) SetSymbolicTarget(target string) (*Reference, error) {
 	return newReferenceFromC(ptr), nil
 }
 
-func (v *Reference) SetTarget(target *Oid) (*Reference, error) {
+func (v *Reference) SetTarget(target *Oid, signature *Signature, message string) (*Reference, error) {
 	var ptr *C.git_reference
 
+	csignature := signature.toC()
+	defer C.git_signature_free(csignature)
+
+	cmessage := C.CString(message)
+	defer C.free(unsafe.Pointer(cmessage))
 	runtime.LockOSThread()
+	
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_reference_set_target(&ptr, v.ptr, target.toC())
+	ret := C.git_reference_set_target(&ptr, v.ptr, target.toC(), csignature, cmessage)
 	if ret < 0 {
 		return nil, LastError()
 	}
@@ -71,15 +83,21 @@ func (v *Reference) Resolve() (*Reference, error) {
 	return newReferenceFromC(ptr), nil
 }
 
-func (v *Reference) Rename(name string, force bool) (*Reference, error) {
+func (v *Reference) Rename(name string, force bool, signature *Signature, message string) (*Reference, error) {
 	var ptr *C.git_reference
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 
+	csignature := signature.toC()
+	defer C.git_signature_free(csignature)
+
+	cmessage := C.CString(message)
+	defer C.free(unsafe.Pointer(cmessage))
+	
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_reference_rename(&ptr, v.ptr, cname, cbool(force))
+	ret := C.git_reference_rename(&ptr, v.ptr, cname, cbool(force), csignature, cmessage)
 
 	if ret < 0 {
 		return nil, LastError()
@@ -152,7 +170,7 @@ func (repo *Repository) NewReferenceIterator() (*ReferenceIterator, error) {
 // NewReferenceIteratorGlob creates an iterator over reference names
 // that match the speicified glob. The glob is of the usual fnmatch
 // type.
-func (repo *Repository) NewReferenceIteratorGlob(glob string) (*ReferenceIterator, error) {
+func (repo *Repository) NewReferenceIteratorGlob(glob string, signature *Signature, message string) (*ReferenceIterator, error) {
 	cstr := C.CString(glob)
 	defer C.free(unsafe.Pointer(cstr))
 	var ptr *C.git_reference_iterator

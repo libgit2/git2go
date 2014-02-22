@@ -167,16 +167,16 @@ func Discover(start string, across_fs bool, ceiling_dirs []string) (string, erro
 	cstart := C.CString(start)
 	defer C.free(unsafe.Pointer(cstart))
 
-	retpath := (*C.char)(C.malloc(C.GIT_PATH_MAX))
-	defer C.free(unsafe.Pointer(retpath))
-
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	r := C.git_repository_discover(retpath, C.GIT_PATH_MAX, cstart, cbool(across_fs), ceildirs)
+	retpath := C.git_buf {} 
+
+	r := C.git_repository_discover(&retpath, cstart, cbool(across_fs), ceildirs)
 
 	if r == 0 {
-		return C.GoString(retpath), nil
+		C.git_buf_free(&retpath)
+		return C.GoStringN(retpath.ptr, C.int(retpath.size)), nil
 	}
 
 	return "", LastError()
