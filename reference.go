@@ -142,6 +142,18 @@ func (v *Reference) Type() ReferenceType {
 	return ReferenceType(C.git_reference_type(v.ptr))
 }
 
+func (v *Reference) IsBranch() bool {
+	return C.git_reference_is_branch(v.ptr) == 1
+}
+
+func (v *Reference) IsRemote() bool {
+	return C.git_reference_is_remote(v.ptr) == 1
+}
+
+func (v *Reference) IsTag() bool {
+	return C.git_reference_is_tag(v.ptr) == 1
+}
+
 func (v *Reference) Free() {
 	runtime.SetFinalizer(v, nil)
 	C.git_reference_free(v.ptr)
