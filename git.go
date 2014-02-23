@@ -93,7 +93,7 @@ func (oid *Oid) Equal(oid2 *Oid) bool {
 }
 
 func (oid *Oid) IsZero() bool {
-	for _, a := range(oid.bytes) {
+	for _, a := range oid.bytes {
 		if a != '0' {
 			return false
 		}
@@ -131,10 +131,10 @@ func ShortenOids(ids []*Oid, minlen int) (int, error) {
 
 type GitError struct {
 	Message string
-	Code int
+	Code    int
 }
 
-func (e GitError) Error() string{
+func (e GitError) Error() string {
 	return e.Message
 }
 
@@ -147,14 +147,14 @@ func LastError() error {
 }
 
 func cbool(b bool) C.int {
-	if (b) {
+	if b {
 		return C.int(1)
 	}
 	return C.int(0)
 }
 
 func ucbool(b bool) C.uint {
-	if (b) {
+	if b {
 		return C.uint(1)
 	}
 	return C.uint(0)
@@ -167,17 +167,16 @@ func Discover(start string, across_fs bool, ceiling_dirs []string) (string, erro
 	cstart := C.CString(start)
 	defer C.free(unsafe.Pointer(cstart))
 
-	retpath := (*C.char)(C.malloc(C.GIT_PATH_MAX))
-	defer C.free(unsafe.Pointer(retpath))
+	var buf C.git_buf
+	defer C.git_buf_free(&buf)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	r := C.git_repository_discover(retpath, C.GIT_PATH_MAX, cstart, cbool(across_fs), ceildirs)
-
-	if r == 0 {
-		return C.GoString(retpath), nil
+	ret := C.git_repository_discover(&buf, cstart, cbool(across_fs), ceildirs)
+	if ret < 0 {
+		return "", LastError()
 	}
 
-	return "", LastError()
+	return C.GoString(buf.ptr), nil
 }

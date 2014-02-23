@@ -11,6 +11,7 @@ import (
 )
 
 type ReferenceType int
+
 const (
 	ReferenceSymbolic ReferenceType = C.GIT_REF_SYMBOLIC
 	ReferenceOid                    = C.GIT_REF_OID
@@ -27,15 +28,22 @@ func newReferenceFromC(ptr *C.git_reference) *Reference {
 	return ref
 }
 
-func (v *Reference) SetSymbolicTarget(target string) (*Reference, error) {
+func (v *Reference) SetSymbolicTarget(target string, sig *Signature, msg string) (*Reference, error) {
 	var ptr *C.git_reference
+
 	ctarget := C.CString(target)
 	defer C.free(unsafe.Pointer(ctarget))
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_reference_symbolic_set_target(&ptr, v.ptr, ctarget)
+	csig := sig.toC()
+	defer C.free(unsafe.Pointer(csig))
+
+	cmsg := C.CString(msg)
+	defer C.free(unsafe.Pointer(cmsg))
+
+	ret := C.git_reference_symbolic_set_target(&ptr, v.ptr, ctarget, csig, cmsg)
 	if ret < 0 {
 		return nil, LastError()
 	}
@@ -43,13 +51,19 @@ func (v *Reference) SetSymbolicTarget(target string) (*Reference, error) {
 	return newReferenceFromC(ptr), nil
 }
 
-func (v *Reference) SetTarget(target *Oid) (*Reference, error) {
+func (v *Reference) SetTarget(target *Oid, sig *Signature, msg string) (*Reference, error) {
 	var ptr *C.git_reference
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_reference_set_target(&ptr, v.ptr, target.toC())
+	csig := sig.toC()
+	defer C.free(unsafe.Pointer(csig))
+
+	cmsg := C.CString(msg)
+	defer C.free(unsafe.Pointer(cmsg))
+
+	ret := C.git_reference_set_target(&ptr, v.ptr, target.toC(), csig, cmsg)
 	if ret < 0 {
 		return nil, LastError()
 	}
@@ -71,15 +85,21 @@ func (v *Reference) Resolve() (*Reference, error) {
 	return newReferenceFromC(ptr), nil
 }
 
-func (v *Reference) Rename(name string, force bool) (*Reference, error) {
+func (v *Reference) Rename(name string, force bool, sig *Signature, msg string) (*Reference, error) {
 	var ptr *C.git_reference
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 
+	csig := sig.toC()
+	defer C.free(unsafe.Pointer(csig))
+
+	cmsg := C.CString(msg)
+	defer C.free(unsafe.Pointer(cmsg))
+
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_reference_rename(&ptr, v.ptr, cname, cbool(force))
+	ret := C.git_reference_rename(&ptr, v.ptr, cname, cbool(force), csig, cmsg)
 
 	if ret < 0 {
 		return nil, LastError()

@@ -14,7 +14,14 @@ func TestRefModification(t *testing.T) {
 
 	commitId, treeId := seedTestRepo(t, repo)
 
-	_, err := repo.CreateReference("refs/tags/tree", treeId, true)
+	loc, err := time.LoadLocation("Europe/Berlin")
+	checkFatal(t, err)
+	sig := &Signature{
+		Name:  "Rand Om Hacker",
+		Email: "random@hacker.com",
+		When:  time.Date(2013, 03, 06, 14, 30, 0, 0, loc),
+	}
+	_, err = repo.CreateReference("refs/tags/tree", treeId, true, sig, "testTreeTag")
 	checkFatal(t, err)
 
 	tag, err := repo.LookupReference("refs/tags/tree")
@@ -45,7 +52,7 @@ func TestRefModification(t *testing.T) {
 		t.Fatalf("Wrong ref target")
 	}
 
-	_, err = tag.Rename("refs/tags/renamed", false)
+	_, err = tag.Rename("refs/tags/renamed", false, nil, "")
 	checkFatal(t, err)
 	tag, err = repo.LookupReference("refs/tags/renamed")
 	checkFatal(t, err)
@@ -78,13 +85,13 @@ func TestIterator(t *testing.T) {
 	commitId, err := repo.CreateCommit("HEAD", sig, sig, message, tree)
 	checkFatal(t, err)
 
-	_, err = repo.CreateReference("refs/heads/one", commitId, true)
+	_, err = repo.CreateReference("refs/heads/one", commitId, true, sig, "headOne")
 	checkFatal(t, err)
 
-	_, err = repo.CreateReference("refs/heads/two", commitId, true)
+	_, err = repo.CreateReference("refs/heads/two", commitId, true, sig, "headTwo")
 	checkFatal(t, err)
 
-	_, err = repo.CreateReference("refs/heads/three", commitId, true)
+	_, err = repo.CreateReference("refs/heads/three", commitId, true, sig, "headThree")
 	checkFatal(t, err)
 
 	iter, err := repo.NewReferenceIterator()
@@ -108,7 +115,6 @@ func TestIterator(t *testing.T) {
 		t.Fatal("Iteration not over")
 	}
 
-
 	sort.Strings(list)
 	compareStringList(t, expected, list)
 
@@ -128,7 +134,6 @@ func TestIterator(t *testing.T) {
 	if count != 4 {
 		t.Fatalf("Wrong number of references returned %v", count)
 	}
-
 
 	// test the channel iteration
 	list = []string{}
