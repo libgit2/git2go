@@ -40,14 +40,18 @@ const (
 
 type DiffFile struct {
 	file C.git_diff_file
+	Path string
+}
+
+func newDiffFile(file *C.git_diff_file) *DiffFile {
+	return &DiffFile{
+		file: *file,
+		Path: C.GoString(file.path),
+	}
 }
 
 func (df *DiffFile) Oid() *Oid {
 	return newOidFromC(&df.file.oid)
-}
-
-func (df *DiffFile) Path() string {
-	return C.GoString(df.file.path)
 }
 
 func (df *DiffFile) Size() int {
@@ -64,6 +68,16 @@ func (df *DiffFile) Mode() uint16 {
 
 type DiffDelta struct {
 	delta C.git_diff_delta
+	OldFile *DiffFile
+	NewFile *DiffFile
+}
+
+func newDiffDelta(delta *C.git_diff_delta) *DiffDelta {
+	return &DiffDelta{
+		delta: *delta,
+		OldFile: newDiffFile(&delta.old_file),
+		NewFile: newDiffFile(&delta.new_file),
+	}
 }
 
 func (dd *DiffDelta) Status() int {
@@ -78,17 +92,18 @@ func (dd *DiffDelta) Similarity() uint16 {
 	return uint16(dd.delta.similarity)
 }
 
-func (dd *DiffDelta) OldFile() *DiffFile {
-	return &DiffFile{dd.delta.old_file}
-}
-
-func (dd *DiffDelta) NewFile() *DiffFile {
-	return &DiffFile{dd.delta.new_file}
-}
-
 type DiffHunk struct {
 	hunk C.git_diff_hunk
+	Header string
 	DiffDelta
+}
+
+func newDiffHunk(delta *C.git_diff_delta, hunk *C.git_diff_hunk) *DiffHunk {
+	return &DiffHunk{
+		hunk: *hunk,
+		Header: C.GoStringN(&hunk.header[0], C.int(hunk.header_len)),
+		DiffDelta: *newDiffDelta(delta),
+	}
 }
 
 func (dh *DiffHunk) OldStart() int {
@@ -107,13 +122,18 @@ func (dh *DiffHunk) NewLines() int {
 	return int(dh.hunk.new_lines)
 }
 
-func (dh *DiffHunk) Header() string {
-	return C.GoStringN(&dh.hunk.header[0], C.int(dh.hunk.header_len))
-}
-
 type DiffLine struct {
 	line C.git_diff_line
+	Content string
 	DiffHunk
+}
+
+func newDiffLine(delta *C.git_diff_delta, hunk *C.git_diff_hunk, line *C.git_diff_line) *DiffLine {
+	return &DiffLine{
+		line: *line,
+		Content: C.GoStringN(line.content, C.int(line.content_len)),
+		DiffHunk: *newDiffHunk(delta, hunk),
+	}
 }
 
 func (dl *DiffLine) Origin() byte {
@@ -130,10 +150,6 @@ func (dl *DiffLine) NewLineno() int {
 
 func (dl *DiffLine) NumLines() int {
 	return int(dl.line.num_lines)
-}
-
-func (dl *DiffLine) Content() string {
-	return C.GoStringN(dl.line.content, C.int(dl.line.content_len))
 }
 
 func (dl *DiffLine) ContentOffset() int {
@@ -178,7 +194,7 @@ func diffForEachFileCb(delta *C.git_diff_delta, progress C.float, payload unsafe
 	ch := *(*chan *DiffDelta)(payload)
 
 	select {
-	case ch <-&DiffDelta{*delta}:
+	case ch <-newDiffDelta(delta):
 	case <-ch:
 		return -1
 	}
@@ -202,7 +218,7 @@ func diffForEachHunkCb(delta *C.git_diff_delta, hunk *C.git_diff_hunk, payload u
 	ch := *(*chan *DiffHunk)(payload)
 
 	select {
-	case ch <-&DiffHunk{*hunk, DiffDelta{*delta}}:
+	case ch <-newDiffHunk(delta, hunk):
 	case <-ch:
 		return -1
 	}
@@ -226,7 +242,7 @@ func diffForEachLineCb(delta *C.git_diff_delta, hunk *C.git_diff_hunk, line *C.g
 	ch := *(*chan *DiffLine)(payload)
 
 	select {
-	case ch <-&DiffLine{*line, DiffHunk{*hunk, DiffDelta{*delta}}}:
+	case ch <-newDiffLine(delta, hunk, line):
 	case <-ch:
 		return -1
 	}
@@ -244,7 +260,7 @@ func (diff *Diff) GetDelta(index int) *DiffDelta {
 		return nil
 	}
 
-	return &DiffDelta{*ptr}
+	return newDiffDelta(ptr)
 }
 
 func (diff *Diff) Patch(deltaIndex int) *Patch {
