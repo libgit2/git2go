@@ -11,6 +11,33 @@ import (
 	"unsafe"
 )
 
+const (
+	DiffFlagBinary = C.GIT_DIFF_FLAG_BINARY
+	DiffFlagNotBinary = C.GIT_DIFF_FLAG_NOT_BINARY
+	DiffFlagValidOid = C.GIT_DIFF_FLAG_VALID_OID
+
+	DeltaUnmodified = C.GIT_DELTA_UNMODIFIED
+	DeltaAdded = C.GIT_DELTA_ADDED
+	DeltaDeleted = C.GIT_DELTA_DELETED
+	DeltaModified = C.GIT_DELTA_MODIFIED
+	DeltaRenamed = C.GIT_DELTA_RENAMED
+	DeltaCopied = C.GIT_DELTA_COPIED
+	DeltaIgnored = C.GIT_DELTA_IGNORED
+	DeltaUntracked = C.GIT_DELTA_UNTRACKED
+	DeltaTypeChange = C.GIT_DELTA_TYPECHANGE
+
+	DiffLineContext = C.GIT_DIFF_LINE_CONTEXT
+	DiffLineAddition = C.GIT_DIFF_LINE_ADDITION
+	DiffLineDeletion = C.GIT_DIFF_LINE_DELETION
+	DiffLineContextEOFNL = C.GIT_DIFF_LINE_CONTEXT_EOFNL
+	DiffLineAddEOFNL = C.GIT_DIFF_LINE_ADD_EOFNL
+	DiffLineDelEOFNL = C.GIT_DIFF_LINE_DEL_EOFNL
+
+	DiffLineFileHdr = C.GIT_DIFF_LINE_FILE_HDR
+	DiffLineHunkHdr = C.GIT_DIFF_LINE_HUNK_HDR
+	DiffLineBinary = C.GIT_DIFF_LINE_BINARY
+)
+
 type DiffFile struct {
 	file C.git_diff_file
 }
