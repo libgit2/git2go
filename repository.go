@@ -179,8 +179,10 @@ func (v *Repository) CreateReference(name string, oid *Oid, force bool, sig *Sig
 
 	var ptr *C.git_reference
 
-	ecode := C.git_reference_create(&ptr, v.ptr, cname, oid.toC(), cbool(force), csig, cmsg)
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
+	ecode := C.git_reference_create(&ptr, v.ptr, cname, oid.toC(), cbool(force), csig, cmsg)
 	if ecode < 0 {
 		return nil, LastError()
 	}
@@ -203,8 +205,10 @@ func (v *Repository) CreateSymbolicReference(name, target string, force bool, si
 
 	var ptr *C.git_reference
 
-	ecode := C.git_reference_symbolic_create(&ptr, v.ptr, cname, ctarget, cbool(force), csig, cmsg)
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
+	ecode := C.git_reference_symbolic_create(&ptr, v.ptr, cname, ctarget, cbool(force), csig, cmsg)
 	if ecode < 0 {
 		return nil, LastError()
 	}
@@ -264,7 +268,7 @@ func (v *Repository) CreateCommit(
 	ret := C.git_commit_create(
 		oid.toC(), v.ptr, cref,
 		authorSig, committerSig,
-		nil, cmsg, tree.ptr, C.int(nparents), parentsarg)
+		nil, cmsg, tree.ptr, C.size_t(nparents), parentsarg)
 
 	if ret < 0 {
 		return nil, LastError()

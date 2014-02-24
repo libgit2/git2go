@@ -49,6 +49,18 @@ func (v *Index) WriteTree() (*Oid, error) {
 	return oid, nil
 }
 
+func (v *Index) Write() (error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_index_write(v.ptr)
+	if ret < 0 {
+		return LastError()
+	}
+
+	return nil
+}
+
 func (v *Index) Free() {
 	runtime.SetFinalizer(v, nil)
 	C.git_index_free(v.ptr)

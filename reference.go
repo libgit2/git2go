@@ -34,6 +34,9 @@ func (v *Reference) SetSymbolicTarget(target string, sig *Signature, msg string)
 	ctarget := C.CString(target)
 	defer C.free(unsafe.Pointer(ctarget))
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	csig := sig.toC()
 	defer C.free(unsafe.Pointer(csig))
 
@@ -41,7 +44,6 @@ func (v *Reference) SetSymbolicTarget(target string, sig *Signature, msg string)
 	defer C.free(unsafe.Pointer(cmsg))
 
 	ret := C.git_reference_symbolic_set_target(&ptr, v.ptr, ctarget, csig, cmsg)
-
 	if ret < 0 {
 		return nil, LastError()
 	}
@@ -52,6 +54,9 @@ func (v *Reference) SetSymbolicTarget(target string, sig *Signature, msg string)
 func (v *Reference) SetTarget(target *Oid, sig *Signature, msg string) (*Reference, error) {
 	var ptr *C.git_reference
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	csig := sig.toC()
 	defer C.free(unsafe.Pointer(csig))
 
@@ -59,7 +64,6 @@ func (v *Reference) SetTarget(target *Oid, sig *Signature, msg string) (*Referen
 	defer C.free(unsafe.Pointer(cmsg))
 
 	ret := C.git_reference_set_target(&ptr, v.ptr, target.toC(), csig, cmsg)
-
 	if ret < 0 {
 		return nil, LastError()
 	}
@@ -81,15 +85,21 @@ func (v *Reference) Resolve() (*Reference, error) {
 	return newReferenceFromC(ptr), nil
 }
 
-func (v *Reference) Rename(name string, force bool) (*Reference, error) {
+func (v *Reference) Rename(name string, force bool, sig *Signature, msg string) (*Reference, error) {
 	var ptr *C.git_reference
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 
+	csig := sig.toC()
+	defer C.free(unsafe.Pointer(csig))
+
+	cmsg := C.CString(msg)
+	defer C.free(unsafe.Pointer(cmsg))
+
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_reference_rename(&ptr, v.ptr, cname, cbool(force))
+	ret := C.git_reference_rename(&ptr, v.ptr, cname, cbool(force), csig, cmsg)
 
 	if ret < 0 {
 		return nil, LastError()
@@ -130,6 +140,18 @@ func (v *Reference) Name() string {
 
 func (v *Reference) Type() ReferenceType {
 	return ReferenceType(C.git_reference_type(v.ptr))
+}
+
+func (v *Reference) IsBranch() bool {
+	return C.git_reference_is_branch(v.ptr) == 1
+}
+
+func (v *Reference) IsRemote() bool {
+	return C.git_reference_is_remote(v.ptr) == 1
+}
+
+func (v *Reference) IsTag() bool {
+	return C.git_reference_is_tag(v.ptr) == 1
 }
 
 func (v *Reference) Free() {

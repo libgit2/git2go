@@ -237,16 +237,15 @@ func (sub *Submodule) SetUpdate(update SubmoduleUpdate) SubmoduleUpdate {
 	return SubmoduleUpdate(o)
 }
 
-func (sub *Submodule) FetchRecurseSubmodules() bool {
-	if 0 == C.git_submodule_fetch_recurse_submodules(sub.ptr) {
-		return false
-	}
-	return true
+func (sub *Submodule) FetchRecurseSubmodules() SubmoduleRecurse {
+	return SubmoduleRecurse(C.git_submodule_fetch_recurse_submodules(sub.ptr));
 }
 
 func (sub *Submodule) SetFetchRecurseSubmodules(recurse SubmoduleRecurse) error {
-	ret := C.git_submodule_set_fetch_recurse_submodules(sub.ptr, C.git_submodule_recurse_t(recurse))
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
+	ret := C.git_submodule_set_fetch_recurse_submodules(sub.ptr, C.git_submodule_recurse_t(recurse))
 	if ret < 0 {
 		return LastError()
 	}

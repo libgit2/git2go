@@ -94,6 +94,11 @@ func (v *Signature) Offset() int {
 }
 
 func (sig *Signature) toC() *C.git_signature {
+
+	if sig == nil {
+		return nil
+	}
+
 	var out *C.git_signature
 
 	name := C.CString(sig.Name)

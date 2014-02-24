@@ -110,6 +110,22 @@ func (v *Odb) ForEach() chan *Oid {
 	return ch
 }
 
+// Hash determines the object-ID (sha1) of a data buffer.
+func (v *Odb) Hash(data []byte, otype ObjectType) (oid *Oid, err error) {
+	oid = new(Oid)
+	header := (*reflect.SliceHeader)(unsafe.Pointer(&data))
+	ptr := unsafe.Pointer(header.Data)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_odb_hash(oid.toC(), ptr, C.size_t(header.Len), C.git_otype(otype));
+	if ret < 0 {
+		err = LastError()
+	}
+	return
+}
+
 // NewReadStream opens a read stream from the ODB. Reading from it will give you the
 // contents of the object.
 func (v *Odb) NewReadStream(id *Oid) (*OdbReadStream, error) {

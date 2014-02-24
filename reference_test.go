@@ -52,7 +52,7 @@ func TestRefModification(t *testing.T) {
 		t.Fatalf("Wrong ref target")
 	}
 
-	_, err = tag.Rename("refs/tags/renamed", false)
+	_, err = tag.Rename("refs/tags/renamed", false, nil, "")
 	checkFatal(t, err)
 	tag, err = repo.LookupReference("refs/tags/renamed")
 	checkFatal(t, err)
