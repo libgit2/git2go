@@ -1,6 +1,7 @@
 #include "_cgo_export.h"
 #include "git2.h"
 #include "git2/sys/odb_backend.h"
+#include "git2/sys/refdb_backend.h"
 #include "git2/submodule.h"
 #include "git2/pack.h"
 
@@ -27,6 +28,14 @@ int _go_git_odb_foreach(git_odb *db, void *payload)
 }
 
 void _go_git_odb_backend_free(git_odb_backend *backend)
+{
+    if (backend->free)
+      backend->free(backend);
+
+    return;
+}
+
+void _go_git_refdb_backend_free(git_refdb_backend *backend)
 {
     if (backend->free)
       backend->free(backend);

@@ -15,6 +15,10 @@ type Repository struct {
 	ptr *C.git_repository
 }
 
+func (v *Repository) Pointer() *C.git_repository {
+	return v.ptr
+}
+
 func OpenRepository(path string) (*Repository, error) {
 	repo := new(Repository)
 
@@ -52,15 +56,20 @@ func InitRepository(path string, isbare bool) (*Repository, error) {
 }
 
 func NewRepositoryWrapOdb(odb *Odb) (repo *Repository, err error) {
-  repo = new(Repository)
+	repo = new(Repository)
 
-  ret := C.git_repository_wrap_odb(&repo.ptr, odb.ptr)
-  if ret < 0 {
-    return nil, LastError()
+	ret := C.git_repository_wrap_odb(&repo.ptr, odb.ptr)
+	if ret < 0 {
+		return nil, LastError()
 	}
 
-  runtime.SetFinalizer(repo, (*Repository).Free)
-  return
+	runtime.SetFinalizer(repo, (*Repository).Free)
+	return
+}
+
+func (v *Repository) SetRefdb(refdb *Refdb) {
+	C.git_repository_set_refdb(v.ptr, refdb.ptr)
+	return
 }
 
 func (v *Repository) Free() {
@@ -267,6 +276,11 @@ func (v *Repository) CreateCommit(
 func (v *Odb) Free() {
 	runtime.SetFinalizer(v, nil)
 	C.git_odb_free(v.ptr)
+}
+
+func (v *Refdb) Free() {
+	runtime.SetFinalizer(v, nil)
+	C.git_refdb_free(v.ptr)
 }
 
 func (v *Repository) Odb() (odb *Odb, err error) {
