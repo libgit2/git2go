@@ -18,7 +18,6 @@ type Index struct {
 }
 
 type IndexEntry struct {
-	ptr   *C.git_index_entry
 	Ctime time.Time
 	Mtime time.Time
 	Mode  uint
@@ -68,7 +67,6 @@ func (v *Index) EntryCount() uint {
 
 func newIndexEntryFromC(entry *C.git_index_entry) *IndexEntry {
 	return &IndexEntry{
-		entry,
 		time.Unix(int64(entry.ctime.seconds), int64(entry.ctime.nanoseconds)),
 		time.Unix(int64(entry.mtime.seconds), int64(entry.mtime.nanoseconds)),
 		uint(entry.mode),
