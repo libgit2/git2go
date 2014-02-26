@@ -11,24 +11,28 @@ import (
 	"unsafe"
 )
 
-type Delta int
 type DiffFlag int
-
 const (
-	DiffFlagBinary = DiffFlag(C.GIT_DIFF_FLAG_BINARY)
-	DiffFlagNotBinary = DiffFlag(C.GIT_DIFF_FLAG_NOT_BINARY)
-	DiffFlagValidOid = DiffFlag(C.GIT_DIFF_FLAG_VALID_OID)
+	DiffFlagBinary = C.GIT_DIFF_FLAG_BINARY
+	DiffFlagNotBinary = C.GIT_DIFF_FLAG_NOT_BINARY
+	DiffFlagValidOid = C.GIT_DIFF_FLAG_VALID_OID
+)
 
-	DeltaUnmodified = Delta(C.GIT_DELTA_UNMODIFIED)
-	DeltaAdded = Delta(C.GIT_DELTA_ADDED)
-	DeltaDeleted = Delta(C.GIT_DELTA_DELETED)
-	DeltaModified = Delta(C.GIT_DELTA_MODIFIED)
-	DeltaRenamed = Delta(C.GIT_DELTA_RENAMED)
-	DeltaCopied = Delta(C.GIT_DELTA_COPIED)
-	DeltaIgnored = Delta(C.GIT_DELTA_IGNORED)
-	DeltaUntracked = Delta(C.GIT_DELTA_UNTRACKED)
-	DeltaTypeChange = Delta(C.GIT_DELTA_TYPECHANGE)
+type Delta int
+const (
+	DeltaUnmodified = C.GIT_DELTA_UNMODIFIED
+	DeltaAdded = C.GIT_DELTA_ADDED
+	DeltaDeleted = C.GIT_DELTA_DELETED
+	DeltaModified = C.GIT_DELTA_MODIFIED
+	DeltaRenamed = C.GIT_DELTA_RENAMED
+	DeltaCopied = C.GIT_DELTA_COPIED
+	DeltaIgnored = C.GIT_DELTA_IGNORED
+	DeltaUntracked = C.GIT_DELTA_UNTRACKED
+	DeltaTypeChange = C.GIT_DELTA_TYPECHANGE
+)
 
+type DiffLineType int
+const (
 	DiffLineContext = C.GIT_DIFF_LINE_CONTEXT
 	DiffLineAddition = C.GIT_DIFF_LINE_ADDITION
 	DiffLineDeletion = C.GIT_DIFF_LINE_DELETION
@@ -126,7 +130,7 @@ func (dh *DiffHunk) NewLines() int {
 }
 
 type DiffLine struct {
-	Origin byte
+	Origin DiffLineType
 	OldLineno int
 	NewLineno int
 	NumLines int
@@ -136,7 +140,7 @@ type DiffLine struct {
 
 func newDiffLine(delta *C.git_diff_delta, hunk *C.git_diff_hunk, line *C.git_diff_line) *DiffLine {
 	return &DiffLine{
-		Origin: byte(line.origin),
+		Origin: DiffLineType(line.origin),
 		OldLineno: int(line.old_lineno),
 		NewLineno: int(line.new_lineno),
 		NumLines: int(line.num_lines),
