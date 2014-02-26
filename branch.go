@@ -8,6 +8,7 @@ package git
 import "C"
 
 import (
+	"runtime"
 	"unsafe"
 )
 
@@ -30,6 +31,7 @@ type Branch struct {
 }
 
 func (repo *Repository) CreateBranch(branchName string, target *Commit, force bool, signature *Signature, message string) (*Reference, error) {
+
 	ref := new(Reference)
 	cBranchName := C.CString(branchName)
 	cForce := cbool(force)
@@ -40,6 +42,9 @@ func (repo *Repository) CreateBranch(branchName string, target *Commit, force bo
 	cMessage := C.CString(message)
 	defer C.free(unsafe.Pointer(cMessage))
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	err := C.git_branch_create(&ref.ptr, repo.ptr, cBranchName, target.ptr, cForce, cSignature, cMessage)
 	if err < 0 {
 		return nil, LastError()
@@ -47,7 +52,11 @@ func (repo *Repository) CreateBranch(branchName string, target *Commit, force bo
 	return ref, nil
 }
 
-func (b *Branch) BranchDelete() error {
+func (b *Branch) Delete() error {
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	if err := C.git_branch_delete(b.ptr); err < 0 {
 		return LastError()
 	}
@@ -65,6 +74,9 @@ func (b *Branch) Move(newBranchName string, force bool, signature *Signature, me
 	cMessage := C.CString(message)
 	defer C.free(unsafe.Pointer(cMessage))
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	err := C.git_branch_move(&newBranch.ptr, b.ptr, cNewBranchName, cForce, cSignature, cMessage)
 	if err < 0 {
 		return nil, LastError()
@@ -73,6 +85,10 @@ func (b *Branch) Move(newBranchName string, force bool, signature *Signature, me
 }
 
 func (b *Branch) IsHead() (bool, error) {
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	isHead := C.git_branch_is_head(b.ptr)
 	switch isHead {
 	case 1:
@@ -89,6 +105,9 @@ func (repo *Repository) LookupBranch(branchName string, bt BranchType) (*Branch,
 	branch := new(Branch)
 	cName := C.CString(branchName)
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	err := C.git_branch_lookup(&branch.ptr, repo.ptr, cName, C.git_branch_t(bt))
 	if err < 0 {
 		return nil, LastError()
@@ -99,6 +118,9 @@ func (repo *Repository) LookupBranch(branchName string, bt BranchType) (*Branch,
 func (b *Branch) Name() (string, error) {
 	var cName *C.char
 	defer C.free(unsafe.Pointer(cName))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	err := C.git_branch_name(&cName, b.ptr)
 	if err < 0 {
@@ -113,6 +135,9 @@ func (repo *Repository) RemoteName(canonicalBranchName string) (string, error) {
 
 	nameBuf := C.git_buf{}
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	if C.git_branch_remote_name(&nameBuf, repo.ptr, cName) < 0 {
 		return "", LastError()
 	}
@@ -124,6 +149,9 @@ func (repo *Repository) RemoteName(canonicalBranchName string) (string, error) {
 func (b *Branch) SetUpstream(upstreamName string) error {
 	cName := C.CString(upstreamName)
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	err := C.git_branch_set_upstream(b.ptr, cName)
 	if err < 0 {
 		return LastError()
@@ -133,6 +161,10 @@ func (b *Branch) SetUpstream(upstreamName string) error {
 
 func (b *Branch) Upstream() (*Branch, error) {
 	upstream := new(Branch)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	err := C.git_branch_upstream(&upstream.ptr, b.ptr)
 	if err < 0 {
 		return nil, LastError()
@@ -144,6 +176,9 @@ func (repo *Repository) UpstreamName(canonicalBranchName string) (string, error)
 	cName := C.CString(canonicalBranchName)
 
 	nameBuf := C.git_buf{}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	if C.git_branch_upstream_name(&nameBuf, repo.ptr, cName) < 0 {
 		return "", LastError()
