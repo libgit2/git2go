@@ -24,7 +24,7 @@ type IndexEntry struct {
 	Uid   uint
 	Gid   uint
 	Size  uint
-	Oid   *Oid
+	Id   *Oid
 	Path  string
 }
 
@@ -73,7 +73,7 @@ func newIndexEntryFromC(entry *C.git_index_entry) *IndexEntry {
 		uint(entry.uid),
 		uint(entry.gid),
 		uint(entry.file_size),
-		newOidFromC(&entry.oid),
+		newOidFromC(&entry.id),
 		C.GoString(entry.path),
 	}
 }
