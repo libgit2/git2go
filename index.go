@@ -68,7 +68,7 @@ func (v *Index) Write() (error) {
 
 	ret := C.git_index_write(v.ptr)
 	if ret < 0 {
-		return LastError()
+		return MakeGitError(ret)
 	}
 
 	return nil

@@ -61,7 +61,7 @@ func NewConfig() (*Config, error) {
 	defer runtime.UnlockOSThread()
 
 	if ret := C.git_config_new(&config.ptr); ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	return config, nil
@@ -78,7 +78,7 @@ func (c *Config) AddFile(path string, level ConfigLevel, force bool) error {
 
 	ret := C.git_config_add_file_ondisk(c.ptr, cpath, C.git_config_level_t(level), cbool(force))
 	if ret < 0 {
-		return LastError()
+		return MakeGitError(ret)
 	}
 
 	return nil
@@ -142,7 +142,7 @@ func (c *Config) LookupBool(name string) (bool, error) {
 
 	ret := C.git_config_get_bool(&out, c.ptr, cname)
 	if ret < 0 {
-		return false, LastError()
+		return false, MakeGitError(ret)
 	}
 
 	return out != 0, nil
@@ -167,7 +167,7 @@ func (c *Config) NewMultivarIterator(name, regexp string) (*ConfigIterator, erro
 
 	ret := C.git_config_multivar_iterator_new(&iter.ptr, c.ptr, cname, cregexp)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	runtime.SetFinalizer(iter, (*ConfigIterator).Free)
@@ -184,7 +184,7 @@ func (c *Config) NewIterator() (*ConfigIterator, error) {
 
 	ret := C.git_config_iterator_new(&iter.ptr, c.ptr)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	return iter, nil
@@ -202,7 +202,7 @@ func (c *Config) NewIteratorGlob(regexp string) (*ConfigIterator, error) {
 
 	ret := C.git_config_iterator_glob_new(&iter.ptr, c.ptr, cregexp)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	return iter, nil
@@ -237,7 +237,7 @@ func (c *Config) SetInt32(name string, value int32) (err error) {
 
 	ret := C.git_config_set_int32(c.ptr, cname, C.int32_t(value))
 	if ret < 0 {
-		return LastError()
+		return MakeGitError(ret)
 	}
 
 	return nil
@@ -252,7 +252,7 @@ func (c *Config) SetInt64(name string, value int64) (err error) {
 
 	ret := C.git_config_set_int64(c.ptr, cname, C.int64_t(value))
 	if ret < 0 {
-		return LastError()
+		return MakeGitError(ret)
 	}
 
 	return nil
@@ -267,7 +267,7 @@ func (c *Config) SetBool(name string, value bool) (err error) {
 
 	ret := C.git_config_set_bool(c.ptr, cname, cbool(value))
 	if ret < 0 {
-		return LastError()
+		return MakeGitError(ret)
 	}
 
 	return nil
@@ -288,7 +288,7 @@ func (c *Config) SetMultivar(name, regexp, value string) (err error) {
 
 	ret := C.git_config_set_multivar(c.ptr, cname, cregexp, cvalue)
 	if ret < 0 {
-		return LastError()
+		return MakeGitError(ret)
 	}
 
 	return nil
@@ -304,7 +304,7 @@ func (c *Config) Delete(name string) error {
 	ret := C.git_config_delete_entry(c.ptr, cname)
 
 	if ret < 0 {
-		return LastError()
+		return MakeGitError(ret)
 	}
 
 	return nil
@@ -319,7 +319,7 @@ func (c *Config) OpenLevel(parent *Config, level ConfigLevel) (*Config, error) {
 
 	ret := C.git_config_open_level(&config.ptr, parent.ptr, C.git_config_level_t(level))
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	return config, nil
@@ -336,7 +336,7 @@ func OpenOndisk(parent *Config, path string) (*Config, error) {
 	defer runtime.UnlockOSThread()
 
 	if ret := C.git_config_open_ondisk(&config.ptr, cpath); ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	return config, nil
@@ -348,7 +348,7 @@ func (c *Config) Refresh() error {
 	defer runtime.UnlockOSThread()
 
 	if ret := C.git_config_refresh(c.ptr); ret < 0 {
-		return LastError()
+		return MakeGitError(ret)
 	}
 
 	return nil
@@ -364,7 +364,7 @@ func (iter *ConfigIterator) Next() (*ConfigEntry, error) {
 
 	ret := C.git_config_next(&centry, iter.ptr)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	return newConfigEntryFromC(centry), nil

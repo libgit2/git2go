@@ -247,7 +247,7 @@ func (v *ReferenceIterator) Next() (*Reference, error) {
 		return nil, ErrIterOver
 	}
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	return newReferenceFromC(ptr), nil

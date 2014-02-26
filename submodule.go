@@ -247,7 +247,7 @@ func (sub *Submodule) SetFetchRecurseSubmodules(recurse SubmoduleRecurse) error 
 
 	ret := C.git_submodule_set_fetch_recurse_submodules(sub.ptr, C.git_submodule_recurse_t(recurse))
 	if ret < 0 {
-		return MakeGitError(ret)
+		return MakeGitError(C.int(ret))
 	}
 	return nil
 }
