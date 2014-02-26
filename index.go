@@ -42,7 +42,7 @@ func (v *Index) AddByPath(path string) error {
 
 	ret := C.git_index_add_bypath(v.ptr, cstr)
 	if ret < 0 {
-		return LastError()
+		return MakeGitError(ret)
 	}
 
 	return nil
@@ -56,7 +56,7 @@ func (v *Index) WriteTree() (*Oid, error) {
 
 	ret := C.git_index_write_tree(oid.toC(), v.ptr)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	return oid, nil
@@ -68,7 +68,7 @@ func (v *Index) Write() (error) {
 
 	ret := C.git_index_write(v.ptr)
 	if ret < 0 {
-		return LastError()
+		return MakeGitError(ret)
 	}
 
 	return nil

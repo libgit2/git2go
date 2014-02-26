@@ -26,7 +26,7 @@ func OpenRepository(path string) (*Repository, error) {
 
 	ret := C.git_repository_open(&repo.ptr, cpath)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	runtime.SetFinalizer(repo, (*Repository).Free)
@@ -44,7 +44,7 @@ func InitRepository(path string, isbare bool) (*Repository, error) {
 
 	ret := C.git_repository_init(&repo.ptr, cpath, ucbool(isbare))
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	runtime.SetFinalizer(repo, (*Repository).Free)
@@ -64,7 +64,7 @@ func (v *Repository) Config() (*Config, error) {
 
 	ret := C.git_repository_config(&config.ptr, v.ptr)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	runtime.SetFinalizer(config, (*Config).Free)
@@ -79,7 +79,7 @@ func (v *Repository) Index() (*Index, error) {
 
 	ret := C.git_repository_index(&ptr, v.ptr)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	return newIndexFromC(ptr), nil
@@ -93,7 +93,7 @@ func (v *Repository) lookupType(id *Oid, t ObjectType) (Object, error) {
 
 	ret := C.git_object_lookup(&ptr, v.ptr, id.toC(), C.git_otype(t))
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	return allocObject(ptr), nil
@@ -140,7 +140,7 @@ func (v *Repository) LookupReference(name string) (*Reference, error) {
 
 	ecode := C.git_reference_lookup(&ptr, v.ptr, cname)
 	if ecode < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ecode)
 	}
 
 	return newReferenceFromC(ptr), nil
@@ -163,7 +163,7 @@ func (v *Repository) CreateReference(name string, id *Oid, force bool, sig *Sign
 
 	ecode := C.git_reference_create(&ptr, v.ptr, cname, id.toC(), cbool(force), csig, cmsg)
 	if ecode < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ecode)
 	}
 
 	return newReferenceFromC(ptr), nil
@@ -189,7 +189,7 @@ func (v *Repository) CreateSymbolicReference(name, target string, force bool, si
 
 	ecode := C.git_reference_symbolic_create(&ptr, v.ptr, cname, ctarget, cbool(force), csig, cmsg)
 	if ecode < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ecode)
 	}
 
 	return newReferenceFromC(ptr), nil
@@ -203,7 +203,7 @@ func (v *Repository) Walk() (*RevWalk, error) {
 
 	ecode := C.git_revwalk_new(&walk.ptr, v.ptr)
 	if ecode < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ecode)
 	}
 
 	walk.repo = v
@@ -250,7 +250,7 @@ func (v *Repository) CreateCommit(
 		nil, cmsg, tree.ptr, C.size_t(nparents), parentsarg)
 
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	return oid, nil
@@ -268,7 +268,7 @@ func (v *Repository) Odb() (odb *Odb, err error) {
 	defer runtime.UnlockOSThread()
 
 	if ret := C.git_repository_odb(&odb.ptr, v.ptr); ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	runtime.SetFinalizer(odb, (*Odb).Free)
@@ -294,9 +294,10 @@ func (repo *Repository) SetWorkdir(workdir string, updateGitlink bool) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if C.git_repository_set_workdir(repo.ptr, cstr, cbool(updateGitlink)) < 0 {
-		return LastError()
+	if ret := C.git_repository_set_workdir(repo.ptr, cstr, cbool(updateGitlink)); ret < 0 {
+		return MakeGitError(ret)
 	}
+
 	return nil
 }
 
@@ -307,7 +308,7 @@ func (v *Repository) TreeBuilder() (*TreeBuilder, error) {
 	defer runtime.UnlockOSThread()
 
 	if ret := C.git_treebuilder_create(&bld.ptr, nil); ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 	runtime.SetFinalizer(bld, (*TreeBuilder).Free)
 
@@ -326,7 +327,7 @@ func (v *Repository) RevparseSingle(spec string) (Object, error) {
 
 	ecode := C.git_revparse_single(&ptr, v.ptr, cspec)
 	if ecode < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ecode)
 	}
 
 	return allocObject(ptr), nil

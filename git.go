@@ -61,8 +61,8 @@ func NewOidFromString(s string) (*Oid, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if C.git_oid_fromstr(o.toC(), cs) < 0 {
-		return nil, LastError()
+	if ret := C.git_oid_fromstr(o.toC(), cs); ret < 0 {
+		return nil, MakeGitError(ret)
 	}
 
 	return o, nil
@@ -123,27 +123,36 @@ func ShortenOids(ids []*Oid, minlen int) (int, error) {
 		buf[40] = 0
 		ret = C.git_oid_shorten_add(shorten, (*C.char)(unsafe.Pointer(&buf[0])))
 		if ret < 0 {
-			return int(ret), LastError()
+			return int(ret), MakeGitError(ret)
 		}
 	}
 	return int(ret), nil
 }
 
 type GitError struct {
-	Message string
-	Code    int
+	Message   string
+	Class     int
+	ErrorCode int
 }
 
 func (e GitError) Error() string {
 	return e.Message
 }
 
-func LastError() error {
+func IsNotExist(err error) bool {
+	return err.(*GitError).ErrorCode == C.GIT_ENOTFOUND
+}
+
+func IsExist(err error) bool {
+	return err.(*GitError).ErrorCode == C.GIT_EEXISTS
+}
+
+func MakeGitError(errorCode C.int) error {
 	err := C.giterr_last()
 	if err == nil {
-		return &GitError{"No message", 0}
+		return &GitError{"No message", C.GITERR_INVALID, C.GIT_ERROR}
 	}
-	return &GitError{C.GoString(err.message), int(err.klass)}
+	return &GitError{C.GoString(err.message), int(err.klass), int(errorCode)}
 }
 
 func cbool(b bool) C.int {
@@ -175,7 +184,7 @@ func Discover(start string, across_fs bool, ceiling_dirs []string) (string, erro
 
 	ret := C.git_repository_discover(&buf, cstart, cbool(across_fs), ceildirs)
 	if ret < 0 {
-		return "", LastError()
+		return "", MakeGitError(ret)
 	}
 
 	return C.GoString(buf.ptr), nil
