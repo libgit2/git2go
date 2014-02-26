@@ -14,26 +14,33 @@ import (
 type BranchType uint
 
 const (
-	BRANCH_LOCAL  BranchType = C.GIT_BRANCH_LOCAL
-	BRANCH_REMOTE            = C.GIT_BRANCH_REMOTE
+	BranchLocal  BranchType = C.GIT_BRANCH_LOCAL
+	BranchRemote            = C.GIT_BRANCH_REMOTE
 )
 
 const (
-	REFS_DIR         = "refs/"
-	REFS_HEADS_DIR   = REFS_DIR + "heads/"
-	REFS_TAGS_DIR    = REFS_DIR + "tags/"
-	REFS_REMOTES_DIR = REFS_DIR + "remotes/"
+	RefsDir        = "refs/"
+	RefsHeadsDir   = RefsDir + "heads/"
+	RefsTagsDir    = RefsDir + "tags/"
+	RefsRemotesDir = RefsDir + "remotes/"
 )
 
 type Branch struct {
 	Reference
 }
 
-func (repo *Repository) CreateBranch(branchName string, target *Commit, force bool) (*Reference, error) {
+func (repo *Repository) CreateBranch(branchName string, target *Commit, force bool, signature *Signature, message string) (*Reference, error) {
 	ref := new(Reference)
 	cBranchName := C.CString(branchName)
 	cForce := cbool(force)
-	err := C.git_branch_create(&ref.ptr, repo.ptr, cBranchName, target.ptr, cForce)
+
+	cSignature := signature.toC()
+	defer C.git_signature_free(cSignature)
+
+	cMessage := C.CString(message)
+	defer C.free(unsafe.Pointer(cMessage))
+
+	err := C.git_branch_create(&ref.ptr, repo.ptr, cBranchName, target.ptr, cForce, cSignature, cMessage)
 	if err < 0 {
 		return nil, LastError()
 	}
@@ -47,12 +54,18 @@ func (b *Branch) BranchDelete() error {
 	return nil
 }
 
-func (b *Branch) Move(newBranchName string, force bool) (*Branch, error) {
+func (b *Branch) Move(newBranchName string, force bool, signature *Signature, message string) (*Branch, error) {
 	newBranch := new(Branch)
 	cNewBranchName := C.CString(newBranchName)
 	cForce := cbool(force)
 
-	err := C.git_branch_move(&newBranch.ptr, b.ptr, cNewBranchName, cForce)
+	cSignature := signature.toC()
+	defer C.git_signature_free(cSignature)
+
+	cMessage := C.CString(message)
+	defer C.free(unsafe.Pointer(cMessage))
+
+	err := C.git_branch_move(&newBranch.ptr, b.ptr, cNewBranchName, cForce, cSignature, cMessage)
 	if err < 0 {
 		return nil, LastError()
 	}
@@ -98,22 +111,14 @@ func (b *Branch) Name() (string, error) {
 func (repo *Repository) RemoteName(canonicalBranchName string) (string, error) {
 	cName := C.CString(canonicalBranchName)
 
-	// Obtain the length of the name
-	ret := C.git_branch_remote_name(nil, 0, repo.ptr, cName)
-	if ret < 0 {
+	nameBuf := C.git_buf{}
+
+	if C.git_branch_remote_name(&nameBuf, repo.ptr, cName) < 0 {
 		return "", LastError()
 	}
+	C.git_buf_free(&nameBuf)
 
-	cBuf := (*C.char)(C.malloc(C.size_t(ret)))
-	defer C.free(unsafe.Pointer(cBuf))
-
-	// Actually obtain the name
-	ret = C.git_branch_remote_name(cBuf, C.size_t(ret), repo.ptr, cName)
-	if ret < 0 {
-		return "", LastError()
-	}
-
-	return C.GoString(cBuf), nil
+	return C.GoStringN(nameBuf.ptr, C.int(nameBuf.size)), nil
 }
 
 func (b *Branch) SetUpstream(upstreamName string) error {
@@ -138,19 +143,12 @@ func (b *Branch) Upstream() (*Branch, error) {
 func (repo *Repository) UpstreamName(canonicalBranchName string) (string, error) {
 	cName := C.CString(canonicalBranchName)
 
-	// Obtain the length of the name
-	ret := C.git_branch_upstream_name(nil, 0, repo.ptr, cName)
-	if ret < 0 {
+	nameBuf := C.git_buf{}
+
+	if C.git_branch_upstream_name(&nameBuf, repo.ptr, cName) < 0 {
 		return "", LastError()
 	}
+	C.git_buf_free(&nameBuf)
 
-	cBuf := (*C.char)(C.malloc(C.size_t(ret)))
-	defer C.free(unsafe.Pointer(cBuf))
-
-	// Actually obtain the name
-	ret = C.git_branch_upstream_name(cBuf, C.size_t(ret), repo.ptr, cName)
-	if ret < 0 {
-		return "", LastError()
-	}
-	return C.GoString(cBuf), nil
+	return C.GoStringN(nameBuf.ptr, C.int(nameBuf.size)), nil
 }
