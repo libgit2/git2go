@@ -134,6 +134,17 @@ func (v *Reference) Delete() error {
 	return nil
 }
 
+// Cmp compares both references, retursn 0 on equality, otherwise a
+// stable sorting.
+func (v *Reference) Cmp(ref2 *Reference) int {
+	return int(C.git_reference_cmp(v.ptr, ref2.ptr))
+}
+
+// Shorthand returns a "human-readable" short reference name
+func (v *Reference) Shorthand() string {
+	return C.GoString(C.git_reference_shorthand(v.ptr))
+}
+
 func (v *Reference) Name() string {
 	return C.GoString(C.git_reference_name(v.ptr))
 }

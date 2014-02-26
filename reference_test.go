@@ -159,6 +159,33 @@ func TestIterator(t *testing.T) {
 	compareStringList(t, expected, list)
 }
 
+func TestUtil(t *testing.T) {
+	repo := createTestRepo(t)
+	defer os.RemoveAll(repo.Workdir())
+
+	commitId, _ := seedTestRepo(t, repo)
+
+	ref, err := repo.CreateReference("refs/heads/foo", commitId, true, nil, "")
+	checkFatal(t, err)
+
+	ref2, err := repo.DwimReference("foo")
+	checkFatal(t, err)
+
+	if ref.Cmp(ref2) != 0 {
+		t.Fatalf("foo didn't dwim to the right thing")
+	}
+
+	if ref.Shorthand() != "foo" {
+		t.Fatalf("refs/heads/foo has no foo shorthand")
+	}
+
+	hasLog, err := repo.HasLog("refs/heads/foo")
+	checkFatal(t, err)
+	if !hasLog {
+		t.Fatalf("branches ahve logs by default")
+	}
+}
+
 func compareStringList(t *testing.T, expected, actual []string) {
 	for i, v := range expected {
 		if actual[i] != v {
