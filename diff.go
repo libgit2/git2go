@@ -13,14 +13,14 @@ import (
 
 type DiffFlag int
 const (
-	DiffFlagBinary = C.GIT_DIFF_FLAG_BINARY
+	DiffFlagBinary = DiffFlag(C.GIT_DIFF_FLAG_BINARY)
 	DiffFlagNotBinary = C.GIT_DIFF_FLAG_NOT_BINARY
 	DiffFlagValidOid = C.GIT_DIFF_FLAG_VALID_OID
 )
 
 type Delta int
 const (
-	DeltaUnmodified = C.GIT_DELTA_UNMODIFIED
+	DeltaUnmodified = Delta(C.GIT_DELTA_UNMODIFIED)
 	DeltaAdded = C.GIT_DELTA_ADDED
 	DeltaDeleted = C.GIT_DELTA_DELETED
 	DeltaModified = C.GIT_DELTA_MODIFIED
@@ -33,7 +33,7 @@ const (
 
 type DiffLineType int
 const (
-	DiffLineContext = C.GIT_DIFF_LINE_CONTEXT
+	DiffLineContext = DiffLineType(C.GIT_DIFF_LINE_CONTEXT)
 	DiffLineAddition = C.GIT_DIFF_LINE_ADDITION
 	DiffLineDeletion = C.GIT_DIFF_LINE_DELETION
 	DiffLineContextEOFNL = C.GIT_DIFF_LINE_CONTEXT_EOFNL
@@ -46,87 +46,59 @@ const (
 )
 
 type DiffFile struct {
-	file C.git_diff_file
 	Path string
+	Oid *Oid
+	Size int
+	Flags DiffFlag
+	Mode uint16
 }
 
 func newDiffFile(file *C.git_diff_file) *DiffFile {
 	return &DiffFile{
-		file: *file,
 		Path: C.GoString(file.path),
+		Oid: newOidFromC(&file.oid),
+		Size: int(file.size),
+		Flags: DiffFlag(file.flags),
+		Mode: uint16(file.mode),
 	}
 }
 
-func (df *DiffFile) Oid() *Oid {
-	return newOidFromC(&df.file.oid)
-}
-
-func (df *DiffFile) Size() int {
-	return int(df.file.size)
-}
-
-func (df *DiffFile) Flags() uint32 {
-	return uint32(df.file.flags)
-}
-
-func (df *DiffFile) Mode() uint16 {
-	return uint16(df.file.mode)
-}
-
 type DiffDelta struct {
-	delta C.git_diff_delta
+	Status Delta
+	Flags DiffFlag
+	Similarity uint16
 	OldFile *DiffFile
 	NewFile *DiffFile
 }
 
 func newDiffDelta(delta *C.git_diff_delta) *DiffDelta {
 	return &DiffDelta{
-		delta: *delta,
+		Status: Delta(delta.status),
+		Flags: DiffFlag(delta.flags),
+		Similarity: uint16(delta.similarity),
 		OldFile: newDiffFile(&delta.old_file),
 		NewFile: newDiffFile(&delta.new_file),
 	}
 }
 
-func (dd *DiffDelta) Status() Delta {
-	return Delta(dd.delta.status)
-}
-
-func (dd *DiffDelta) Flags() DiffFlag {
-	return DiffFlag(dd.delta.flags)
-}
-
-func (dd *DiffDelta) Similarity() uint16 {
-	return uint16(dd.delta.similarity)
-}
-
 type DiffHunk struct {
-	hunk C.git_diff_hunk
+	OldStart int
+	OldLines int
+	NewStart int
+	NewLines int
 	Header string
 	DiffDelta
 }
 
 func newDiffHunk(delta *C.git_diff_delta, hunk *C.git_diff_hunk) *DiffHunk {
 	return &DiffHunk{
-		hunk: *hunk,
+		OldStart: int(hunk.old_start),
+		OldLines: int(hunk.old_lines),
+		NewStart: int(hunk.new_start),
+		NewLines: int(hunk.new_lines),
 		Header: C.GoStringN(&hunk.header[0], C.int(hunk.header_len)),
 		DiffDelta: *newDiffDelta(delta),
 	}
-}
-
-func (dh *DiffHunk) OldStart() int {
-	return int(dh.hunk.old_start)
-}
-
-func (dh *DiffHunk) OldLines() int {
-	return int(dh.hunk.old_lines)
-}
-
-func (dh *DiffHunk) NewStart() int {
-	return int(dh.hunk.new_start)
-}
-
-func (dh *DiffHunk) NewLines() int {
-	return int(dh.hunk.new_lines)
 }
 
 type DiffLine struct {
