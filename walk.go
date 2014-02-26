@@ -46,11 +46,11 @@ func (v *RevWalk) PushHead() (err error) {
 	return
 }
 
-func (v *RevWalk) Next(oid *Oid) (err error) {
+func (v *RevWalk) Next(id *Oid) (err error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_revwalk_next(oid.toC(), v.ptr)
+	ret := C.git_revwalk_next(id.toC(), v.ptr)
 	switch {
 	case ret == ITEROVER:
 		err = io.EOF

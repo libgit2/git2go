@@ -85,13 +85,13 @@ func (v *Repository) Index() (*Index, error) {
 	return newIndexFromC(ptr), nil
 }
 
-func (v *Repository) lookupType(oid *Oid, t ObjectType) (Object, error) {
+func (v *Repository) lookupType(id *Oid, t ObjectType) (Object, error) {
 	var ptr *C.git_object
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_object_lookup(&ptr, v.ptr, oid.toC(), C.git_otype(t))
+	ret := C.git_object_lookup(&ptr, v.ptr, id.toC(), C.git_otype(t))
 	if ret < 0 {
 		return nil, LastError()
 	}
@@ -99,12 +99,12 @@ func (v *Repository) lookupType(oid *Oid, t ObjectType) (Object, error) {
 	return allocObject(ptr), nil
 }
 
-func (v *Repository) Lookup(oid *Oid) (Object, error) {
-	return v.lookupType(oid, ObjectAny)
+func (v *Repository) Lookup(id *Oid) (Object, error) {
+	return v.lookupType(id, ObjectAny)
 }
 
-func (v *Repository) LookupTree(oid *Oid) (*Tree, error) {
-	obj, err := v.lookupType(oid, ObjectTree)
+func (v *Repository) LookupTree(id *Oid) (*Tree, error) {
+	obj, err := v.lookupType(id, ObjectTree)
 	if err != nil {
 		return nil, err
 	}
@@ -112,8 +112,8 @@ func (v *Repository) LookupTree(oid *Oid) (*Tree, error) {
 	return obj.(*Tree), nil
 }
 
-func (v *Repository) LookupCommit(oid *Oid) (*Commit, error) {
-	obj, err := v.lookupType(oid, ObjectCommit)
+func (v *Repository) LookupCommit(id *Oid) (*Commit, error) {
+	obj, err := v.lookupType(id, ObjectCommit)
 	if err != nil {
 		return nil, err
 	}
@@ -121,8 +121,8 @@ func (v *Repository) LookupCommit(oid *Oid) (*Commit, error) {
 	return obj.(*Commit), nil
 }
 
-func (v *Repository) LookupBlob(oid *Oid) (*Blob, error) {
-	obj, err := v.lookupType(oid, ObjectBlob)
+func (v *Repository) LookupBlob(id *Oid) (*Blob, error) {
+	obj, err := v.lookupType(id, ObjectBlob)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +146,7 @@ func (v *Repository) LookupReference(name string) (*Reference, error) {
 	return newReferenceFromC(ptr), nil
 }
 
-func (v *Repository) CreateReference(name string, oid *Oid, force bool, sig *Signature, msg string) (*Reference, error) {
+func (v *Repository) CreateReference(name string, id *Oid, force bool, sig *Signature, msg string) (*Reference, error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 
@@ -161,7 +161,7 @@ func (v *Repository) CreateReference(name string, oid *Oid, force bool, sig *Sig
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_reference_create(&ptr, v.ptr, cname, oid.toC(), cbool(force), csig, cmsg)
+	ecode := C.git_reference_create(&ptr, v.ptr, cname, id.toC(), cbool(force), csig, cmsg)
 	if ecode < 0 {
 		return nil, LastError()
 	}
