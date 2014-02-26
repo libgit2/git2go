@@ -11,20 +11,23 @@ import (
 	"unsafe"
 )
 
-const (
-	DiffFlagBinary = C.GIT_DIFF_FLAG_BINARY
-	DiffFlagNotBinary = C.GIT_DIFF_FLAG_NOT_BINARY
-	DiffFlagValidOid = C.GIT_DIFF_FLAG_VALID_OID
+type Delta int
+type DiffFlag int
 
-	DeltaUnmodified = C.GIT_DELTA_UNMODIFIED
-	DeltaAdded = C.GIT_DELTA_ADDED
-	DeltaDeleted = C.GIT_DELTA_DELETED
-	DeltaModified = C.GIT_DELTA_MODIFIED
-	DeltaRenamed = C.GIT_DELTA_RENAMED
-	DeltaCopied = C.GIT_DELTA_COPIED
-	DeltaIgnored = C.GIT_DELTA_IGNORED
-	DeltaUntracked = C.GIT_DELTA_UNTRACKED
-	DeltaTypeChange = C.GIT_DELTA_TYPECHANGE
+const (
+	DiffFlagBinary = DiffFlag(C.GIT_DIFF_FLAG_BINARY)
+	DiffFlagNotBinary = DiffFlag(C.GIT_DIFF_FLAG_NOT_BINARY)
+	DiffFlagValidOid = DiffFlag(C.GIT_DIFF_FLAG_VALID_OID)
+
+	DeltaUnmodified = Delta(C.GIT_DELTA_UNMODIFIED)
+	DeltaAdded = Delta(C.GIT_DELTA_ADDED)
+	DeltaDeleted = Delta(C.GIT_DELTA_DELETED)
+	DeltaModified = Delta(C.GIT_DELTA_MODIFIED)
+	DeltaRenamed = Delta(C.GIT_DELTA_RENAMED)
+	DeltaCopied = Delta(C.GIT_DELTA_COPIED)
+	DeltaIgnored = Delta(C.GIT_DELTA_IGNORED)
+	DeltaUntracked = Delta(C.GIT_DELTA_UNTRACKED)
+	DeltaTypeChange = Delta(C.GIT_DELTA_TYPECHANGE)
 
 	DiffLineContext = C.GIT_DIFF_LINE_CONTEXT
 	DiffLineAddition = C.GIT_DIFF_LINE_ADDITION
@@ -80,12 +83,12 @@ func newDiffDelta(delta *C.git_diff_delta) *DiffDelta {
 	}
 }
 
-func (dd *DiffDelta) Status() int {
-	return int(dd.delta.status)
+func (dd *DiffDelta) Status() Delta {
+	return Delta(dd.delta.status)
 }
 
-func (dd *DiffDelta) Flags() uint32 {
-	return uint32(dd.delta.flags)
+func (dd *DiffDelta) Flags() DiffFlag {
+	return DiffFlag(dd.delta.flags)
 }
 
 func (dd *DiffDelta) Similarity() uint16 {
@@ -123,37 +126,23 @@ func (dh *DiffHunk) NewLines() int {
 }
 
 type DiffLine struct {
-	line C.git_diff_line
+	Origin byte
+	OldLineno int
+	NewLineno int
+	NumLines int
 	Content string
 	DiffHunk
 }
 
 func newDiffLine(delta *C.git_diff_delta, hunk *C.git_diff_hunk, line *C.git_diff_line) *DiffLine {
 	return &DiffLine{
-		line: *line,
+		Origin: byte(line.origin),
+		OldLineno: int(line.old_lineno),
+		NewLineno: int(line.new_lineno),
+		NumLines: int(line.num_lines),
 		Content: C.GoStringN(line.content, C.int(line.content_len)),
 		DiffHunk: *newDiffHunk(delta, hunk),
 	}
-}
-
-func (dl *DiffLine) Origin() byte {
-	return byte(dl.line.origin)
-}
-
-func (dl *DiffLine) OldLineno() int {
-	return int(dl.line.old_lineno)
-}
-
-func (dl *DiffLine) NewLineno() int {
-	return int(dl.line.new_lineno)
-}
-
-func (dl *DiffLine) NumLines() int {
-	return int(dl.line.num_lines)
-}
-
-func (dl *DiffLine) ContentOffset() int {
-	return int(dl.line.content_offset)
 }
 
 type Diff struct {
