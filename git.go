@@ -10,8 +10,8 @@ import (
 	"bytes"
 	"errors"
 	"runtime"
-	"unsafe"
 	"strings"
+	"unsafe"
 )
 
 const (
