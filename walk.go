@@ -40,22 +40,22 @@ func (v *RevWalk) PushHead() (err error) {
 
 	ecode := C.git_revwalk_push_head(v.ptr)
 	if ecode < 0 {
-		err = LastError()
+		err = MakeGitError(ecode)
 	}
 
 	return
 }
 
-func (v *RevWalk) Next(oid *Oid) (err error) {
+func (v *RevWalk) Next(id *Oid) (err error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_revwalk_next(oid.toC(), v.ptr)
+	ret := C.git_revwalk_next(id.toC(), v.ptr)
 	switch {
 	case ret == ITEROVER:
 		err = io.EOF
 	case ret < 0:
-		err = LastError()
+		err = MakeGitError(ret)
 	}
 
 	return

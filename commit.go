@@ -31,7 +31,7 @@ func (c Commit) Tree() (*Tree, error) {
 
 	err := C.git_commit_tree(&ptr, c.ptr)
 	if err < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(err)
 	}
 
 	return allocObject(ptr).(*Tree), nil
