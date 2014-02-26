@@ -153,8 +153,13 @@ func (v *Repository) CreateReference(name string, oid *Oid, force bool, sig *Sig
 	csig := sig.toC()
 	defer C.free(unsafe.Pointer(csig))
 
-	cmsg := C.CString(msg)
-	defer C.free(unsafe.Pointer(cmsg))
+	var cmsg *C.char
+	if msg == "" {
+		cmsg = nil
+	} else {
+		cmsg = C.CString(msg)
+		defer C.free(unsafe.Pointer(cmsg))
+	}
 
 	var ptr *C.git_reference
 
@@ -179,8 +184,13 @@ func (v *Repository) CreateSymbolicReference(name, target string, force bool, si
 	csig := sig.toC()
 	defer C.free(unsafe.Pointer(csig))
 
-	cmsg := C.CString(msg)
-	defer C.free(unsafe.Pointer(cmsg))
+	var cmsg *C.char
+	if msg == "" {
+		cmsg = nil
+	} else {
+		cmsg = C.CString(msg)
+		defer C.free(unsafe.Pointer(cmsg))
+	}
 
 	var ptr *C.git_reference
 
