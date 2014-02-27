@@ -15,10 +15,6 @@ type Repository struct {
 	ptr *C.git_repository
 }
 
-func (v *Repository) Pointer() *C.git_repository {
-	return v.ptr
-}
-
 func OpenRepository(path string) (*Repository, error) {
 	repo := new(Repository)
 
