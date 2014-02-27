@@ -40,8 +40,13 @@ func (v *Reference) SetSymbolicTarget(target string, sig *Signature, msg string)
 	csig := sig.toC()
 	defer C.free(unsafe.Pointer(csig))
 
-	cmsg := C.CString(msg)
-	defer C.free(unsafe.Pointer(cmsg))
+	var cmsg *C.char
+	if msg == "" {
+		cmsg = nil
+	} else {
+		cmsg = C.CString(msg)
+		defer C.free(unsafe.Pointer(cmsg))
+	}
 
 	ret := C.git_reference_symbolic_set_target(&ptr, v.ptr, ctarget, csig, cmsg)
 	if ret < 0 {
@@ -60,8 +65,13 @@ func (v *Reference) SetTarget(target *Oid, sig *Signature, msg string) (*Referen
 	csig := sig.toC()
 	defer C.free(unsafe.Pointer(csig))
 
-	cmsg := C.CString(msg)
-	defer C.free(unsafe.Pointer(cmsg))
+	var cmsg *C.char
+	if msg == "" {
+		cmsg = nil
+	} else {
+		cmsg = C.CString(msg)
+		defer C.free(unsafe.Pointer(cmsg))
+	}
 
 	ret := C.git_reference_set_target(&ptr, v.ptr, target.toC(), csig, cmsg)
 	if ret < 0 {
@@ -93,8 +103,13 @@ func (v *Reference) Rename(name string, force bool, sig *Signature, msg string) 
 	csig := sig.toC()
 	defer C.free(unsafe.Pointer(csig))
 
-	cmsg := C.CString(msg)
-	defer C.free(unsafe.Pointer(cmsg))
+	var cmsg *C.char
+	if msg == "" {
+		cmsg = nil
+	} else {
+		cmsg = C.CString(msg)
+		defer C.free(unsafe.Pointer(cmsg))
+	}
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
