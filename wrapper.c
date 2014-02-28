@@ -51,4 +51,16 @@ char *_go_git_get_strarray_n(git_strarray *array, size_t n) {
 	return array->strings[n];
 }
 
+typedef int (*status_foreach_cb)(const char *ref, const char *msg, void *data);
+
+int _go_git_push_status_foreach(git_push *push, void *data)
+{
+	return git_push_status_foreach(push, (status_foreach_cb)statusForeach, data);
+}
+
+int _go_git_push_set_callbacks(git_push *push, void *packbuilder_progress_data, void *transfer_progress_data)
+{
+	return git_push_set_callbacks(push, packbuilderProgress, packbuilder_progress_data, pushTransferProgress, transfer_progress_data);
+}
+
 /* EOF */

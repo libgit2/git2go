@@ -1,8 +1,8 @@
 package git
 
 import (
-	"testing"
 	"io/ioutil"
+	"testing"
 	"time"
 )
 
@@ -14,7 +14,17 @@ func createTestRepo(t *testing.T) *Repository {
 	checkFatal(t, err)
 
 	tmpfile := "README"
-	err = ioutil.WriteFile(path + "/" + tmpfile, []byte("foo\n"), 0644)
+	err = ioutil.WriteFile(path+"/"+tmpfile, []byte("foo\n"), 0644)
+	checkFatal(t, err)
+
+	return repo
+}
+
+func createBareTestRepo(t *testing.T) *Repository {
+	// figure out where we can create the test repo
+	path, err := ioutil.TempDir("", "git2go")
+	checkFatal(t, err)
+	repo, err := InitRepository(path, true)
 	checkFatal(t, err)
 
 	return repo
@@ -44,4 +54,3 @@ func seedTestRepo(t *testing.T, repo *Repository) (*Oid, *Oid) {
 
 	return commitId, treeId
 }
-

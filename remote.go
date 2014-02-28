@@ -40,27 +40,7 @@ type RemoteCallbacks struct {
 	UpdateTipsCallback
 }
 
-type Remote interface {
-	Save() error
-	Owner() Repository
-	Name() string
-	Url() string
-	PushUrl() string
-
-	SetUrl(url string) error
-	SetPushUrl(url string) error
-
-	AddFetch(refspec string) error
-	GetFetchRefspecs() ([]string, error)
-	SetFetchRefspecs(refspecs []string) error
-	AddPush(refspec string) error
-	GetPushRefspecs() ([]string, error)
-	SetPushRefspecs(refspecs []string) error
-	ClearRefspecs()
-	RefspecCount() uint
-}
-
-type gitRemote struct {
+type Remote struct {
 	ptr *C.git_remote
 }
 
@@ -161,13 +141,13 @@ func RemoteIsValidName(name string) bool {
 	return false
 }
 
-func freeRemote(o *gitRemote) {
-	C.git_remote_free(o.ptr)
+func (r *Remote) Free() {
+	runtime.SetFinalizer(r, nil)
+	C.git_remote_free(r.ptr)
 }
 
-func CreateRemote(repo *Repository, name string, url string) (Remote, error) {
-	remote := &gitRemote{}
-	runtime.SetFinalizer(remote, freeRemote)
+func (repo *Repository) CreateRemote(name string, url string) (*Remote, error) {
+	remote := &Remote{}
 
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
@@ -181,12 +161,12 @@ func CreateRemote(repo *Repository, name string, url string) (Remote, error) {
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
+	runtime.SetFinalizer(remote, (*Remote).Free)
 	return remote, nil
 }
 
-func CreateRemoteWithFetchspec(repo *Repository, name string, url string, fetch string) (Remote, error) {
-	remote := &gitRemote{}
-	runtime.SetFinalizer(remote, freeRemote)
+func (repo *Repository) CreateRemoteWithFetchspec(name string, url string, fetch string) (*Remote, error) {
+	remote := &Remote{}
 
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
@@ -202,12 +182,12 @@ func CreateRemoteWithFetchspec(repo *Repository, name string, url string, fetch 
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
+	runtime.SetFinalizer(remote, (*Remote).Free)
 	return remote, nil
 }
 
-func CreateRemoteInMemory(repo *Repository, fetch string, url string) (Remote, error) {
-	remote := &gitRemote{}
-	runtime.SetFinalizer(remote, freeRemote)
+func (repo *Repository) CreateRemoteInMemory(fetch string, url string) (*Remote, error) {
+	remote := &Remote{}
 
 	curl := C.CString(url)
 	defer C.free(unsafe.Pointer(curl))
@@ -221,12 +201,12 @@ func CreateRemoteInMemory(repo *Repository, fetch string, url string) (Remote, e
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
+	runtime.SetFinalizer(remote, (*Remote).Free)
 	return remote, nil
 }
 
-func LoadRemote(repo *Repository, name string) (Remote, error) {
-	remote := &gitRemote{}
-	runtime.SetFinalizer(remote, freeRemote)
+func (repo *Repository) LoadRemote(name string) (*Remote, error) {
+	remote := &Remote{}
 
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
@@ -238,10 +218,11 @@ func LoadRemote(repo *Repository, name string) (Remote, error) {
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
+	runtime.SetFinalizer(remote, (*Remote).Free)
 	return remote, nil
 }
 
-func (o *gitRemote) Save() error {
+func (o *Remote) Save() error {
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -253,23 +234,23 @@ func (o *gitRemote) Save() error {
 	return nil
 }
 
-func (o *gitRemote) Owner() Repository {
+func (o *Remote) Owner() Repository {
 	return Repository{C.git_remote_owner(o.ptr)}
 }
 
-func (o *gitRemote) Name() string {
+func (o *Remote) Name() string {
 	return C.GoString(C.git_remote_name(o.ptr))
 }
 
-func (o *gitRemote) Url() string {
+func (o *Remote) Url() string {
 	return C.GoString(C.git_remote_url(o.ptr))
 }
 
-func (o *gitRemote) PushUrl() string {
+func (o *Remote) PushUrl() string {
 	return C.GoString(C.git_remote_pushurl(o.ptr))
 }
 
-func (o *gitRemote) SetUrl(url string) error {
+func (o *Remote) SetUrl(url string) error {
 	curl := C.CString(url)
 	defer C.free(unsafe.Pointer(curl))
 
@@ -283,7 +264,7 @@ func (o *gitRemote) SetUrl(url string) error {
 	return nil
 }
 
-func (o *gitRemote) SetPushUrl(url string) error {
+func (o *Remote) SetPushUrl(url string) error {
 	curl := C.CString(url)
 	defer C.free(unsafe.Pointer(curl))
 
@@ -297,7 +278,7 @@ func (o *gitRemote) SetPushUrl(url string) error {
 	return nil
 }
 
-func (o *gitRemote) AddFetch(refspec string) error {
+func (o *Remote) AddFetch(refspec string) error {
 	crefspec := C.CString(refspec)
 	defer C.free(unsafe.Pointer(crefspec))
 
@@ -311,7 +292,7 @@ func (o *gitRemote) AddFetch(refspec string) error {
 	return nil
 }
 
-func (o *gitRemote) GetFetchRefspecs() ([]string, error) {
+func (o *Remote) GetFetchRefspecs() ([]string, error) {
 	crefspecs := C.git_strarray{}
 
 	runtime.LockOSThread()
@@ -330,7 +311,7 @@ func (o *gitRemote) GetFetchRefspecs() ([]string, error) {
 	return refspecs, nil
 }
 
-func (o *gitRemote) SetFetchRefspecs(refspecs []string) error {
+func (o *Remote) SetFetchRefspecs(refspecs []string) error {
 	crefspecs := C.git_strarray{}
 	crefspecs.count = C.size_t(len(refspecs))
 	crefspecs.strings = (**C.char)(C.malloc(C.size_t(unsafe.Sizeof(unsafe.Pointer(nil)) * uintptr(crefspecs.count))))
@@ -349,7 +330,7 @@ func (o *gitRemote) SetFetchRefspecs(refspecs []string) error {
 	return nil
 }
 
-func (o *gitRemote) AddPush(refspec string) error {
+func (o *Remote) AddPush(refspec string) error {
 	crefspec := C.CString(refspec)
 	defer C.free(unsafe.Pointer(crefspec))
 
@@ -363,7 +344,7 @@ func (o *gitRemote) AddPush(refspec string) error {
 	return nil
 }
 
-func (o *gitRemote) GetPushRefspecs() ([]string, error) {
+func (o *Remote) GetPushRefspecs() ([]string, error) {
 	crefspecs := C.git_strarray{}
 
 	runtime.LockOSThread()
@@ -382,7 +363,7 @@ func (o *gitRemote) GetPushRefspecs() ([]string, error) {
 	return refspecs, nil
 }
 
-func (o *gitRemote) SetPushRefspecs(refspecs []string) error {
+func (o *Remote) SetPushRefspecs(refspecs []string) error {
 	crefspecs := C.git_strarray{}
 	crefspecs.count = C.size_t(len(refspecs))
 	crefspecs.strings = (**C.char)(C.malloc(C.size_t(unsafe.Sizeof(unsafe.Pointer(nil)) * uintptr(crefspecs.count))))
@@ -401,10 +382,28 @@ func (o *gitRemote) SetPushRefspecs(refspecs []string) error {
 	return nil
 }
 
-func (o *gitRemote) ClearRefspecs() {
+func (o *Remote) ClearRefspecs() {
 	C.git_remote_clear_refspecs(o.ptr)
 }
 
-func (o *gitRemote) RefspecCount() uint {
+func (o *Remote) RefspecCount() uint {
 	return uint(C.git_remote_refspec_count(o.ptr))
+}
+
+func (o *Remote) Fetch(sig *Signature, msg string) error {
+
+	var csig *C.git_signature = nil
+	if sig != nil {
+		csig = sig.toC()
+		defer C.free(unsafe.Pointer(csig))
+	}
+
+	cmsg := C.CString(msg)
+	defer C.free(unsafe.Pointer(cmsg))
+
+	ret := C.git_remote_fetch(o.ptr, csig, cmsg)
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+	return nil
 }
