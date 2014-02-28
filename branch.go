@@ -142,9 +142,9 @@ func (repo *Repository) RemoteName(canonicalBranchName string) (string, error) {
 	if ret < 0 {
 		return "", MakeGitError(ret)
 	}
-	C.git_buf_free(&nameBuf)
+	defer C.git_buf_free(&nameBuf)
 
-	return C.GoStringN(nameBuf.ptr, C.int(nameBuf.size)), nil
+	return C.GoString(nameBuf.ptr), nil
 }
 
 func (b *Branch) SetUpstream(upstreamName string) error {
@@ -185,7 +185,7 @@ func (repo *Repository) UpstreamName(canonicalBranchName string) (string, error)
 	if ret < 0 {
 		return "", MakeGitError(ret)
 	}
-	C.git_buf_free(&nameBuf)
+	defer C.git_buf_free(&nameBuf)
 
-	return C.GoStringN(nameBuf.ptr, C.int(nameBuf.size)), nil
+	return C.GoString(nameBuf.ptr), nil
 }
