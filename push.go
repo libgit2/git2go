@@ -79,8 +79,13 @@ func (p *Push) UpdateTips(sig *Signature, msg string) error {
 		defer C.free(unsafe.Pointer(csig))
 	}
 
-	cmsg := C.CString(msg)
-	defer C.free(unsafe.Pointer(cmsg))
+	var cmsg *C.char
+	if msg == "" {
+		cmsg = nil
+	} else {
+		cmsg = C.CString(msg)
+		defer C.free(unsafe.Pointer(cmsg))
+	}
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()

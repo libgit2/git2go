@@ -398,9 +398,13 @@ func (o *Remote) Fetch(sig *Signature, msg string) error {
 		defer C.free(unsafe.Pointer(csig))
 	}
 
-	cmsg := C.CString(msg)
-	defer C.free(unsafe.Pointer(cmsg))
-
+	var cmsg *C.char
+	if msg == "" {
+		cmsg = nil
+	} else {
+		cmsg = C.CString(msg)
+		defer C.free(unsafe.Pointer(cmsg))
+	}
 	ret := C.git_remote_fetch(o.ptr, csig, cmsg)
 	if ret < 0 {
 		return MakeGitError(ret)
