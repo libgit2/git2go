@@ -72,9 +72,9 @@ func (r *Repository) MergeHeadFromRef(ref *Reference) (*MergeHead, error) {
 type MergeFlag int
 
 const (
-	MergeFlagDefault MergeFlag = iota
-	MergeNoFastForward
-	MergeFastForwardOnly
+	MergeFlagDefault     MergeFlag = 0
+	MergeNoFastForward             = 1
+	MergeFastForwardOnly           = 2
 )
 
 type MergeOptions struct {
@@ -96,16 +96,16 @@ func (mo *MergeOptions) toC() *C.git_merge_opts {
 type MergeTreeFlag int
 
 const (
-	MergeTreeFindRenames MergeTreeFlag = 1 << iota
+	MergeTreeFindRenames MergeTreeFlag = 1 << 0
 )
 
 type MergeFileFavorType int
 
 const (
-	MergeFileFavorNormal MergeFileFavorType = iota
-	MergeFileFavorOurs
-	MergeFileFavorTheirs
-	MergeFileFavorUnion
+	MergeFileFavorNormal MergeFileFavorType = 0
+	MergeFileFavorOurs                      = 1
+	MergeFileFavorTheirs                    = 2
+	MergeFileFavorUnion                     = 3
 )
 
 type MergeTreeOptions struct {
