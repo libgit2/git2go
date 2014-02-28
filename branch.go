@@ -19,13 +19,6 @@ const (
 	BranchRemote            = C.GIT_BRANCH_REMOTE
 )
 
-const (
-	RefsDir        = "refs/"
-	RefsHeadsDir   = RefsDir + "heads/"
-	RefsTagsDir    = RefsDir + "tags/"
-	RefsRemotesDir = RefsDir + "remotes/"
-)
-
 type Branch struct {
 	Reference
 }
