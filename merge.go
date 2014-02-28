@@ -85,6 +85,12 @@ type MergeOptions struct {
 	//TODO: CheckoutOptions CheckoutOptions
 }
 
+func DefaultMergeOptions() MergeOptions {
+	options := MergeOptions{Version: 1}
+	options.TreeOptions = DefaultMergeTreeOptions()
+	return options
+}
+
 func (mo *MergeOptions) toC() *C.git_merge_opts {
 	return &C.git_merge_opts{
 		version:         C.uint(mo.Version),
@@ -115,6 +121,10 @@ type MergeTreeOptions struct {
 	TargetLimit     uint
 	//TODO: SimilarityMetric *DiffSimilarityMetric
 	FileFavor MergeFileFavorType
+}
+
+func DefaultMergeTreeOptions() MergeTreeOptions {
+	return MergeTreeOptions{Version: 1}
 }
 
 func (mo *MergeTreeOptions) toC() *C.git_merge_tree_opts {
@@ -170,7 +180,7 @@ func (mr *MergeResult) FastForwardId() (*Oid, error) {
 	return newOidFromC(&oid), nil
 }
 
-func (r *Repository) Merge(theirHeads []MergeHead, options MergeOptions) (*MergeResult, error) {
+func (r *Repository) Merge(theirHeads []*MergeHead, options MergeOptions) (*MergeResult, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
