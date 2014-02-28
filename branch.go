@@ -23,7 +23,7 @@ type Branch struct {
 	Reference
 }
 
-func (repo *Repository) CreateBranch(branchName string, target *Commit, force bool, signature *Signature, message string) (*Reference, error) {
+func (repo *Repository) CreateBranch(branchName string, target *Commit, force bool, signature *Signature, msg string) (*Reference, error) {
 
 	ref := new(Reference)
 	cBranchName := C.CString(branchName)
@@ -32,13 +32,18 @@ func (repo *Repository) CreateBranch(branchName string, target *Commit, force bo
 	cSignature := signature.toC()
 	defer C.git_signature_free(cSignature)
 
-	cMessage := C.CString(message)
-	defer C.free(unsafe.Pointer(cMessage))
+	var cmsg *C.char
+	if msg == "" {
+		cmsg = nil
+	} else {
+		cmsg = C.CString(msg)
+		defer C.free(unsafe.Pointer(cmsg))
+	}
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_branch_create(&ref.ptr, repo.ptr, cBranchName, target.ptr, cForce, cSignature, cMessage)
+	ret := C.git_branch_create(&ref.ptr, repo.ptr, cBranchName, target.ptr, cForce, cSignature, cmsg)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -56,7 +61,7 @@ func (b *Branch) Delete() error {
 	return nil
 }
 
-func (b *Branch) Move(newBranchName string, force bool, signature *Signature, message string) (*Branch, error) {
+func (b *Branch) Move(newBranchName string, force bool, signature *Signature, msg string) (*Branch, error) {
 	newBranch := new(Branch)
 	cNewBranchName := C.CString(newBranchName)
 	cForce := cbool(force)
@@ -64,13 +69,18 @@ func (b *Branch) Move(newBranchName string, force bool, signature *Signature, me
 	cSignature := signature.toC()
 	defer C.git_signature_free(cSignature)
 
-	cMessage := C.CString(message)
-	defer C.free(unsafe.Pointer(cMessage))
+	var cmsg *C.char
+	if msg == "" {
+		cmsg = nil
+	} else {
+		cmsg = C.CString(msg)
+		defer C.free(unsafe.Pointer(cmsg))
+	}
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_branch_move(&newBranch.ptr, b.ptr, cNewBranchName, cForce, cSignature, cMessage)
+	ret := C.git_branch_move(&newBranch.ptr, b.ptr, cNewBranchName, cForce, cSignature, cmsg)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
