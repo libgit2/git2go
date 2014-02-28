@@ -69,18 +69,62 @@ func (r *Repository) MergeHeadFromRef(ref *Reference) (*MergeHead, error) {
 	return mh, nil
 }
 
+type MergeFlag int
+
+const (
+	MergeFlagDefault MergeFlag = iota
+	MergeNoFastForward
+	MergeFastForwardOnly
+)
+
 type MergeOptions struct {
+	Version uint
+	Flags   MergeFlag
+
+	TreeOptions MergeTreeOptions
+	//TODO: CheckoutOptions CheckoutOptions
 }
 
 func (mo *MergeOptions) toC() *C.git_merge_opts {
-	return nil
+	return &C.git_merge_opts{
+		version:         C.uint(mo.Version),
+		merge_flags:     C.git_merge_flags_t(mo.Flags),
+		merge_tree_opts: *mo.TreeOptions.toC(),
+	}
 }
 
+type MergeTreeFlag int
+
+const (
+	MergeTreeFindRenames MergeTreeFlag = 1 << iota
+)
+
+type MergeFileFavorType int
+
+const (
+	MergeFileFavorNormal MergeFileFavorType = iota
+	MergeFileFavorOurs
+	MergeFileFavorTheirs
+	MergeFileFavorUnion
+)
+
 type MergeTreeOptions struct {
+	Version         uint
+	Flags           MergeTreeFlag
+	RenameThreshold uint
+	TargetLimit     uint
+	//TODO: SimilarityMetric *DiffSimilarityMetric
+	FileFavor MergeFileFavorType
 }
 
 func (mo *MergeTreeOptions) toC() *C.git_merge_tree_opts {
-	return nil
+	return &C.git_merge_tree_opts{
+		version:          C.uint(mo.Version),
+		flags:            C.git_merge_tree_flag_t(mo.Flags),
+		rename_threshold: C.uint(mo.RenameThreshold),
+		target_limit:     C.uint(mo.TargetLimit),
+		file_favor:       C.git_merge_file_favor_t(mo.FileFavor),
+	}
 }
 
 type MergeResult struct {
@@ -192,4 +236,4 @@ func (r *Repository) MergeBase(one *Oid, two *Oid) (*Oid, error) {
 	return newOidFromC(&oid), nil
 }
 
-// int git_merge_base_many(git_oid *out, git_repository *repo, size_t length, const git_oid input_array[]);
+//TODO: int git_merge_base_many(git_oid *out, git_repository *repo, size_t length, const git_oid input_array[]);
