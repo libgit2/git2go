@@ -24,4 +24,19 @@ int _go_git_odb_foreach(git_odb *db, void *payload)
 {
     return git_odb_foreach(db, (git_odb_foreach_cb)&odbForEachCb, payload);
 }
+
+git_merge_head** _go_git_make_merge_head_array(size_t len)
+{
+	return (git_merge_head**)malloc(sizeof(git_merge_head*) * len);
+}
+
+void _go_git_merge_head_array_set(git_merge_head** array, git_merge_head* ptr, size_t n)
+{
+	array[n] = ptr;
+}
+
+git_merge_head* _go_git_merge_head_array_get(git_merge_head** array, size_t n)
+{
+	return array[n];	
+}
 /* EOF */
