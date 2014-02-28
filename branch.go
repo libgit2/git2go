@@ -98,9 +98,8 @@ func (b *Branch) IsHead() (bool, error) {
 		return true, nil
 	case 0:
 		return false, nil
-	default:
-		return false, MakeGitError(ret)
 	}
+	return false, MakeGitError(ret)
 
 }
 
