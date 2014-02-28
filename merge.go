@@ -26,8 +26,8 @@ func newMergeHeadFromC(c *C.git_merge_head) *MergeHead {
 }
 
 func (mh *MergeHead) Free() {
-	C.git_merge_head_free(mh.ptr)
 	runtime.SetFinalizer(mh, nil)
+	C.git_merge_head_free(mh.ptr)
 }
 
 func (r *Repository) MergeHeadFromFetchHead(branchName string, remoteURL string, oid *Oid) (*MergeHead, error) {
