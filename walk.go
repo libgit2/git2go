@@ -14,16 +14,23 @@ import (
 // RevWalk
 
 type SortType uint
+
 const (
-	SortNone SortType = C.GIT_SORT_NONE
-	SortTopological   = C.GIT_SORT_TOPOLOGICAL
-	SortTime          = C.GIT_SORT_TIME
-	SortReverse       = C.GIT_SORT_REVERSE
+	SortNone        SortType = C.GIT_SORT_NONE
+	SortTopological          = C.GIT_SORT_TOPOLOGICAL
+	SortTime                 = C.GIT_SORT_TIME
+	SortReverse              = C.GIT_SORT_REVERSE
 )
 
 type RevWalk struct {
 	ptr  *C.git_revwalk
 	repo *Repository
+}
+
+func revWalkFromC(repo *Repository, c *C.git_revwalk) *RevWalk {
+	v := &RevWalk{ptr: c, repo: repo}
+	runtime.SetFinalizer(v, (*RevWalk).Free)
+	return v
 }
 
 func (v *RevWalk) Reset() {
@@ -92,6 +99,8 @@ func (v *RevWalk) Sorting(sm SortType) {
 	C.git_revwalk_sorting(v.ptr, C.uint(sm))
 }
 
-func freeRevWalk(walk *RevWalk) {
-	C.git_revwalk_free(walk.ptr)
+func (v *RevWalk) Free() {
+
+	runtime.SetFinalizer(v, nil)
+	C.git_revwalk_free(v.ptr)
 }

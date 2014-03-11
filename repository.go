@@ -153,8 +153,13 @@ func (v *Repository) CreateReference(name string, id *Oid, force bool, sig *Sign
 	csig := sig.toC()
 	defer C.free(unsafe.Pointer(csig))
 
-	cmsg := C.CString(msg)
-	defer C.free(unsafe.Pointer(cmsg))
+	var cmsg *C.char
+	if msg == "" {
+		cmsg = nil
+	} else {
+		cmsg = C.CString(msg)
+		defer C.free(unsafe.Pointer(cmsg))
+	}
 
 	var ptr *C.git_reference
 
@@ -179,8 +184,13 @@ func (v *Repository) CreateSymbolicReference(name, target string, force bool, si
 	csig := sig.toC()
 	defer C.free(unsafe.Pointer(csig))
 
-	cmsg := C.CString(msg)
-	defer C.free(unsafe.Pointer(cmsg))
+	var cmsg *C.char
+	if msg == "" {
+		cmsg = nil
+	} else {
+		cmsg = C.CString(msg)
+		defer C.free(unsafe.Pointer(cmsg))
+	}
 
 	var ptr *C.git_reference
 
@@ -196,19 +206,18 @@ func (v *Repository) CreateSymbolicReference(name, target string, force bool, si
 }
 
 func (v *Repository) Walk() (*RevWalk, error) {
-	walk := new(RevWalk)
+
+	var walkPtr *C.git_revwalk
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_revwalk_new(&walk.ptr, v.ptr)
+	ecode := C.git_revwalk_new(&walkPtr, v.ptr)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
 
-	walk.repo = v
-	runtime.SetFinalizer(walk, freeRevWalk)
-	return walk, nil
+	return revWalkFromC(v, walkPtr), nil
 }
 
 func (v *Repository) CreateCommit(
@@ -316,6 +325,21 @@ func (v *Repository) TreeBuilder() (*TreeBuilder, error) {
 	return bld, nil
 }
 
+func (v *Repository) TreeBuilderFromTree(tree *Tree) (*TreeBuilder, error) {
+	bld := new(TreeBuilder)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if ret := C.git_treebuilder_create(&bld.ptr, tree.ptr); ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+	runtime.SetFinalizer(bld, (*TreeBuilder).Free)
+
+	bld.repo = v
+	return bld, nil
+}
+
 func (v *Repository) RevparseSingle(spec string) (Object, error) {
 	cspec := C.CString(spec)
 	defer C.free(unsafe.Pointer(cspec))
@@ -331,4 +355,53 @@ func (v *Repository) RevparseSingle(spec string) (Object, error) {
 	}
 
 	return allocObject(ptr), nil
+}
+
+// EnsureLog ensures that there is a reflog for the given reference
+// name and creates an empty one if necessary.
+func (v *Repository) EnsureLog(name string) error {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if ret := C.git_reference_ensure_log(v.ptr, cname); ret < 0 {
+		return MakeGitError(ret)
+	}
+
+	return nil
+}
+
+// HasLog returns whether there is a reflog for the given reference
+// name
+func (v *Repository) HasLog(name string) (bool, error) {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_reference_has_log(v.ptr, cname)
+	if ret < 0 {
+		return false, MakeGitError(ret)
+	}
+
+	return ret == 1, nil
+}
+
+// DwimReference looks up a reference by DWIMing its short name
+func (v *Repository) DwimReference(name string) (*Reference, error) {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var ptr *C.git_reference
+	if ret := C.git_reference_dwim(&ptr, v.ptr, cname); ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return newReferenceFromC(ptr), nil
 }

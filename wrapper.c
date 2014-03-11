@@ -63,4 +63,16 @@ int _go_git_push_set_callbacks(git_push *push, void *packbuilder_progress_data, 
 	return git_push_set_callbacks(push, packbuilderProgress, packbuilder_progress_data, pushTransferProgress, transfer_progress_data);
 }
 
+int _go_blob_chunk_cb(char *buffer, size_t maxLen, void *payload)
+{
+    return blobChunkCb(buffer, maxLen, payload);
+}
+
+int _go_git_blob_create_fromchunks(git_oid *id,
+	git_repository *repo,
+	const char *hintpath,
+	void *payload)
+{
+    return git_blob_create_fromchunks(id, repo, hintpath, _go_blob_chunk_cb, payload);
+}
 /* EOF */

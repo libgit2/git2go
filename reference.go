@@ -40,8 +40,13 @@ func (v *Reference) SetSymbolicTarget(target string, sig *Signature, msg string)
 	csig := sig.toC()
 	defer C.free(unsafe.Pointer(csig))
 
-	cmsg := C.CString(msg)
-	defer C.free(unsafe.Pointer(cmsg))
+	var cmsg *C.char
+	if msg == "" {
+		cmsg = nil
+	} else {
+		cmsg = C.CString(msg)
+		defer C.free(unsafe.Pointer(cmsg))
+	}
 
 	ret := C.git_reference_symbolic_set_target(&ptr, v.ptr, ctarget, csig, cmsg)
 	if ret < 0 {
@@ -60,8 +65,13 @@ func (v *Reference) SetTarget(target *Oid, sig *Signature, msg string) (*Referen
 	csig := sig.toC()
 	defer C.free(unsafe.Pointer(csig))
 
-	cmsg := C.CString(msg)
-	defer C.free(unsafe.Pointer(cmsg))
+	var cmsg *C.char
+	if msg == "" {
+		cmsg = nil
+	} else {
+		cmsg = C.CString(msg)
+		defer C.free(unsafe.Pointer(cmsg))
+	}
 
 	ret := C.git_reference_set_target(&ptr, v.ptr, target.toC(), csig, cmsg)
 	if ret < 0 {
@@ -93,8 +103,13 @@ func (v *Reference) Rename(name string, force bool, sig *Signature, msg string) 
 	csig := sig.toC()
 	defer C.free(unsafe.Pointer(csig))
 
-	cmsg := C.CString(msg)
-	defer C.free(unsafe.Pointer(cmsg))
+	var cmsg *C.char
+	if msg == "" {
+		cmsg = nil
+	} else {
+		cmsg = C.CString(msg)
+		defer C.free(unsafe.Pointer(cmsg))
+	}
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -132,6 +147,17 @@ func (v *Reference) Delete() error {
 	}
 
 	return nil
+}
+
+// Cmp compares both references, retursn 0 on equality, otherwise a
+// stable sorting.
+func (v *Reference) Cmp(ref2 *Reference) int {
+	return int(C.git_reference_cmp(v.ptr, ref2.ptr))
+}
+
+// Shorthand returns a "human-readable" short reference name
+func (v *Reference) Shorthand() string {
+	return C.GoString(C.git_reference_shorthand(v.ptr))
 }
 
 func (v *Reference) Name() string {
