@@ -74,15 +74,21 @@ func (v *Repository) CheckoutHead(opts *CheckoutOpts) error {
 }
 
 // Updates files in the working tree to match the content of the given
-// index. opts may be nil.
+// index. If index is nil, the repository's index will be used. opts
+// may be nil.
 func (v *Repository) CheckoutIndex(index *Index, opts *CheckoutOpts) error {
 	var copts C.git_checkout_options
 	ptr := populateCheckoutOpts(&copts, opts)
 
+	var iptr *C.git_index = nil
+	if index != nil {
+		iptr = index.ptr
+	}
+
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_checkout_index(v.ptr, index.ptr, ptr)
+	ret := C.git_checkout_index(v.ptr, iptr, ptr)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
