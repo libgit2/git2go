@@ -2,10 +2,6 @@ package git
 
 /*
 #include <git2.h>
-git_checkout_opts git_checkout_opts_init() {
-	git_checkout_opts ret = GIT_CHECKOUT_OPTS_INIT;
-	return ret;
-}
 */
 import "C"
 import (
@@ -42,28 +38,34 @@ type CheckoutOpts struct {
 	FileOpenFlags  int				// Default is O_CREAT | O_TRUNC | O_WRONLY
 }
 
-// Convert the CheckoutOpts struct to the corresponding C-struct
-func populateCheckoutOpts(ptr *C.git_checkout_opts, opts *CheckoutOpts) {
-	*ptr = C.git_checkout_opts_init()
+// Convert the CheckoutOpts struct to the corresponding
+// C-struct. Returns a pointer to ptr, or nil if opts is nil, in order
+// to help with what to pass.
+func populateCheckoutOpts(ptr *C.git_checkout_options, opts *CheckoutOpts) *C.git_checkout_options {
 	if opts == nil {
-		return
+		return nil
 	}
+
+	C.git_checkout_init_opts(ptr, 1)
 	ptr.checkout_strategy = C.uint(opts.Strategy)
 	ptr.disable_filters = cbool(opts.DisableFilters)
 	ptr.dir_mode = C.uint(opts.DirMode.Perm())
 	ptr.file_mode = C.uint(opts.FileMode.Perm())
+
+	return ptr
 }
 
 // Updates files in the index and the working tree to match the content of
-// the commit pointed at by HEAD.
-func (v *Repository) Checkout(opts *CheckoutOpts) error {
-	var copts C.git_checkout_opts
-	populateCheckoutOpts(&copts, opts)
+// the commit pointed at by HEAD. opts may be nil.
+func (v *Repository) CheckoutHead(opts *CheckoutOpts) error {
+	var copts C.git_checkout_options
+
+	ptr := populateCheckoutOpts(&copts, opts)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_checkout_head(v.ptr, &copts)
+	ret := C.git_checkout_head(v.ptr, ptr)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -71,15 +73,22 @@ func (v *Repository) Checkout(opts *CheckoutOpts) error {
 	return nil
 }
 
-// Updates files in the working tree to match the content of the index.
+// Updates files in the working tree to match the content of the given
+// index. If index is nil, the repository's index will be used. opts
+// may be nil.
 func (v *Repository) CheckoutIndex(index *Index, opts *CheckoutOpts) error {
-	var copts C.git_checkout_opts
-	populateCheckoutOpts(&copts, opts)
+	var copts C.git_checkout_options
+	ptr := populateCheckoutOpts(&copts, opts)
+
+	var iptr *C.git_index = nil
+	if index != nil {
+		iptr = index.ptr
+	}
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_checkout_index(v.ptr, index.ptr, &copts)
+	ret := C.git_checkout_index(v.ptr, iptr, ptr)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
