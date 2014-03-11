@@ -72,9 +72,9 @@ func (r *Repository) MergeHeadFromRef(ref *Reference) (*MergeHead, error) {
 type MergeFlag int
 
 const (
-	MergeFlagDefault     MergeFlag = 0
-	MergeNoFastForward             = 1
-	MergeFastForwardOnly           = 2
+	MergeFlagDefault     MergeFlag = C.GIT_MERGE_DEFAULT
+	MergeNoFastForward             = C.GIT_MERGE_NO_FASTFORWARD
+	MergeFastForwardOnly           = C.GIT_MERGE_FASTFORWARD_ONLY
 )
 
 type MergeOptions struct {
@@ -187,15 +187,12 @@ func (r *Repository) Merge(theirHeads []*MergeHead, options MergeOptions) (*Merg
 	var result *C.git_merge_result
 
 	copts := options.toC()
-
-	cmerge_head_array := C._go_git_make_merge_head_array(C.size_t(len(theirHeads)))
-	defer C.free(unsafe.Pointer(cmerge_head_array))
-
-	for i, _ := range theirHeads {
-		C._go_git_merge_head_array_set(cmerge_head_array, theirHeads[i].ptr, C.size_t(i))
+	gmerge_head_array := make([]*C.git_merge_head, len(theirHeads))
+	for i := 0; i < len(theirHeads); i++ {
+		gmerge_head_array[i] = theirHeads[i].ptr
 	}
-
-	err := C.git_merge(&result, r.ptr, cmerge_head_array, C.size_t(len(theirHeads)), copts)
+	ptr := unsafe.Pointer(&gmerge_head_array[0])
+	err := C.git_merge(&result, r.ptr, (**C.git_merge_head)(ptr), C.size_t(len(theirHeads)), copts)
 	if err < 0 {
 		return nil, MakeGitError(err)
 	}

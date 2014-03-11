@@ -1,0 +1,12 @@
+language: go
+
+go:
+  - 1.0
+  - 1.1
+  - tip
+
+env:
+  - PKG_CONFIG_PATH=libgit2/install/lib/pkgconfig LD_LIBRARY_PATH=libgit2/install/lib
+
+install:
+  - script/build-libgit2.sh
