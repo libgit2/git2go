@@ -4,11 +4,6 @@ package git
 #include <git2.h>
 #include <git2/errors.h>
 
-static git_clone_options git_clone_options_init() {
-	git_clone_options ret = GIT_CLONE_OPTIONS_INIT;
-	return ret;
-}
-
 */
 import "C"
 import (
@@ -60,7 +55,9 @@ func Clone(url string, path string, options *CloneOptions) (*Repository, error) 
 }
 
 func populateCloneOptions(ptr *C.git_clone_options, opts *CloneOptions) {
-	*ptr = C.git_clone_options_init()
+	ptr = &C.git_clone_options{}
+	C.git_clone_init_options(ptr, 1)
+
 	if opts == nil {
 		return
 	}

@@ -5,7 +5,6 @@ package git
 #include <git2/errors.h>
 
 extern void _go_git_setup_callbacks(git_remote_callbacks *callbacks);
-extern git_remote_callbacks _go_git_remote_callbacks_init();
 extern void _go_git_set_strarray_n(git_strarray *array, char *str, size_t n);
 extern char *_go_git_get_strarray_n(git_strarray *array, size_t n);
 
@@ -15,7 +14,22 @@ import "unsafe"
 import "runtime"
 
 type TransferProgress struct {
-	ptr *C.git_transfer_progress
+	TotalObjects    uint
+	IndexedObjects  uint
+	ReceivedObjects uint
+	LocalObjects    uint
+	TotalDeltas     uint
+	ReceivedBytes   uint
+}
+
+func newTransferProgressFromC(c *C.git_transfer_progress) TransferProgress {
+	return TransferProgress{
+		TotalObjects:    uint(c.total_objects),
+		IndexedObjects:  uint(c.indexed_objects),
+		ReceivedObjects: uint(c.received_objects),
+		LocalObjects:    uint(c.local_objects),
+		TotalDeltas:     uint(c.total_deltas),
+		ReceivedBytes:   uint(c.received_bytes)}
 }
 
 type RemoteCompletion uint
@@ -28,7 +42,7 @@ const (
 
 type ProgressCallback func(str string) int
 type CompletionCallback func(RemoteCompletion) int
-type CredentialsCallback func(url string, username_from_url string, allowed_types CredType) (int, Cred)
+type CredentialsCallback func(url string, username_from_url string, allowed_types CredType) (int, *Cred)
 type TransferProgressCallback func(stats TransferProgress) int
 type UpdateTipsCallback func(refname string, a *Oid, b *Oid) int
 
@@ -45,7 +59,7 @@ type Remote struct {
 }
 
 func populateRemoteCallbacks(ptr *C.git_remote_callbacks, callbacks *RemoteCallbacks) {
-	*ptr = C._go_git_remote_callbacks_init()
+	C.git_remote_init_callbacks(ptr, C.GIT_REMOTE_CALLBACKS_VERSION)
 	if callbacks == nil {
 		return
 	}
@@ -81,9 +95,7 @@ func credentialsCallback(_cred **C.git_cred, _url *C.char, _username_from_url *C
 	url := C.GoString(_url)
 	username_from_url := C.GoString(_username_from_url)
 	ret, cred := callbacks.CredentialsCallback(url, username_from_url, (CredType)(allowed_types))
-	if gcred, ok := cred.(gitCred); ok {
-		*_cred = gcred.ptr
-	}
+	*_cred = cred.ptr
 	return ret
 }
 
@@ -93,7 +105,7 @@ func transferProgressCallback(stats *C.git_transfer_progress, data unsafe.Pointe
 	if callbacks.TransferProgressCallback == nil {
 		return 0
 	}
-	return callbacks.TransferProgressCallback(TransferProgress{stats})
+	return callbacks.TransferProgressCallback(newTransferProgressFromC(stats))
 }
 
 //export updateTipsCallback
@@ -106,30 +118,6 @@ func updateTipsCallback(_refname *C.char, _a *C.git_oid, _b *C.git_oid, data uns
 	a := newOidFromC(_a)
 	b := newOidFromC(_b)
 	return callbacks.UpdateTipsCallback(refname, a, b)
-}
-
-func (o TransferProgress) TotalObjects() uint {
-	return uint(o.ptr.total_objects)
-}
-
-func (o TransferProgress) IndexedObjects() uint {
-	return uint(o.ptr.indexed_objects)
-}
-
-func (o TransferProgress) ReceivedObjects() uint {
-	return uint(o.ptr.received_objects)
-}
-
-func (o TransferProgress) LocalObjects() uint {
-	return uint(o.ptr.local_objects)
-}
-
-func (o TransferProgress) TotalDeltas() uint {
-	return uint(o.ptr.total_deltas)
-}
-
-func (o TransferProgress) ReceivedBytes() uint {
-	return uint(o.ptr.received_bytes)
 }
 
 func RemoteIsValidName(name string) bool {

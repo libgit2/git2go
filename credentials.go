@@ -8,39 +8,35 @@ import "C"
 import "unsafe"
 
 type CredType uint
+
 const (
 	CredTypeUserpassPlaintext CredType = C.GIT_CREDTYPE_USERPASS_PLAINTEXT
-	CredTypeSshKey		           = C.GIT_CREDTYPE_SSH_KEY
-	CredTypeSshCustom 		   = C.GIT_CREDTYPE_SSH_CUSTOM
-	CredTypeDefault			   = C.GIT_CREDTYPE_DEFAULT
+	CredTypeSshKey                     = C.GIT_CREDTYPE_SSH_KEY
+	CredTypeSshCustom                  = C.GIT_CREDTYPE_SSH_CUSTOM
+	CredTypeDefault                    = C.GIT_CREDTYPE_DEFAULT
 )
 
-type Cred interface {
-	HasUsername() bool
-	Type() CredType
-}
-
-type gitCred struct {
+type Cred struct {
 	ptr *C.git_cred
 }
 
-func (o gitCred) HasUsername() bool {
+func (o *Cred) HasUsername() bool {
 	if C.git_cred_has_username(o.ptr) == 1 {
 		return true
 	}
 	return false
 }
 
-func (o gitCred) Type() CredType {
-	return (CredType)(o.ptr.credtype);
+func (o *Cred) Type() CredType {
+	return (CredType)(o.ptr.credtype)
 }
 
-func credFromC(ptr *C.git_cred) Cred {
-	return gitCred{ptr}
+func credFromC(ptr *C.git_cred) *Cred {
+	return &Cred{ptr}
 }
 
 func NewCredUserpassPlaintext(username string, password string) (int, Cred) {
-	cred := gitCred{}
+	cred := Cred{}
 	cusername := C.CString(username)
 	defer C.free(unsafe.Pointer(cusername))
 	cpassword := C.CString(password)
@@ -50,7 +46,7 @@ func NewCredUserpassPlaintext(username string, password string) (int, Cred) {
 }
 
 func NewCredSshKey(username string, publickey string, privatekey string, passphrase string) (int, Cred) {
-	cred := gitCred{}
+	cred := Cred{}
 	cusername := C.CString(username)
 	defer C.free(unsafe.Pointer(cusername))
 	cpublickey := C.CString(publickey)
@@ -64,7 +60,7 @@ func NewCredSshKey(username string, publickey string, privatekey string, passphr
 }
 
 func NewCredSshKeyFromAgent(username string) (int, Cred) {
-	cred := gitCred{}
+	cred := Cred{}
 	cusername := C.CString(username)
 	defer C.free(unsafe.Pointer(cusername))
 	ret := C.git_cred_ssh_key_from_agent(&cred.ptr, cusername)
@@ -72,8 +68,7 @@ func NewCredSshKeyFromAgent(username string) (int, Cred) {
 }
 
 func NewCredDefault() (int, Cred) {
-	cred := gitCred{}
+	cred := Cred{}
 	ret := C.git_cred_default_new(&cred.ptr)
 	return int(ret), cred
 }
-

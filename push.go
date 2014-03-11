@@ -59,9 +59,6 @@ func (p *Push) Finish() error {
 
 func (p *Push) UnpackOk() bool {
 
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
 	ret := C.git_push_unpack_ok(p.ptr)
 	if ret == 0 {
 		return false

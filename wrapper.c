@@ -38,11 +38,6 @@ void _go_git_setup_callbacks(git_remote_callbacks *callbacks) {
 	callbacks->update_tips = (update_tips_cb)updateTipsCallback;
 }
 
-git_remote_callbacks _go_git_remote_callbacks_init() {
-	git_remote_callbacks ret = GIT_REMOTE_CALLBACKS_INIT;
-	return ret;
-}
-
 void _go_git_set_strarray_n(git_strarray *array, char *str, size_t n) {
 	array->strings[n] = str;
 }
