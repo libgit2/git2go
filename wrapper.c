@@ -38,14 +38,6 @@ void _go_git_setup_callbacks(git_remote_callbacks *callbacks) {
 	callbacks->update_tips = (update_tips_cb)updateTipsCallback;
 }
 
-void _go_git_set_strarray_n(git_strarray *array, char *str, size_t n) {
-	array->strings[n] = str;
-}
-
-char *_go_git_get_strarray_n(git_strarray *array, size_t n) {
-	return array->strings[n];
-}
-
 typedef int (*status_foreach_cb)(const char *ref, const char *msg, void *data);
 
 int _go_git_push_status_foreach(git_push *push, void *data)

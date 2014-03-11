@@ -5,8 +5,6 @@ package git
 #include <git2/errors.h>
 
 extern void _go_git_setup_callbacks(git_remote_callbacks *callbacks);
-extern void _go_git_set_strarray_n(git_strarray *array, char *str, size_t n);
-extern char *_go_git_get_strarray_n(git_strarray *array, size_t n);
 
 */
 import "C"
@@ -280,6 +278,31 @@ func (o *Remote) AddFetch(refspec string) error {
 	return nil
 }
 
+func sptr(p uintptr) *C.char {
+	return *(**C.char)(unsafe.Pointer(p))
+}
+
+func makeStringsFromCStrings(x **C.char, l int) []string {
+	s := make([]string, l)
+	i := 0
+	for p := uintptr(unsafe.Pointer(x)); i < l; p += unsafe.Sizeof(uintptr(0)) {
+		s[i] = C.GoString(sptr(p))
+		i++
+	}
+	return s
+}
+
+func makeCStringsFromStrings(s []string) **C.char {
+	l := len(s)
+	x := (**C.char)(C.malloc(C.size_t(unsafe.Sizeof(unsafe.Pointer(nil)) * uintptr(l))))
+	i := 0
+	for p := uintptr(unsafe.Pointer(x)); i < l; p += unsafe.Sizeof(uintptr(0)) {
+		*(**C.char)(unsafe.Pointer(p)) = C.CString(s[i])
+		i++
+	}
+	return x
+}
+
 func (o *Remote) GetFetchRefspecs() ([]string, error) {
 	crefspecs := C.git_strarray{}
 
@@ -291,21 +314,15 @@ func (o *Remote) GetFetchRefspecs() ([]string, error) {
 		return nil, MakeGitError(ret)
 	}
 	defer C.git_strarray_free(&crefspecs)
-	refspecs := make([]string, crefspecs.count)
 
-	for i := 0; i < int(crefspecs.count); i++ {
-		refspecs[i] = C.GoString(C._go_git_get_strarray_n(&crefspecs, C.size_t(i)))
-	}
+	refspecs := makeStringsFromCStrings(crefspecs.strings, int(crefspecs.count))
 	return refspecs, nil
 }
 
 func (o *Remote) SetFetchRefspecs(refspecs []string) error {
 	crefspecs := C.git_strarray{}
 	crefspecs.count = C.size_t(len(refspecs))
-	crefspecs.strings = (**C.char)(C.malloc(C.size_t(unsafe.Sizeof(unsafe.Pointer(nil)) * uintptr(crefspecs.count))))
-	for i, refspec := range refspecs {
-		C._go_git_set_strarray_n(&crefspecs, C.CString(refspec), C.size_t(i))
-	}
+	crefspecs.strings = makeCStringsFromStrings(refspecs)
 	defer C.git_strarray_free(&crefspecs)
 
 	runtime.LockOSThread()
@@ -343,21 +360,14 @@ func (o *Remote) GetPushRefspecs() ([]string, error) {
 		return nil, MakeGitError(ret)
 	}
 	defer C.git_strarray_free(&crefspecs)
-	refspecs := make([]string, crefspecs.count)
-
-	for i := 0; i < int(crefspecs.count); i++ {
-		refspecs[i] = C.GoString(C._go_git_get_strarray_n(&crefspecs, C.size_t(i)))
-	}
+	refspecs := makeStringsFromCStrings(crefspecs.strings, int(crefspecs.count))
 	return refspecs, nil
 }
 
 func (o *Remote) SetPushRefspecs(refspecs []string) error {
 	crefspecs := C.git_strarray{}
 	crefspecs.count = C.size_t(len(refspecs))
-	crefspecs.strings = (**C.char)(C.malloc(C.size_t(unsafe.Sizeof(unsafe.Pointer(nil)) * uintptr(crefspecs.count))))
-	for i, refspec := range refspecs {
-		C._go_git_set_strarray_n(&crefspecs, C.CString(refspec), C.size_t(i))
-	}
+	crefspecs.strings = makeCStringsFromStrings(refspecs)
 	defer C.git_strarray_free(&crefspecs)
 
 	runtime.LockOSThread()
