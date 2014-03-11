@@ -2,8 +2,8 @@ package git
 
 /*
 #include <git2.h>
-git_checkout_opts git_checkout_opts_init() {
-	git_checkout_opts ret = GIT_CHECKOUT_OPTS_INIT;
+git_checkout_options git_checkout_opts_init() {
+	git_checkout_options ret = GIT_CHECKOUT_OPTIONS_INIT;
 	return ret;
 }
 */
@@ -43,7 +43,7 @@ type CheckoutOpts struct {
 }
 
 // Convert the CheckoutOpts struct to the corresponding C-struct
-func populateCheckoutOpts(ptr *C.git_checkout_opts, opts *CheckoutOpts) {
+func populateCheckoutOpts(ptr *C.git_checkout_options, opts *CheckoutOpts) {
 	*ptr = C.git_checkout_opts_init()
 	if opts == nil {
 		return
@@ -57,7 +57,7 @@ func populateCheckoutOpts(ptr *C.git_checkout_opts, opts *CheckoutOpts) {
 // Updates files in the index and the working tree to match the content of
 // the commit pointed at by HEAD.
 func (v *Repository) Checkout(opts *CheckoutOpts) error {
-	var copts C.git_checkout_opts
+	var copts C.git_checkout_options
 	populateCheckoutOpts(&copts, opts)
 
 	runtime.LockOSThread()
@@ -73,7 +73,7 @@ func (v *Repository) Checkout(opts *CheckoutOpts) error {
 
 // Updates files in the working tree to match the content of the index.
 func (v *Repository) CheckoutIndex(index *Index, opts *CheckoutOpts) error {
-	var copts C.git_checkout_opts
+	var copts C.git_checkout_options
 	populateCheckoutOpts(&copts, opts)
 
 	runtime.LockOSThread()
