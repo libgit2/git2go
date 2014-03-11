@@ -25,18 +25,16 @@ int _go_git_odb_foreach(git_odb *db, void *payload)
     return git_odb_foreach(db, (git_odb_foreach_cb)&odbForEachCb, payload);
 }
 
-git_merge_head** _go_git_make_merge_head_array(size_t len)
+int _go_blob_chunk_cb(char *buffer, size_t maxLen, void *payload)
 {
-	return (git_merge_head**)malloc(sizeof(git_merge_head*) * len);
+    return blobChunkCb(buffer, maxLen, payload);
 }
 
-void _go_git_merge_head_array_set(git_merge_head** array, git_merge_head* ptr, size_t n)
+int _go_git_blob_create_fromchunks(git_oid *id,
+	git_repository *repo,
+	const char *hintpath,
+	void *payload)
 {
-	array[n] = ptr;
-}
-
-git_merge_head* _go_git_merge_head_array_get(git_merge_head** array, size_t n)
-{
-	return array[n];	
+    return git_blob_create_fromchunks(id, repo, hintpath, _go_blob_chunk_cb, payload);
 }
 /* EOF */

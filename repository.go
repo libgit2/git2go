@@ -206,19 +206,18 @@ func (v *Repository) CreateSymbolicReference(name, target string, force bool, si
 }
 
 func (v *Repository) Walk() (*RevWalk, error) {
-	walk := new(RevWalk)
+
+	var walkPtr *C.git_revwalk
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_revwalk_new(&walk.ptr, v.ptr)
+	ecode := C.git_revwalk_new(&walkPtr, v.ptr)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
 
-	walk.repo = v
-	runtime.SetFinalizer(walk, freeRevWalk)
-	return walk, nil
+	return revWalkFromC(v, walkPtr), nil
 }
 
 func (v *Repository) CreateCommit(
@@ -318,6 +317,21 @@ func (v *Repository) TreeBuilder() (*TreeBuilder, error) {
 	defer runtime.UnlockOSThread()
 
 	if ret := C.git_treebuilder_create(&bld.ptr, nil); ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+	runtime.SetFinalizer(bld, (*TreeBuilder).Free)
+
+	bld.repo = v
+	return bld, nil
+}
+
+func (v *Repository) TreeBuilderFromTree(tree *Tree) (*TreeBuilder, error) {
+	bld := new(TreeBuilder)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if ret := C.git_treebuilder_create(&bld.ptr, tree.ptr); ret < 0 {
 		return nil, MakeGitError(ret)
 	}
 	runtime.SetFinalizer(bld, (*TreeBuilder).Free)
