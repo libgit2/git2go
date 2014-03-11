@@ -62,9 +62,8 @@ func (p *Push) UnpackOk() bool {
 	ret := C.git_push_unpack_ok(p.ptr)
 	if ret == 0 {
 		return false
-	} else {
-		return true
 	}
+	return true
 
 }
 
