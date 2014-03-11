@@ -2,10 +2,6 @@ package git
 
 /*
 #include <git2.h>
-git_checkout_options git_checkout_opts_init() {
-	git_checkout_options ret = GIT_CHECKOUT_OPTIONS_INIT;
-	return ret;
-}
 */
 import "C"
 import (
@@ -44,7 +40,7 @@ type CheckoutOpts struct {
 
 // Convert the CheckoutOpts struct to the corresponding C-struct
 func populateCheckoutOpts(ptr *C.git_checkout_options, opts *CheckoutOpts) {
-	*ptr = C.git_checkout_opts_init()
+	C.git_checkout_init_opts(ptr, 1)
 	if opts == nil {
 		return
 	}
