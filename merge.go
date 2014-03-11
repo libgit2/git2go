@@ -26,8 +26,8 @@ func newMergeHeadFromC(c *C.git_merge_head) *MergeHead {
 }
 
 func (mh *MergeHead) Free() {
-	C.git_merge_head_free(mh.ptr)
 	runtime.SetFinalizer(mh, nil)
+	C.git_merge_head_free(mh.ptr)
 }
 
 func (r *Repository) MergeHeadFromFetchHead(branchName string, remoteURL string, oid *Oid) (*MergeHead, error) {
@@ -72,9 +72,9 @@ func (r *Repository) MergeHeadFromRef(ref *Reference) (*MergeHead, error) {
 type MergeFlag int
 
 const (
-	MergeFlagDefault MergeFlag = iota
-	MergeNoFastForward
-	MergeFastForwardOnly
+	MergeFlagDefault     MergeFlag = 0
+	MergeNoFastForward             = 1
+	MergeFastForwardOnly           = 2
 )
 
 type MergeOptions struct {
@@ -83,6 +83,12 @@ type MergeOptions struct {
 
 	TreeOptions MergeTreeOptions
 	//TODO: CheckoutOptions CheckoutOptions
+}
+
+func DefaultMergeOptions() MergeOptions {
+	options := MergeOptions{Version: 1}
+	options.TreeOptions = DefaultMergeTreeOptions()
+	return options
 }
 
 func (mo *MergeOptions) toC() *C.git_merge_opts {
@@ -96,16 +102,16 @@ func (mo *MergeOptions) toC() *C.git_merge_opts {
 type MergeTreeFlag int
 
 const (
-	MergeTreeFindRenames MergeTreeFlag = 1 << iota
+	MergeTreeFindRenames MergeTreeFlag = 1 << 0
 )
 
 type MergeFileFavorType int
 
 const (
-	MergeFileFavorNormal MergeFileFavorType = iota
-	MergeFileFavorOurs
-	MergeFileFavorTheirs
-	MergeFileFavorUnion
+	MergeFileFavorNormal MergeFileFavorType = 0
+	MergeFileFavorOurs                      = 1
+	MergeFileFavorTheirs                    = 2
+	MergeFileFavorUnion                     = 3
 )
 
 type MergeTreeOptions struct {
@@ -115,6 +121,10 @@ type MergeTreeOptions struct {
 	TargetLimit     uint
 	//TODO: SimilarityMetric *DiffSimilarityMetric
 	FileFavor MergeFileFavorType
+}
+
+func DefaultMergeTreeOptions() MergeTreeOptions {
+	return MergeTreeOptions{Version: 1}
 }
 
 func (mo *MergeTreeOptions) toC() *C.git_merge_tree_opts {
@@ -170,7 +180,7 @@ func (mr *MergeResult) FastForwardId() (*Oid, error) {
 	return newOidFromC(&oid), nil
 }
 
-func (r *Repository) Merge(theirHeads []MergeHead, options MergeOptions) (*MergeResult, error) {
+func (r *Repository) Merge(theirHeads []*MergeHead, options MergeOptions) (*MergeResult, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
