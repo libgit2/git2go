@@ -37,4 +37,5 @@ int _go_git_blob_create_fromchunks(git_oid *id,
 {
     return git_blob_create_fromchunks(id, repo, hintpath, _go_blob_chunk_cb, payload);
 }
+
 /* EOF */
