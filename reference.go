@@ -186,8 +186,7 @@ func (v *Reference) Free() {
 }
 
 type ReferenceIterator struct {
-	ptr  *C.git_reference_iterator
-	repo *Repository
+	ptr *C.git_reference_iterator
 }
 
 // NewReferenceIterator creates a new iterator over reference names
@@ -202,7 +201,7 @@ func (repo *Repository) NewReferenceIterator() (*ReferenceIterator, error) {
 		return nil, MakeGitError(ret)
 	}
 
-	iter := &ReferenceIterator{repo: repo, ptr: ptr}
+	iter := &ReferenceIterator{ptr: ptr}
 	runtime.SetFinalizer(iter, (*ReferenceIterator).Free)
 	return iter, nil
 }
@@ -223,7 +222,7 @@ func (repo *Repository) NewReferenceIteratorGlob(glob string) (*ReferenceIterato
 		return nil, MakeGitError(ret)
 	}
 
-	iter := &ReferenceIterator{repo: repo, ptr: ptr}
+	iter := &ReferenceIterator{ptr: ptr}
 	runtime.SetFinalizer(iter, (*ReferenceIterator).Free)
 	return iter, nil
 }

@@ -23,6 +23,61 @@ type Branch struct {
 	Reference
 }
 
+type BranchIterator struct {
+	ptr *C.git_branch_iterator
+}
+
+func newBranchIteratorFromC(ptr *C.git_branch_iterator) *BranchIterator {
+	i := &BranchIterator{ptr: ptr}
+	runtime.SetFinalizer(i, (*BranchIterator).Free)
+	return i
+}
+
+func (i *BranchIterator) Next() (*Reference, error) {
+	ref, _, err := i.NextWithType()
+	return ref, err
+}
+
+func (i *BranchIterator) NextWithType() (*Reference, BranchType, error) {
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var refPtr *C.git_reference
+	var refType C.git_branch_t
+
+	ecode := C.git_branch_next(&refPtr, &refType, i.ptr)
+
+	if ecode == C.GIT_ITEROVER {
+		return nil, BranchLocal, ErrIterOver
+	} else if ecode < 0 {
+		return nil, BranchLocal, MakeGitError(ecode)
+	}
+
+	return newReferenceFromC(refPtr), BranchType(refType), nil
+}
+
+func (i *BranchIterator) Free() {
+	runtime.SetFinalizer(i, nil)
+	C.git_branch_iterator_free(i.ptr)
+}
+
+func (repo *Repository) NewBranchIterator(flags BranchType) (*BranchIterator, error) {
+
+	refType := C.git_branch_t(flags)
+	var ptr *C.git_branch_iterator
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C.git_branch_iterator_new(&ptr, repo.ptr, refType)
+	if ecode < 0 {
+		return nil, MakeGitError(ecode)
+	}
+
+	return newBranchIteratorFromC(ptr), nil
+}
+
 func (repo *Repository) CreateBranch(branchName string, target *Commit, force bool, signature *Signature, msg string) (*Reference, error) {
 
 	ref := new(Reference)
