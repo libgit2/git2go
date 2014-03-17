@@ -55,13 +55,13 @@ func blobChunkCb(buffer *C.char, maxLen C.size_t, payload unsafe.Pointer) int {
 	data := (*BlobCallbackData)(payload)
 	goBuf, err := data.Callback(int(maxLen))
 	if err == io.EOF {
-		return 1
+		return 0
 	} else if err != nil {
 		data.Error = err
 		return -1
 	}
-	C.memcpy(unsafe.Pointer(buffer), unsafe.Pointer(&goBuf), C.size_t(len(goBuf)))
-	return 0
+	C.memcpy(unsafe.Pointer(buffer), unsafe.Pointer(&goBuf[0]), C.size_t(len(goBuf)))
+	return len(goBuf)
 }
 
 func (repo *Repository) CreateBlobFromChunks(hintPath string, callback BlobChunkCallback) (*Oid, error) {
