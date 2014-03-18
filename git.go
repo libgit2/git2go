@@ -29,9 +29,7 @@ func init() {
 }
 
 // Oid
-type Oid struct {
-	bytes [20]byte
-}
+type Oid [20]byte
 
 func newOidFromC(coid *C.git_oid) *Oid {
 	if coid == nil {
@@ -39,18 +37,18 @@ func newOidFromC(coid *C.git_oid) *Oid {
 	}
 
 	oid := new(Oid)
-	copy(oid.bytes[0:20], C.GoBytes(unsafe.Pointer(coid), 20))
+	copy(oid[0:20], C.GoBytes(unsafe.Pointer(coid), 20))
 	return oid
 }
 
 func NewOid(b []byte) *Oid {
 	oid := new(Oid)
-	copy(oid.bytes[0:20], b[0:20])
+	copy(oid[0:20], b[0:20])
 	return oid
 }
 
 func (oid *Oid) toC() *C.git_oid {
-	return (*C.git_oid)(unsafe.Pointer(&oid.bytes))
+	return (*C.git_oid)(unsafe.Pointer(oid))
 }
 
 func NewOidFromString(s string) (*Oid, error) {
@@ -75,25 +73,25 @@ func (oid *Oid) String() string {
 }
 
 func (oid *Oid) Bytes() []byte {
-	return oid.bytes[0:]
+	return oid[0:]
 }
 
 func (oid *Oid) Cmp(oid2 *Oid) int {
-	return bytes.Compare(oid.bytes[:], oid2.bytes[:])
+	return bytes.Compare(oid[:], oid2[:])
 }
 
 func (oid *Oid) Copy() *Oid {
 	ret := new(Oid)
-	copy(ret.bytes[:], oid.bytes[:])
+	copy(ret[:], oid[:])
 	return ret
 }
 
 func (oid *Oid) Equal(oid2 *Oid) bool {
-	return bytes.Equal(oid.bytes[:], oid2.bytes[:])
+	return bytes.Equal(oid[:], oid2[:])
 }
 
 func (oid *Oid) IsZero() bool {
-	for _, a := range oid.bytes {
+	for _, a := range oid {
 		if a != '0' {
 			return false
 		}
@@ -102,7 +100,7 @@ func (oid *Oid) IsZero() bool {
 }
 
 func (oid *Oid) NCmp(oid2 *Oid, n uint) int {
-	return bytes.Compare(oid.bytes[:n], oid2.bytes[:n])
+	return bytes.Compare(oid[:n], oid2[:n])
 }
 
 func ShortenOids(ids []*Oid, minlen int) (int, error) {
