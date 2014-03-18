@@ -41,7 +41,7 @@ func newOidFromC(coid *C.git_oid) *Oid {
 	return oid
 }
 
-func NewOid(b []byte) *Oid {
+func NewOidFromBytes(b []byte) *Oid {
 	oid := new(Oid)
 	copy(oid[0:20], b[0:20])
 	return oid
@@ -51,7 +51,7 @@ func (oid *Oid) toC() *C.git_oid {
 	return (*C.git_oid)(unsafe.Pointer(oid))
 }
 
-func NewOidFromString(s string) (*Oid, error) {
+func NewOid(s string) (*Oid, error) {
 	o := new(Oid)
 	cs := C.CString(s)
 	defer C.free(unsafe.Pointer(cs))
