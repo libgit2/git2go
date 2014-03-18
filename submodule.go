@@ -238,7 +238,7 @@ func (sub *Submodule) SetUpdate(update SubmoduleUpdate) SubmoduleUpdate {
 }
 
 func (sub *Submodule) FetchRecurseSubmodules() SubmoduleRecurse {
-	return SubmoduleRecurse(C.git_submodule_fetch_recurse_submodules(sub.ptr));
+	return SubmoduleRecurse(C.git_submodule_fetch_recurse_submodules(sub.ptr))
 }
 
 func (sub *Submodule) SetFetchRecurseSubmodules(recurse SubmoduleRecurse) error {
