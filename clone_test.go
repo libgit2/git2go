@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func Test_Clone(t *testing.T) {
+func TestClone(t *testing.T) {
 
 	repo := createTestRepo(t)
 	seedTestRepo(t, repo)
