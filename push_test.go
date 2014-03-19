@@ -2,13 +2,16 @@ package git
 
 import (
 	"log"
+	"os"
 	"testing"
 	"time"
 )
 
 func Test_Push_ToRemote(t *testing.T) {
 	repo := createBareTestRepo(t)
+	defer os.RemoveAll(repo.Path())
 	repo2 := createTestRepo(t)
+	defer os.RemoveAll(repo2.Workdir())
 
 	remote, err := repo2.CreateRemote("test_push", repo.Path())
 	checkFatal(t, err)
