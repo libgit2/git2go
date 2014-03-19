@@ -28,7 +28,7 @@ func init() {
 	C.git_threads_init()
 }
 
-// Oid
+// Oid represents the id for a Git object.
 type Oid [20]byte
 
 func newOidFromC(coid *C.git_oid) *Oid {
@@ -70,10 +70,6 @@ func (oid *Oid) String() string {
 	buf := make([]byte, 40)
 	C.git_oid_fmt((*C.char)(unsafe.Pointer(&buf[0])), oid.toC())
 	return string(buf)
-}
-
-func (oid *Oid) Bytes() []byte {
-	return oid[0:]
 }
 
 func (oid *Oid) Cmp(oid2 *Oid) int {
