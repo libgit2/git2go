@@ -8,6 +8,7 @@ package git
 import "C"
 import (
 	"bytes"
+	"encoding/hex"
 	"errors"
 	"runtime"
 	"strings"
@@ -52,24 +53,23 @@ func (oid *Oid) toC() *C.git_oid {
 }
 
 func NewOid(s string) (*Oid, error) {
-	o := new(Oid)
-	cs := C.CString(s)
-	defer C.free(unsafe.Pointer(cs))
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	if ret := C.git_oid_fromstr(o.toC(), cs); ret < 0 {
-		return nil, MakeGitError(ret)
+	if len(s) > C.GIT_OID_HEXSZ {
+		return nil, errors.New("string is too long for oid")
 	}
 
+	o := new(Oid)
+
+	slice, error := hex.DecodeString(s)
+	if error != nil {
+		return nil, error
+	}
+
+	copy(o[:], slice[:20])
 	return o, nil
 }
 
 func (oid *Oid) String() string {
-	buf := make([]byte, 40)
-	C.git_oid_fmt((*C.char)(unsafe.Pointer(&buf[0])), oid.toC())
-	return string(buf)
+	return hex.EncodeToString(oid[:])
 }
 
 func (oid *Oid) Cmp(oid2 *Oid) int {
