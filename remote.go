@@ -303,6 +303,19 @@ func makeCStringsFromStrings(s []string) **C.char {
 	return x
 }
 
+func freeStrarray(arr *C.git_strarray) {
+	count := int(arr.count)
+	size := unsafe.Sizeof(unsafe.Pointer(nil))
+
+	i := 0
+	for p := uintptr(unsafe.Pointer(arr.strings)); i < count; p += size {
+		C.free(unsafe.Pointer(sptr(p)))
+		i++
+	}
+
+	C.free(unsafe.Pointer(arr.strings))
+}
+
 func (o *Remote) GetFetchRefspecs() ([]string, error) {
 	crefspecs := C.git_strarray{}
 
@@ -323,7 +336,7 @@ func (o *Remote) SetFetchRefspecs(refspecs []string) error {
 	crefspecs := C.git_strarray{}
 	crefspecs.count = C.size_t(len(refspecs))
 	crefspecs.strings = makeCStringsFromStrings(refspecs)
-	defer C.git_strarray_free(&crefspecs)
+	defer freeStrarray(&crefspecs)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -368,7 +381,7 @@ func (o *Remote) SetPushRefspecs(refspecs []string) error {
 	crefspecs := C.git_strarray{}
 	crefspecs.count = C.size_t(len(refspecs))
 	crefspecs.strings = makeCStringsFromStrings(refspecs)
-	defer C.git_strarray_free(&crefspecs)
+	defer freeStrarray(&crefspecs)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
