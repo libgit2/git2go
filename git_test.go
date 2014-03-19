@@ -54,3 +54,11 @@ func seedTestRepo(t *testing.T, repo *Repository) (*Oid, *Oid) {
 
 	return commitId, treeId
 }
+
+func TestOidZero(t *testing.T) {
+	var zeroId Oid
+
+	if !zeroId.IsZero() {
+		t.Error("Zero Oid is not zero")
+	}
+}

@@ -88,7 +88,7 @@ func (oid *Oid) Equal(oid2 *Oid) bool {
 
 func (oid *Oid) IsZero() bool {
 	for _, a := range oid {
-		if a != '0' {
+		if a != 0 {
 			return false
 		}
 	}
