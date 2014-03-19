@@ -55,7 +55,6 @@ func Clone(url string, path string, options *CloneOptions) (*Repository, error) 
 }
 
 func populateCloneOptions(ptr *C.git_clone_options, opts *CloneOptions) {
-	ptr = &C.git_clone_options{}
 	C.git_clone_init_options(ptr, C.GIT_CLONE_OPTIONS_VERSION)
 
 	if opts == nil {
