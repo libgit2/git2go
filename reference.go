@@ -185,10 +185,14 @@ func (v *Reference) Free() {
 	C.git_reference_free(v.ptr)
 }
 
-type ReferenceIterator interface {
-	Next() (*Reference, error)
+type NameIterator interface {
 	NextName() (string, error)
 	Free()
+}
+
+type ReferenceIterator interface {
+	NameIterator
+	Next() (*Reference, error)
 }
 
 type gitReferenceIterator struct {
@@ -255,7 +259,7 @@ func (v *gitReferenceIterator) NextName() (string, error) {
 // Create a channel from the iterator. You can use range on the
 // returned channel to iterate over all the references names. The channel
 // will be closed in case any error is found.
-func ReferenceNameIteratorChannel(v ReferenceIterator) <-chan string {
+func NameIteratorChannel(v NameIterator) <-chan string {
 	ch := make(chan string)
 	go func() {
 		defer close(ch)

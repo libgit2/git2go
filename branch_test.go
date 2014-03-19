@@ -32,7 +32,7 @@ func TestBranchIterator(t *testing.T) {
 	checkFatal(t, err)
 
 	list := make([]string, 0)
-	for ref := range ReferenceNameIteratorChannel(i) {
+	for ref := range NameIteratorChannel(i) {
 		list = append(list, ref)
 	}
 

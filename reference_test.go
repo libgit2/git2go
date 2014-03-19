@@ -138,7 +138,7 @@ func TestReferenceIterator(t *testing.T) {
 	// test the channel iteration
 	list = []string{}
 	iter, err = repo.NewReferenceIterator()
-	for name := range ReferenceNameIteratorChannel(iter) {
+	for name := range NameIteratorChannel(iter) {
 		list = append(list, name)
 	}
 
@@ -152,7 +152,7 @@ func TestReferenceIterator(t *testing.T) {
 	}
 
 	list = []string{}
-	for name := range ReferenceNameIteratorChannel(iter) {
+	for name := range NameIteratorChannel(iter) {
 		list = append(list, name)
 	}
 
