@@ -184,23 +184,17 @@ func (v *Reference) Free() {
 	C.git_reference_free(v.ptr)
 }
 
-type NameIterator interface {
-	NextName() (string, error)
-	Free()
-}
-
-type ReferenceIterator interface {
-	NameIterator
-	NextReference() (*Reference, error)
-}
-
-type gitReferenceIterator struct {
+type ReferenceIterator struct {
 	ptr  *C.git_reference_iterator
 	repo *Repository
 }
 
+type ReferenceNameIterator struct {
+	*ReferenceIterator
+}
+
 // NewReferenceIterator creates a new iterator over reference names
-func (repo *Repository) NewReferenceIterator() (ReferenceIterator, error) {
+func (repo *Repository) NewReferenceIterator() (*ReferenceIterator, error) {
 	var ptr *C.git_reference_iterator
 
 	runtime.LockOSThread()
@@ -211,15 +205,32 @@ func (repo *Repository) NewReferenceIterator() (ReferenceIterator, error) {
 		return nil, MakeGitError(ret)
 	}
 
-	iter := &gitReferenceIterator{ptr: ptr, repo: repo}
-	runtime.SetFinalizer(iter, (*gitReferenceIterator).Free)
+	iter := &ReferenceIterator{ptr: ptr, repo: repo}
+	runtime.SetFinalizer(iter, (*ReferenceIterator).Free)
+	return iter, nil
+}
+
+// NewReferenceIterator creates a new bane iterator over reference names
+func (repo *Repository) NewReferenceNameIterator() (*ReferenceIterator, error) {
+	var ptr *C.git_reference_iterator
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_reference_iterator_new(&ptr, repo.ptr)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	iter := &ReferenceIterator{ptr: ptr, repo: repo}
+	runtime.SetFinalizer(iter, (*ReferenceIterator).Free)
 	return iter, nil
 }
 
 // NewReferenceIteratorGlob creates an iterator over reference names
 // that match the speicified glob. The glob is of the usual fnmatch
 // type.
-func (repo *Repository) NewReferenceIteratorGlob(glob string) (ReferenceIterator, error) {
+func (repo *Repository) NewReferenceIteratorGlob(glob string) (*ReferenceIterator, error) {
 	cstr := C.CString(glob)
 	defer C.free(unsafe.Pointer(cstr))
 	var ptr *C.git_reference_iterator
@@ -232,14 +243,18 @@ func (repo *Repository) NewReferenceIteratorGlob(glob string) (ReferenceIterator
 		return nil, MakeGitError(ret)
 	}
 
-	iter := &gitReferenceIterator{ptr: ptr}
-	runtime.SetFinalizer(iter, (*gitReferenceIterator).Free)
+	iter := &ReferenceIterator{ptr: ptr}
+	runtime.SetFinalizer(iter, (*ReferenceIterator).Free)
 	return iter, nil
+}
+
+func (i *ReferenceIterator) Names() *ReferenceNameIterator {
+	return &ReferenceNameIterator{i}
 }
 
 // NextName retrieves the next reference name. If the iteration is over,
 // the returned error is git.ErrIterOver
-func (v *gitReferenceIterator) NextName() (string, error) {
+func (v *ReferenceNameIterator) Next() (string, error) {
 	var ptr *C.char
 
 	runtime.LockOSThread()
@@ -256,26 +271,9 @@ func (v *gitReferenceIterator) NextName() (string, error) {
 	return C.GoString(ptr), nil
 }
 
-// Create a channel from the iterator. You can use range on the
-// returned channel to iterate over all the references names. The channel
-// will be closed in case any error is found.
-func NameIteratorChannel(v NameIterator) <-chan string {
-	ch := make(chan string)
-	go func() {
-		defer close(ch)
-		name, err := v.NextName()
-		for err == nil {
-			ch <- name
-			name, err = v.NextName()
-		}
-	}()
-
-	return ch
-}
-
 // Next retrieves the next reference. If the iterationis over, the
 // returned error is git.ErrIterOver
-func (v *gitReferenceIterator) NextReference() (*Reference, error) {
+func (v *ReferenceIterator) Next() (*Reference, error) {
 	var ptr *C.git_reference
 	ret := C.git_reference_next(&ptr, v.ptr)
 	if ret == ITEROVER {
@@ -289,24 +287,7 @@ func (v *gitReferenceIterator) NextReference() (*Reference, error) {
 }
 
 // Free the reference iterator
-func (v *gitReferenceIterator) Free() {
+func (v *ReferenceIterator) Free() {
 	runtime.SetFinalizer(v, nil)
 	C.git_reference_iterator_free(v.ptr)
-}
-
-// Create a channel from the iterator. You can use range on the
-// returned channel to iterate over all the references names. The channel
-// will be closed in case any error is found.
-func ReferenceIteratorChannel(v ReferenceIterator) <-chan *Reference {
-	ch := make(chan *Reference)
-	go func() {
-		defer close(ch)
-		name, err := v.NextReference()
-		for err == nil {
-			ch <- name
-			name, err = v.NextReference()
-		}
-	}()
-
-	return ch
 }

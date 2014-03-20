@@ -27,14 +27,9 @@ func (r *Reference) Branch() *Branch {
 	return &Branch{Reference: r}
 }
 
-type branchIterator struct {
+type BranchIterator struct {
 	ptr  *C.git_branch_iterator
 	repo *Repository
-}
-
-type BranchIterator interface {
-	ReferenceIterator
-	NextBranch() (BranchInfo, error)
 }
 
 type BranchInfo struct {
@@ -42,21 +37,13 @@ type BranchInfo struct {
 	Type   BranchType
 }
 
-func newBranchIteratorFromC(repo *Repository, ptr *C.git_branch_iterator) BranchIterator {
-	i := &branchIterator{repo: repo, ptr: ptr}
-	runtime.SetFinalizer(i, (*branchIterator).Free)
+func newBranchIteratorFromC(repo *Repository, ptr *C.git_branch_iterator) *BranchIterator {
+	i := &BranchIterator{repo: repo, ptr: ptr}
+	runtime.SetFinalizer(i, (*BranchIterator).Free)
 	return i
 }
 
-func (i *branchIterator) NextName() (string, error) {
-	b, err := i.NextBranch()
-	if err != nil {
-		return "", err
-	}
-	return b.Branch.Name()
-}
-
-func (i *branchIterator) NextBranch() (BranchInfo, error) {
+func (i *BranchIterator) Next() (*Branch, BranchType, error) {
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -67,30 +54,22 @@ func (i *branchIterator) NextBranch() (BranchInfo, error) {
 	ecode := C.git_branch_next(&refPtr, &refType, i.ptr)
 
 	if ecode == C.GIT_ITEROVER {
-		return BranchInfo{}, ErrIterOver
+		return nil, BranchLocal, ErrIterOver
 	} else if ecode < 0 {
-		return BranchInfo{}, MakeGitError(ecode)
+		return nil, BranchLocal, MakeGitError(ecode)
 	}
 
 	branch := newReferenceFromC(refPtr).Branch()
 
-	return BranchInfo{branch, BranchType(refType)}, nil
+	return branch, BranchType(refType), nil
 }
 
-func (i *branchIterator) NextReference() (*Reference, error) {
-	b, err := i.NextBranch()
-	if err != nil {
-		return nil, err
-	}
-	return b.Branch.Reference, err
-}
-
-func (i *branchIterator) Free() {
+func (i *BranchIterator) Free() {
 	runtime.SetFinalizer(i, nil)
 	C.git_branch_iterator_free(i.ptr)
 }
 
-func (repo *Repository) NewBranchIterator(flags BranchType) (BranchIterator, error) {
+func (repo *Repository) NewBranchIterator(flags BranchType) (*BranchIterator, error) {
 
 	refType := C.git_branch_t(flags)
 	var ptr *C.git_branch_iterator
@@ -144,7 +123,7 @@ func (b *Branch) Delete() error {
 	return nil
 }
 
-func (b *Branch) MoveBranch(newBranchName string, force bool, signature *Signature, msg string) (*Branch, error) {
+func (b *Branch) Move(newBranchName string, force bool, signature *Signature, msg string) (*Branch, error) {
 	var ptr *C.git_reference
 	cNewBranchName := C.CString(newBranchName)
 	cForce := cbool(force)
@@ -274,21 +253,4 @@ func (repo *Repository) UpstreamName(canonicalBranchName string) (string, error)
 	defer C.git_buf_free(&nameBuf)
 
 	return C.GoString(nameBuf.ptr), nil
-}
-
-// Create a channel from the iterator. You can use range on the
-// returned channel to iterate over all the branches. The channel
-// will be closed in case any error is found.
-func BranchIteratorChannel(v BranchIterator) <-chan BranchInfo {
-	ch := make(chan BranchInfo)
-	go func() {
-		defer close(ch)
-		b, err := v.NextBranch()
-		for err == nil {
-			ch <- b
-			b, err = v.NextBranch()
-		}
-	}()
-
-	return ch
 }
