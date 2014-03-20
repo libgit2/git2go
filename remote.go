@@ -53,7 +53,18 @@ type RemoteCallbacks struct {
 }
 
 type Remote struct {
-	ptr *C.git_remote
+	ptr              *C.git_remote
+	repo             *Repository
+}
+
+func newRemote(cremote *C.git_remote, repo *Repository) *Remote {
+	remote := &Remote {
+		ptr: cremote,
+		repo: repo,
+	}
+
+	runtime.SetFinalizer(remote, (*Remote).Free)
+	return remote
 }
 
 func populateRemoteCallbacks(ptr *C.git_remote_callbacks, callbacks *RemoteCallbacks) {
@@ -129,11 +140,12 @@ func RemoteIsValidName(name string) bool {
 
 func (r *Remote) Free() {
 	runtime.SetFinalizer(r, nil)
+	r.repo = nil
 	C.git_remote_free(r.ptr)
 }
 
 func (repo *Repository) CreateRemote(name string, url string) (*Remote, error) {
-	remote := &Remote{}
+	var ptr *C.git_remote
 
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
@@ -143,16 +155,16 @@ func (repo *Repository) CreateRemote(name string, url string) (*Remote, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_remote_create(&remote.ptr, repo.ptr, cname, curl)
+	ret := C.git_remote_create(&ptr, repo.ptr, cname, curl)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	runtime.SetFinalizer(remote, (*Remote).Free)
-	return remote, nil
+
+	return newRemote(ptr, repo), nil
 }
 
 func (repo *Repository) CreateRemoteWithFetchspec(name string, url string, fetch string) (*Remote, error) {
-	remote := &Remote{}
+	var ptr *C.git_remote
 
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
@@ -164,16 +176,16 @@ func (repo *Repository) CreateRemoteWithFetchspec(name string, url string, fetch
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_remote_create_with_fetchspec(&remote.ptr, repo.ptr, cname, curl, cfetch)
+	ret := C.git_remote_create_with_fetchspec(&ptr, repo.ptr, cname, curl, cfetch)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	runtime.SetFinalizer(remote, (*Remote).Free)
-	return remote, nil
+
+	return newRemote(ptr, repo), nil
 }
 
 func (repo *Repository) CreateRemoteInMemory(fetch string, url string) (*Remote, error) {
-	remote := &Remote{}
+	var ptr *C.git_remote
 
 	curl := C.CString(url)
 	defer C.free(unsafe.Pointer(curl))
@@ -183,16 +195,16 @@ func (repo *Repository) CreateRemoteInMemory(fetch string, url string) (*Remote,
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_remote_create_inmemory(&remote.ptr, repo.ptr, cfetch, curl)
+	ret := C.git_remote_create_inmemory(&ptr, repo.ptr, cfetch, curl)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	runtime.SetFinalizer(remote, (*Remote).Free)
-	return remote, nil
+
+	return newRemote(ptr, repo), nil
 }
 
 func (repo *Repository) LoadRemote(name string) (*Remote, error) {
-	remote := &Remote{}
+	var ptr *C.git_remote
 
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
@@ -200,12 +212,12 @@ func (repo *Repository) LoadRemote(name string) (*Remote, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_remote_load(&remote.ptr, repo.ptr, cname)
+	ret := C.git_remote_load(&ptr, repo.ptr, cname)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	runtime.SetFinalizer(remote, (*Remote).Free)
-	return remote, nil
+
+	return newRemote(ptr, repo), nil
 }
 
 func (o *Remote) Save() error {
