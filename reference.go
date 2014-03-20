@@ -22,9 +22,8 @@ type Reference struct {
 }
 
 func newReferenceFromC(ptr *C.git_reference) *Reference {
-	ref := &Reference{ptr}
+	ref := &Reference{ptr: ptr}
 	runtime.SetFinalizer(ref, (*Reference).Free)
-
 	return ref
 }
 
@@ -192,11 +191,12 @@ type NameIterator interface {
 
 type ReferenceIterator interface {
 	NameIterator
-	Next() (*Reference, error)
+	NextReference() (*Reference, error)
 }
 
 type gitReferenceIterator struct {
-	ptr *C.git_reference_iterator
+	ptr  *C.git_reference_iterator
+	repo *Repository
 }
 
 // NewReferenceIterator creates a new iterator over reference names
@@ -211,7 +211,7 @@ func (repo *Repository) NewReferenceIterator() (ReferenceIterator, error) {
 		return nil, MakeGitError(ret)
 	}
 
-	iter := &gitReferenceIterator{ptr: ptr}
+	iter := &gitReferenceIterator{ptr: ptr, repo: repo}
 	runtime.SetFinalizer(iter, (*gitReferenceIterator).Free)
 	return iter, nil
 }
@@ -275,7 +275,7 @@ func NameIteratorChannel(v NameIterator) <-chan string {
 
 // Next retrieves the next reference. If the iterationis over, the
 // returned error is git.ErrIterOver
-func (v *gitReferenceIterator) Next() (*Reference, error) {
+func (v *gitReferenceIterator) NextReference() (*Reference, error) {
 	var ptr *C.git_reference
 	ret := C.git_reference_next(&ptr, v.ptr)
 	if ret == ITEROVER {
@@ -301,10 +301,10 @@ func ReferenceIteratorChannel(v ReferenceIterator) <-chan *Reference {
 	ch := make(chan *Reference)
 	go func() {
 		defer close(ch)
-		name, err := v.Next()
+		name, err := v.NextReference()
 		for err == nil {
 			ch <- name
-			name, err = v.Next()
+			name, err = v.NextReference()
 		}
 	}()
 

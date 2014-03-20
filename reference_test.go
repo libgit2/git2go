@@ -122,10 +122,10 @@ func TestReferenceIterator(t *testing.T) {
 	iter, err = repo.NewReferenceIterator()
 	checkFatal(t, err)
 	count := 0
-	_, err = iter.Next()
+	_, err = iter.NextReference()
 	for err == nil {
 		count++
-		_, err = iter.Next()
+		_, err = iter.NextReference()
 	}
 	if err != ErrIterOver {
 		t.Fatal("Iteration not over")

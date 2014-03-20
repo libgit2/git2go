@@ -12,16 +12,15 @@ func TestBranchIterator(t *testing.T) {
 	i, err := repo.NewBranchIterator(BranchLocal)
 	checkFatal(t, err)
 
-	ref, err := i.Next()
+	b, err := i.NextBranch()
 	checkFatal(t, err)
-	if ref.Name() != "refs/heads/master" {
-		t.Fatalf("expected refs/heads/master, not %v", ref.Name())
+	if name, _ := b.Branch.Name(); name != "master" {
+		t.Fatalf("expected master")
 	}
-	ref, err = i.Next()
-	if ref != nil {
-		t.Fatal("expected nil")
+	if b.Type != BranchLocal {
+		t.Fatalf("expected BranchLocal, not %v", t)
 	}
-
+	b, err = i.NextBranch()
 	if err != ErrIterOver {
 		t.Fatal("expected iterover")
 	}
@@ -40,8 +39,8 @@ func TestBranchIterator(t *testing.T) {
 		t.Fatal("expected single match")
 	}
 
-	if list[0] != "refs/heads/master" {
-		t.Fatal("expected refs/heads/master")
+	if list[0] != "master" {
+		t.Fatal("expected master")
 	}
 
 }
