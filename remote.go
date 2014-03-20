@@ -316,7 +316,7 @@ func freeStrarray(arr *C.git_strarray) {
 	C.free(unsafe.Pointer(arr.strings))
 }
 
-func (o *Remote) GetFetchRefspecs() ([]string, error) {
+func (o *Remote) FetchRefspecs() ([]string, error) {
 	crefspecs := C.git_strarray{}
 
 	runtime.LockOSThread()
@@ -362,7 +362,7 @@ func (o *Remote) AddPush(refspec string) error {
 	return nil
 }
 
-func (o *Remote) GetPushRefspecs() ([]string, error) {
+func (o *Remote) PushRefspecs() ([]string, error) {
 	crefspecs := C.git_strarray{}
 
 	runtime.LockOSThread()
