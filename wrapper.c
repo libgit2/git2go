@@ -25,7 +25,6 @@ int _go_git_odb_foreach(git_odb *db, void *payload)
     return git_odb_foreach(db, (git_odb_foreach_cb)&odbForEachCb, payload);
 }
 
-<<<<<<< HEAD
 int _go_git_diff_foreach(git_diff *diff, int eachFile, int eachHunk, int eachLine, void *payload)
 {
 	git_diff_file_cb fcb = NULL;	
@@ -45,7 +44,7 @@ int _go_git_diff_foreach(git_diff *diff, int eachFile, int eachHunk, int eachLin
 	}
 
 	return git_diff_foreach(diff, fcb, hcb, lcb, payload);
-=======
+}
 void _go_git_setup_callbacks(git_remote_callbacks *callbacks) {
 	typedef int (*progress_cb)(const char *str, int len, void *data);
 	typedef int (*completion_cb)(git_remote_completion_type type, void *data);
@@ -82,6 +81,5 @@ int _go_git_blob_create_fromchunks(git_oid *id,
 	void *payload)
 {
     return git_blob_create_fromchunks(id, repo, hintpath, _go_blob_chunk_cb, payload);
->>>>>>> 2811845a1287d949a74b8ed80a5791fd8875002a
 }
 /* EOF */

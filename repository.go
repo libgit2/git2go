@@ -154,7 +154,7 @@ func (v *Repository) Head() (*Reference, error) {
 
 	ecode := C.git_repository_head(&ptr, v.ptr)
 	if ecode < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ecode)
 	}
 
 	return newReferenceFromC(ptr), nil

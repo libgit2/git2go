@@ -16,7 +16,7 @@ type DiffFlag int
 const (
 	DiffFlagBinary    DiffFlag = C.GIT_DIFF_FLAG_BINARY
 	DiffFlagNotBinary          = C.GIT_DIFF_FLAG_NOT_BINARY
-	DiffFlagValidOid           = C.GIT_DIFF_FLAG_VALID_OID
+	DiffFlagValidOid           = C.GIT_DIFF_FLAG_VALID_ID
 )
 
 type Delta int
@@ -59,7 +59,7 @@ type DiffFile struct {
 func newDiffFileFromC(file *C.git_diff_file) *DiffFile {
 	return &DiffFile{
 		Path:  C.GoString(file.path),
-		Oid:   newOidFromC(&file.oid),
+		Oid:   newOidFromC(&file.id),
 		Size:  int(file.size),
 		Flags: DiffFlag(file.flags),
 		Mode:  uint16(file.mode),
@@ -142,7 +142,7 @@ func newDiffFromC(ptr *C.git_diff) *Diff {
 }
 
 func (diff *Diff) Free() error {
-	if diff.ptr != nil {
+	if diff.ptr == nil {
 		return ErrInvalid
 	}
 	runtime.SetFinalizer(diff, nil)
@@ -150,20 +150,22 @@ func (diff *Diff) Free() error {
 	return nil
 }
 
+type DiffForEachFileCallback func(*DiffDelta) error
+
 type diffForEachFileData struct {
 	Callback DiffForEachFileCallback
 	Error    error
 }
 
 func (diff *Diff) ForEachFile(cb DiffForEachFileCallback) error {
-	if diff.ptr != nil {
+	if diff.ptr == nil {
 		return ErrInvalid
 	}
 
 	data := &diffForEachFileData{
 		Callback: cb,
 	}
-	ecode := C._go_git_diff_foreach(diff.ptr, 1, 0, 0, unsafe.Pointer(&data))
+	ecode := C._go_git_diff_foreach(diff.ptr, 1, 0, 0, unsafe.Pointer(data))
 	if ecode < 0 {
 		return data.Error
 	}
@@ -172,7 +174,7 @@ func (diff *Diff) ForEachFile(cb DiffForEachFileCallback) error {
 
 //export diffForEachFileCb
 func diffForEachFileCb(delta *C.git_diff_delta, progress C.float, payload unsafe.Pointer) int {
-	data := *diffForEachFileData(payload)
+	data := (*diffForEachFileData)(payload)
 
 	err := data.Callback(newDiffDeltaFromC(delta))
 	if err != nil {
@@ -191,7 +193,7 @@ type diffForEachHunkData struct {
 type DiffForEachHunkCallback func(*DiffHunk) error
 
 func (diff *Diff) ForEachHunk(cb DiffForEachHunkCallback) error {
-	if diff.ptr != nil {
+	if diff.ptr == nil {
 		return ErrInvalid
 	}
 	data := &diffForEachHunkData{
@@ -206,10 +208,10 @@ func (diff *Diff) ForEachHunk(cb DiffForEachHunkCallback) error {
 
 //export diffForEachHunkCb
 func diffForEachHunkCb(delta *C.git_diff_delta, hunk *C.git_diff_hunk, payload unsafe.Pointer) int {
-	data := *diffForEachHunkData(payload)
+	data := (*diffForEachHunkData)(payload)
 
 	err := data.Callback(newDiffHunkFromC(delta, hunk))
-	if err < 0 {
+	if err != nil {
 		data.Error = err
 		return -1
 	}
@@ -225,7 +227,7 @@ type diffForEachLineData struct {
 type DiffForEachLineCallback func(*DiffLine) error
 
 func (diff *Diff) ForEachLine(cb DiffForEachLineCallback) error {
-	if diff.ptr != nil {
+	if diff.ptr == nil {
 		return ErrInvalid
 	}
 
@@ -243,7 +245,7 @@ func (diff *Diff) ForEachLine(cb DiffForEachLineCallback) error {
 //export diffForEachLineCb
 func diffForEachLineCb(delta *C.git_diff_delta, hunk *C.git_diff_hunk, line *C.git_diff_line, payload unsafe.Pointer) int {
 
-	data := *diffForEachLineData(payload)
+	data := (*diffForEachLineData)(payload)
 
 	err := data.Callback(newDiffLineFromC(delta, hunk, line))
 	if err != nil {
@@ -255,26 +257,26 @@ func diffForEachLineCb(delta *C.git_diff_delta, hunk *C.git_diff_hunk, line *C.g
 }
 
 func (diff *Diff) NumDeltas() (int, error) {
-	if diff.ptr != nil {
+	if diff.ptr == nil {
 		return -1, ErrInvalid
 	}
 	return int(C.git_diff_num_deltas(diff.ptr)), nil
 }
 
 func (diff *Diff) GetDelta(index int) (*DiffDelta, error) {
-	if diff.ptr != nil {
+	if diff.ptr == nil {
 		return nil, ErrInvalid
 	}
 	ptr := C.git_diff_get_delta(diff.ptr, C.size_t(index))
 	if ptr == nil {
-		return nil
+		return nil, nil
 	}
 
 	return newDiffDeltaFromC(ptr), nil
 }
 
 func (diff *Diff) Patch(deltaIndex int) (*Patch, error) {
-	if diff.ptr != nil {
+	if diff.ptr == nil {
 		return nil, ErrInvalid
 	}
 	var patchPtr *C.git_patch
@@ -287,7 +289,7 @@ func (diff *Diff) Patch(deltaIndex int) (*Patch, error) {
 	return newPatchFromC(patchPtr), nil
 }
 
-func (v *Repository) DiffTreeToTree(oldTree, newTree *Tree) *Diff {
+func (v *Repository) DiffTreeToTree(oldTree, newTree *Tree) (*Diff, error) {
 	var diffPtr *C.git_diff
 	var oldPtr, newPtr *C.git_tree
 
@@ -299,7 +301,10 @@ func (v *Repository) DiffTreeToTree(oldTree, newTree *Tree) *Diff {
 		newPtr = newTree.gitObject.ptr
 	}
 
-	C.git_diff_tree_to_tree(&diffPtr, v.ptr, oldPtr, newPtr, nil)
+	ecode := C.git_diff_tree_to_tree(&diffPtr, v.ptr, oldPtr, newPtr, nil)
+	if ecode < 0 {
+		return nil, MakeGitError(ecode)
+	}
 
-	return newDiff(diffPtr)
+	return newDiffFromC(diffPtr), nil
 }

@@ -35,10 +35,10 @@ func (patch *Patch) Free() error {
 }
 
 func (patch *Patch) String() (string, error) {
-	if diff.ptr != nil {
+	if patch.ptr == nil {
 		return "", ErrInvalid
 	}
-	var cptr *C.char
-	C.git_patch_to_str(&cptr, patch.ptr)
-	return C.GoString(cptr), nil
+	var buf C.git_buf
+	C.git_patch_to_buf(&buf, patch.ptr)
+	return C.GoString(buf.ptr), nil
 }

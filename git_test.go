@@ -2,6 +2,7 @@ package git
 
 import (
 	"io/ioutil"
+	"path"
 	"testing"
 	"time"
 )
@@ -66,7 +67,7 @@ func updateReadme(t *testing.T, repo *Repository, content string) (*Oid, *Oid) {
 	}
 
 	tmpfile := "README"
-	err = ioutil.WriteFile(repo.Path()+"/"+tmpfile, []byte(content), 0644)
+	err = ioutil.WriteFile(path.Join(path.Dir(path.Dir(repo.Path())), tmpfile), []byte(content), 0644)
 	checkFatal(t, err)
 
 	idx, err := repo.Index()
