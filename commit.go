@@ -31,7 +31,7 @@ func (c Commit) Tree() (*Tree, error) {
 
 	err := C.git_commit_tree(&ptr, c.ptr)
 	if err < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(err)
 	}
 
 	return allocObject(ptr).(*Tree), nil
@@ -94,6 +94,11 @@ func (v *Signature) Offset() int {
 }
 
 func (sig *Signature) toC() *C.git_signature {
+
+	if sig == nil {
+		return nil
+	}
+
 	var out *C.git_signature
 
 	name := C.CString(sig.Name)

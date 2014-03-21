@@ -14,13 +14,14 @@ import (
 )
 
 type Filemode int
+
 const (
-	FilemodeNew   Filemode = C.GIT_FILEMODE_NEW
-	FilemodeTree           = C.GIT_FILEMODE_TREE
-	FilemodeBlob           = C.GIT_FILEMODE_BLOB
-	FilemodeBlobExecutable = C.GIT_FILEMODE_BLOB_EXECUTABLE
-	FilemodeLink           = C.GIT_FILEMODE_LINK
-	FilemodeCommit         = C.GIT_FILEMODE_COMMIT
+	FilemodeNew            Filemode = C.GIT_FILEMODE_NEW
+	FilemodeTree                    = C.GIT_FILEMODE_TREE
+	FilemodeBlob                    = C.GIT_FILEMODE_BLOB
+	FilemodeBlobExecutable          = C.GIT_FILEMODE_BLOB_EXECUTABLE
+	FilemodeLink                    = C.GIT_FILEMODE_LINK
+	FilemodeCommit                  = C.GIT_FILEMODE_COMMIT
 )
 
 type Tree struct {
@@ -28,9 +29,9 @@ type Tree struct {
 }
 
 type TreeEntry struct {
-	Name string
-	Id  *Oid
-	Type ObjectType
+	Name     string
+	Id       *Oid
+	Type     ObjectType
 	Filemode int
 }
 
@@ -67,7 +68,7 @@ func (t Tree) EntryByPath(path string) (*TreeEntry, error) {
 
 	ret := C.git_tree_entry_bypath(&entry, t.ptr, cpath)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	return newTreeEntry(entry), nil
@@ -109,14 +110,14 @@ func (t Tree) Walk(callback TreeWalkCallback) error {
 	)
 
 	if err < 0 {
-		return LastError()
+		return MakeGitError(err)
 	}
 
 	return nil
 }
 
 type TreeBuilder struct {
-	ptr *C.git_treebuilder
+	ptr  *C.git_treebuilder
 	repo *Repository
 }
 
@@ -125,7 +126,7 @@ func (v *TreeBuilder) Free() {
 	C.git_treebuilder_free(v.ptr)
 }
 
-func (v *TreeBuilder) Insert(filename string, id *Oid, filemode int) (error) {
+func (v *TreeBuilder) Insert(filename string, id *Oid, filemode int) error {
 	cfilename := C.CString(filename)
 	defer C.free(unsafe.Pointer(cfilename))
 
@@ -134,7 +135,22 @@ func (v *TreeBuilder) Insert(filename string, id *Oid, filemode int) (error) {
 
 	err := C.git_treebuilder_insert(nil, v.ptr, cfilename, id.toC(), C.git_filemode_t(filemode))
 	if err < 0 {
-		return LastError()
+		return MakeGitError(err)
+	}
+
+	return nil
+}
+
+func (v *TreeBuilder) Remove(filename string) error {
+	cfilename := C.CString(filename)
+	defer C.free(unsafe.Pointer(cfilename))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	err := C.git_treebuilder_remove(v.ptr, cfilename)
+	if err < 0 {
+		return MakeGitError(err)
 	}
 
 	return nil
@@ -149,7 +165,7 @@ func (v *TreeBuilder) Write() (*Oid, error) {
 	err := C.git_treebuilder_write(oid.toC(), v.repo.ptr, v.ptr)
 
 	if err < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(err)
 	}
 
 	return oid, nil

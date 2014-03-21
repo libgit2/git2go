@@ -25,6 +25,7 @@ int _go_git_odb_foreach(git_odb *db, void *payload)
     return git_odb_foreach(db, (git_odb_foreach_cb)&odbForEachCb, payload);
 }
 
+<<<<<<< HEAD
 int _go_git_diff_foreach(git_diff *diff, int eachFile, int eachHunk, int eachLine, void *payload)
 {
 	git_diff_file_cb fcb = NULL;	
@@ -44,5 +45,43 @@ int _go_git_diff_foreach(git_diff *diff, int eachFile, int eachHunk, int eachLin
 	}
 
 	return git_diff_foreach(diff, fcb, hcb, lcb, payload);
+=======
+void _go_git_setup_callbacks(git_remote_callbacks *callbacks) {
+	typedef int (*progress_cb)(const char *str, int len, void *data);
+	typedef int (*completion_cb)(git_remote_completion_type type, void *data);
+	typedef int (*credentials_cb)(git_cred **cred, const char *url, const char *username_from_url, unsigned int allowed_types,	void *data);
+	typedef int (*transfer_progress_cb)(const git_transfer_progress *stats, void *data);
+	typedef int (*update_tips_cb)(const char *refname, const git_oid *a, const git_oid *b, void *data);
+	callbacks->progress = (progress_cb)progressCallback;
+	callbacks->completion = (completion_cb)completionCallback;
+	callbacks->credentials = (credentials_cb)credentialsCallback;
+	callbacks->transfer_progress = (transfer_progress_cb)transferProgressCallback;
+	callbacks->update_tips = (update_tips_cb)updateTipsCallback;
+}
+
+typedef int (*status_foreach_cb)(const char *ref, const char *msg, void *data);
+
+int _go_git_push_status_foreach(git_push *push, void *data)
+{
+	return git_push_status_foreach(push, (status_foreach_cb)statusForeach, data);
+}
+
+int _go_git_push_set_callbacks(git_push *push, void *packbuilder_progress_data, void *transfer_progress_data)
+{
+	return git_push_set_callbacks(push, packbuilderProgress, packbuilder_progress_data, pushTransferProgress, transfer_progress_data);
+}
+
+int _go_blob_chunk_cb(char *buffer, size_t maxLen, void *payload)
+{
+    return blobChunkCb(buffer, maxLen, payload);
+}
+
+int _go_git_blob_create_fromchunks(git_oid *id,
+	git_repository *repo,
+	const char *hintpath,
+	void *payload)
+{
+    return git_blob_create_fromchunks(id, repo, hintpath, _go_blob_chunk_cb, payload);
+>>>>>>> 2811845a1287d949a74b8ed80a5791fd8875002a
 }
 /* EOF */

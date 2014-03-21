@@ -32,7 +32,7 @@ func (v *Odb) Write(data []byte, otype ObjectType) (oid *Oid, err error) {
 	ret := C.git_odb_write(oid.toC(), v.ptr, unsafe.Pointer(hdr.Data), C.size_t(hdr.Len), C.git_otype(otype))
 
 	if ret < 0 {
-		err = LastError()
+		err = MakeGitError(ret)
 	}
 
 	return
@@ -46,7 +46,7 @@ func (v *Odb) Read(oid *Oid) (obj *OdbObject, err error) {
 
 	ret := C.git_odb_read(&obj.ptr, v.ptr, oid.toC())
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	runtime.SetFinalizer(obj, (*OdbObject).Free)
@@ -79,13 +79,29 @@ func (v *Odb) ForEach() chan *Oid {
 	return ch
 }
 
+// Hash determines the object-ID (sha1) of a data buffer.
+func (v *Odb) Hash(data []byte, otype ObjectType) (oid *Oid, err error) {
+	oid = new(Oid)
+	header := (*reflect.SliceHeader)(unsafe.Pointer(&data))
+	ptr := unsafe.Pointer(header.Data)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_odb_hash(oid.toC(), ptr, C.size_t(header.Len), C.git_otype(otype));
+	if ret < 0 {
+		err = MakeGitError(ret)
+	}
+	return
+}
+
 // NewReadStream opens a read stream from the ODB. Reading from it will give you the
 // contents of the object.
 func (v *Odb) NewReadStream(id *Oid) (*OdbReadStream, error) {
 	stream := new(OdbReadStream)
 	ret := C.git_odb_open_rstream(&stream.ptr, v.ptr, id.toC())
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	runtime.SetFinalizer(stream, (*OdbReadStream).Free)
@@ -99,7 +115,7 @@ func (v *Odb) NewWriteStream(size int, otype ObjectType) (*OdbWriteStream, error
 	stream := new(OdbWriteStream)
 	ret := C.git_odb_open_wstream(&stream.ptr, v.ptr, C.size_t(size), C.git_otype(otype))
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	runtime.SetFinalizer(stream, (*OdbWriteStream).Free)
@@ -148,7 +164,7 @@ func (stream *OdbReadStream) Read(data []byte) (int, error) {
 	size := C.size_t(header.Cap)
 	ret := C.git_odb_stream_read(stream.ptr, ptr, size)
 	if ret < 0 {
-		return 0, LastError()
+		return 0, MakeGitError(ret)
 	}
 
 	header.Len = int(ret)
@@ -180,7 +196,7 @@ func (stream *OdbWriteStream) Write(data []byte) (int, error) {
 
 	ret := C.git_odb_stream_write(stream.ptr, ptr, size)
 	if ret < 0 {
-		return 0, LastError()
+		return 0, MakeGitError(ret)
 	}
 
 	return len(data), nil
@@ -191,7 +207,7 @@ func (stream *OdbWriteStream) Write(data []byte) (int, error) {
 func (stream *OdbWriteStream) Close() error {
 	ret := C.git_odb_stream_finalize_write(stream.Id.toC(), stream.ptr)
 	if ret < 0 {
-		return LastError()
+		return MakeGitError(ret)
 	}
 
 	return nil

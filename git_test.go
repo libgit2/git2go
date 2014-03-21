@@ -15,6 +15,17 @@ func createTestRepo(t *testing.T) *Repository {
 
 	tmpfile := "README"
 	err = ioutil.WriteFile(path+"/"+tmpfile, []byte("foo\n"), 0644)
+
+	checkFatal(t, err)
+
+	return repo
+}
+
+func createBareTestRepo(t *testing.T) *Repository {
+	// figure out where we can create the test repo
+	path, err := ioutil.TempDir("", "git2go")
+	checkFatal(t, err)
+	repo, err := InitRepository(path, true)
 	checkFatal(t, err)
 
 	return repo
@@ -72,4 +83,12 @@ func updateReadme(t *testing.T, repo *Repository, content string) (*Oid, *Oid) {
 	checkFatal(t, err)
 
 	return commitId, treeId
+}
+
+func TestOidZero(t *testing.T) {
+	var zeroId Oid
+
+	if !zeroId.IsZero() {
+		t.Error("Zero Oid is not zero")
+	}
 }

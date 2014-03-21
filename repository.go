@@ -26,7 +26,7 @@ func OpenRepository(path string) (*Repository, error) {
 
 	ret := C.git_repository_open(&repo.ptr, cpath)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	runtime.SetFinalizer(repo, (*Repository).Free)
@@ -44,7 +44,7 @@ func InitRepository(path string, isbare bool) (*Repository, error) {
 
 	ret := C.git_repository_init(&repo.ptr, cpath, ucbool(isbare))
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	runtime.SetFinalizer(repo, (*Repository).Free)
@@ -64,7 +64,7 @@ func (v *Repository) Config() (*Config, error) {
 
 	ret := C.git_repository_config(&config.ptr, v.ptr)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	runtime.SetFinalizer(config, (*Config).Free)
@@ -79,32 +79,32 @@ func (v *Repository) Index() (*Index, error) {
 
 	ret := C.git_repository_index(&ptr, v.ptr)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	return newIndexFromC(ptr), nil
 }
 
-func (v *Repository) lookupType(oid *Oid, t ObjectType) (Object, error) {
+func (v *Repository) lookupType(id *Oid, t ObjectType) (Object, error) {
 	var ptr *C.git_object
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_object_lookup(&ptr, v.ptr, oid.toC(), C.git_otype(t))
+	ret := C.git_object_lookup(&ptr, v.ptr, id.toC(), C.git_otype(t))
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	return allocObject(ptr), nil
 }
 
-func (v *Repository) Lookup(oid *Oid) (Object, error) {
-	return v.lookupType(oid, ObjectAny)
+func (v *Repository) Lookup(id *Oid) (Object, error) {
+	return v.lookupType(id, ObjectAny)
 }
 
-func (v *Repository) LookupTree(oid *Oid) (*Tree, error) {
-	obj, err := v.lookupType(oid, ObjectTree)
+func (v *Repository) LookupTree(id *Oid) (*Tree, error) {
+	obj, err := v.lookupType(id, ObjectTree)
 	if err != nil {
 		return nil, err
 	}
@@ -112,8 +112,8 @@ func (v *Repository) LookupTree(oid *Oid) (*Tree, error) {
 	return obj.(*Tree), nil
 }
 
-func (v *Repository) LookupCommit(oid *Oid) (*Commit, error) {
-	obj, err := v.lookupType(oid, ObjectCommit)
+func (v *Repository) LookupCommit(id *Oid) (*Commit, error) {
+	obj, err := v.lookupType(id, ObjectCommit)
 	if err != nil {
 		return nil, err
 	}
@@ -121,8 +121,8 @@ func (v *Repository) LookupCommit(oid *Oid) (*Commit, error) {
 	return obj.(*Commit), nil
 }
 
-func (v *Repository) LookupBlob(oid *Oid) (*Blob, error) {
-	obj, err := v.lookupType(oid, ObjectBlob)
+func (v *Repository) LookupBlob(id *Oid) (*Blob, error) {
+	obj, err := v.lookupType(id, ObjectBlob)
 	if err != nil {
 		return nil, err
 	}
@@ -140,7 +140,7 @@ func (v *Repository) LookupReference(name string) (*Reference, error) {
 
 	ecode := C.git_reference_lookup(&ptr, v.ptr, cname)
 	if ecode < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ecode)
 	}
 
 	return newReferenceFromC(ptr), nil
@@ -160,54 +160,78 @@ func (v *Repository) Head() (*Reference, error) {
 	return newReferenceFromC(ptr), nil
 }
 
-func (v *Repository) CreateReference(name string, oid *Oid, force bool) (*Reference, error) {
+func (v *Repository) CreateReference(name string, id *Oid, force bool, sig *Signature, msg string) (*Reference, error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
+
+	csig := sig.toC()
+	defer C.free(unsafe.Pointer(csig))
+
+	var cmsg *C.char
+	if msg == "" {
+		cmsg = nil
+	} else {
+		cmsg = C.CString(msg)
+		defer C.free(unsafe.Pointer(cmsg))
+	}
+
 	var ptr *C.git_reference
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_reference_create(&ptr, v.ptr, cname, oid.toC(), cbool(force))
+	ecode := C.git_reference_create(&ptr, v.ptr, cname, id.toC(), cbool(force), csig, cmsg)
 	if ecode < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ecode)
 	}
 
 	return newReferenceFromC(ptr), nil
 }
 
-func (v *Repository) CreateSymbolicReference(name, target string, force bool) (*Reference, error) {
+func (v *Repository) CreateSymbolicReference(name, target string, force bool, sig *Signature, msg string) (*Reference, error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
+
 	ctarget := C.CString(target)
 	defer C.free(unsafe.Pointer(ctarget))
+
+	csig := sig.toC()
+	defer C.free(unsafe.Pointer(csig))
+
+	var cmsg *C.char
+	if msg == "" {
+		cmsg = nil
+	} else {
+		cmsg = C.CString(msg)
+		defer C.free(unsafe.Pointer(cmsg))
+	}
+
 	var ptr *C.git_reference
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_reference_symbolic_create(&ptr, v.ptr, cname, ctarget, cbool(force))
+	ecode := C.git_reference_symbolic_create(&ptr, v.ptr, cname, ctarget, cbool(force), csig, cmsg)
 	if ecode < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ecode)
 	}
 
 	return newReferenceFromC(ptr), nil
 }
 
 func (v *Repository) Walk() (*RevWalk, error) {
-	walk := new(RevWalk)
+
+	var walkPtr *C.git_revwalk
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_revwalk_new(&walk.ptr, v.ptr)
+	ecode := C.git_revwalk_new(&walkPtr, v.ptr)
 	if ecode < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ecode)
 	}
 
-	walk.repo = v
-	runtime.SetFinalizer(walk, freeRevWalk)
-	return walk, nil
+	return revWalkFromC(v, walkPtr), nil
 }
 
 func (v *Repository) CreateCommit(
@@ -246,10 +270,10 @@ func (v *Repository) CreateCommit(
 	ret := C.git_commit_create(
 		oid.toC(), v.ptr, cref,
 		authorSig, committerSig,
-		nil, cmsg, tree.ptr, C.int(nparents), parentsarg)
+		nil, cmsg, tree.ptr, C.size_t(nparents), parentsarg)
 
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	return oid, nil
@@ -267,7 +291,7 @@ func (v *Repository) Odb() (odb *Odb, err error) {
 	defer runtime.UnlockOSThread()
 
 	if ret := C.git_repository_odb(&odb.ptr, v.ptr); ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	runtime.SetFinalizer(odb, (*Odb).Free)
@@ -293,9 +317,10 @@ func (repo *Repository) SetWorkdir(workdir string, updateGitlink bool) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if C.git_repository_set_workdir(repo.ptr, cstr, cbool(updateGitlink)) < 0 {
-		return LastError()
+	if ret := C.git_repository_set_workdir(repo.ptr, cstr, cbool(updateGitlink)); ret < 0 {
+		return MakeGitError(ret)
 	}
+
 	return nil
 }
 
@@ -306,7 +331,22 @@ func (v *Repository) TreeBuilder() (*TreeBuilder, error) {
 	defer runtime.UnlockOSThread()
 
 	if ret := C.git_treebuilder_create(&bld.ptr, nil); ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
+	}
+	runtime.SetFinalizer(bld, (*TreeBuilder).Free)
+
+	bld.repo = v
+	return bld, nil
+}
+
+func (v *Repository) TreeBuilderFromTree(tree *Tree) (*TreeBuilder, error) {
+	bld := new(TreeBuilder)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if ret := C.git_treebuilder_create(&bld.ptr, tree.ptr); ret < 0 {
+		return nil, MakeGitError(ret)
 	}
 	runtime.SetFinalizer(bld, (*TreeBuilder).Free)
 
@@ -325,8 +365,57 @@ func (v *Repository) RevparseSingle(spec string) (Object, error) {
 
 	ecode := C.git_revparse_single(&ptr, v.ptr, cspec)
 	if ecode < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ecode)
 	}
 
 	return allocObject(ptr), nil
+}
+
+// EnsureLog ensures that there is a reflog for the given reference
+// name and creates an empty one if necessary.
+func (v *Repository) EnsureLog(name string) error {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if ret := C.git_reference_ensure_log(v.ptr, cname); ret < 0 {
+		return MakeGitError(ret)
+	}
+
+	return nil
+}
+
+// HasLog returns whether there is a reflog for the given reference
+// name
+func (v *Repository) HasLog(name string) (bool, error) {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_reference_has_log(v.ptr, cname)
+	if ret < 0 {
+		return false, MakeGitError(ret)
+	}
+
+	return ret == 1, nil
+}
+
+// DwimReference looks up a reference by DWIMing its short name
+func (v *Repository) DwimReference(name string) (*Reference, error) {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var ptr *C.git_reference
+	if ret := C.git_reference_dwim(&ptr, v.ptr, cname); ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return newReferenceFromC(ptr), nil
 }

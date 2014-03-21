@@ -14,16 +14,23 @@ import (
 // RevWalk
 
 type SortType uint
+
 const (
-	SortNone SortType = C.GIT_SORT_NONE
-	SortTopological   = C.GIT_SORT_TOPOLOGICAL
-	SortTime          = C.GIT_SORT_TIME
-	SortReverse       = C.GIT_SORT_REVERSE
+	SortNone        SortType = C.GIT_SORT_NONE
+	SortTopological          = C.GIT_SORT_TOPOLOGICAL
+	SortTime                 = C.GIT_SORT_TIME
+	SortReverse              = C.GIT_SORT_REVERSE
 )
 
 type RevWalk struct {
 	ptr  *C.git_revwalk
 	repo *Repository
+}
+
+func revWalkFromC(repo *Repository, c *C.git_revwalk) *RevWalk {
+	v := &RevWalk{ptr: c, repo: repo}
+	runtime.SetFinalizer(v, (*RevWalk).Free)
+	return v
 }
 
 func (v *RevWalk) Reset() {
@@ -40,22 +47,22 @@ func (v *RevWalk) PushHead() (err error) {
 
 	ecode := C.git_revwalk_push_head(v.ptr)
 	if ecode < 0 {
-		err = LastError()
+		err = MakeGitError(ecode)
 	}
 
 	return
 }
 
-func (v *RevWalk) Next(oid *Oid) (err error) {
+func (v *RevWalk) Next(id *Oid) (err error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_revwalk_next(oid.toC(), v.ptr)
+	ret := C.git_revwalk_next(id.toC(), v.ptr)
 	switch {
 	case ret == ITEROVER:
 		err = io.EOF
 	case ret < 0:
-		err = LastError()
+		err = MakeGitError(ret)
 	}
 
 	return
@@ -92,6 +99,8 @@ func (v *RevWalk) Sorting(sm SortType) {
 	C.git_revwalk_sorting(v.ptr, C.uint(sm))
 }
 
-func freeRevWalk(walk *RevWalk) {
-	C.git_revwalk_free(walk.ptr)
+func (v *RevWalk) Free() {
+
+	runtime.SetFinalizer(v, nil)
+	C.git_revwalk_free(v.ptr)
 }
