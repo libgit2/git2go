@@ -5,7 +5,10 @@ package git
 #include <git2/errors.h>
 */
 import "C"
-import "unsafe"
+import (
+	"unsafe"
+	"runtime"
+)
 
 type CredType uint
 
@@ -21,31 +24,37 @@ type Cred struct {
 }
 
 func (o *Cred) HasUsername() bool {
-	if C.git_cred_has_username(o.ptr) == 1 {
-		return true
-	}
-	return false
+	return C.git_cred_has_username(o.ptr) != 0
 }
 
 func (o *Cred) Type() CredType {
-	return (CredType)(o.ptr.credtype)
+	return CredType(o.ptr.credtype)
 }
 
 func credFromC(ptr *C.git_cred) *Cred {
 	return &Cred{ptr}
 }
 
-func NewCredUserpassPlaintext(username string, password string) (int, Cred) {
+func NewCredUserpassPlaintext(username string, password string) (*Cred, error) {
 	cred := Cred{}
 	cusername := C.CString(username)
 	defer C.free(unsafe.Pointer(cusername))
 	cpassword := C.CString(password)
 	defer C.free(unsafe.Pointer(cpassword))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_cred_userpass_plaintext_new(&cred.ptr, cusername, cpassword)
-	return int(ret), cred
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+
+	return &cred, nil
 }
 
-func NewCredSshKey(username string, publickey string, privatekey string, passphrase string) (int, Cred) {
+func NewCredSshKey(username, publickey, privatekey, passphrase string) (*Cred, error) {
 	cred := Cred{}
 	cusername := C.CString(username)
 	defer C.free(unsafe.Pointer(cusername))
@@ -55,20 +64,44 @@ func NewCredSshKey(username string, publickey string, privatekey string, passphr
 	defer C.free(unsafe.Pointer(cprivatekey))
 	cpassphrase := C.CString(passphrase)
 	defer C.free(unsafe.Pointer(cpassphrase))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_cred_ssh_key_new(&cred.ptr, cusername, cpublickey, cprivatekey, cpassphrase)
-	return int(ret), cred
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return &cred, nil
 }
 
-func NewCredSshKeyFromAgent(username string) (int, Cred) {
+func NewCredSshKeyFromAgent(username string) (*Cred, error) {
 	cred := Cred{}
 	cusername := C.CString(username)
 	defer C.free(unsafe.Pointer(cusername))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_cred_ssh_key_from_agent(&cred.ptr, cusername)
-	return int(ret), cred
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return &cred, nil
 }
 
-func NewCredDefault() (int, Cred) {
+func NewCredDefault() (*Cred, error) {
 	cred := Cred{}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_cred_default_new(&cred.ptr)
-	return int(ret), cred
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return &cred, nil
 }
