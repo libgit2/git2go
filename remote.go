@@ -132,6 +132,18 @@ func (r *Remote) Free() {
 	C.git_remote_free(r.ptr)
 }
 
+func (repo *Repository) ListRemotes() ([]string, error) {
+	var r C.git_strarray
+	ecode := C.git_remote_list(&r, repo.ptr)
+	if ecode < 0 {
+		return nil, MakeGitError(ecode)
+	}
+	defer C.git_strarray_free(&r)
+
+	remotes := makeStringsFromCStrings(r.strings, int(r.count))
+	return remotes, nil
+}
+
 func (repo *Repository) CreateRemote(name string, url string) (*Remote, error) {
 	remote := &Remote{}
 
