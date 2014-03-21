@@ -3,7 +3,7 @@ package git
 /*
 #cgo pkg-config: libgit2
 #include <git2.h>
-#include <git2/errors.h>
+#include <string.h>
 */
 import "C"
 import (
@@ -38,7 +38,8 @@ func newOidFromC(coid *C.git_oid) *Oid {
 	}
 
 	oid := new(Oid)
-	copy(oid[0:20], C.GoBytes(unsafe.Pointer(coid), 20))
+
+	C.memcpy(unsafe.Pointer(oid), unsafe.Pointer(coid), 20)
 	return oid
 }
 
