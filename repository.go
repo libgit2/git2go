@@ -255,23 +255,6 @@ func (v *Repository) CreateCommit(
 	return oid, nil
 }
 
-func (v *Repository) DiffTreeToTree(oldTree, newTree *Tree) *Diff {
-	var diffPtr *C.git_diff
-	var oldPtr, newPtr *C.git_tree
-
-	if oldTree != nil {
-		oldPtr = oldTree.gitObject.ptr
-	}
-
-	if newTree != nil {
-		newPtr = newTree.gitObject.ptr
-	}
-
-	C.git_diff_tree_to_tree(&diffPtr, v.ptr, oldPtr, newPtr, nil)
-
-	return newDiff(diffPtr)
-}
-
 func (v *Odb) Free() {
 	runtime.SetFinalizer(v, nil)
 	C.git_odb_free(v.ptr)
