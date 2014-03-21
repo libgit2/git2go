@@ -31,6 +31,7 @@ func (patch *Patch) Free() error {
 	}
 	runtime.SetFinalizer(patch, nil)
 	C.git_patch_free(patch.ptr)
+	patch.ptr = nil
 	return nil
 }
 

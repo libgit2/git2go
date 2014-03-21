@@ -147,6 +147,7 @@ func (diff *Diff) Free() error {
 	}
 	runtime.SetFinalizer(diff, nil)
 	C.git_diff_free(diff.ptr)
+	diff.ptr = nil
 	return nil
 }
 
