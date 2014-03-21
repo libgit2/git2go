@@ -55,6 +55,8 @@ type RemoteCallbacks struct {
 type Remote struct {
 	ptr              *C.git_remote
 	repo             *Repository
+
+	Callbacks RemoteCallbacks
 }
 
 func newRemote(cremote *C.git_remote, repo *Repository) *Remote {
@@ -62,6 +64,9 @@ func newRemote(cremote *C.git_remote, repo *Repository) *Remote {
 		ptr: cremote,
 		repo: repo,
 	}
+
+	var callbacks C.git_remote_callbacks
+	populateRemoteCallbacks(&callbacks, &remote.Callbacks)
 
 	runtime.SetFinalizer(remote, (*Remote).Free)
 	return remote
