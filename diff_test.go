@@ -28,11 +28,18 @@ func TestDiffTreeToTree(t *testing.T) {
 	}
 
 	files := make([]string, 0)
-
-	err = diff.ForEachFile(func(file *DiffDelta) error {
+	hunks := make([]*DiffHunk, 0)
+	lines := make([]*DiffLine, 0)
+	err = diff.ForEach(func(file *DiffDelta, progress float64) (DiffForEachHunkCallback, error) {
 		files = append(files, file.OldFile.Path)
-		return nil
-	})
+		return func(hunk *DiffHunk) (DiffForEachLineCallback, error) {
+			hunks = append(hunks, hunk)
+			return func(line *DiffLine) error {
+				lines = append(lines, line)
+				return nil
+			}, nil
+		}, nil
+	}, true, true)
 
 	checkFatal(t, err)
 
@@ -44,11 +51,31 @@ func TestDiffTreeToTree(t *testing.T) {
 		t.Fatal("File in diff was expected to be README")
 	}
 
+	if len(hunks) != 1 {
+		t.Fatal("Incorrect number of hunks in diff")
+	}
+
+	if hunks[0].OldStart != 1 || hunks[0].NewStart != 1 {
+		t.Fatal("Incorrect hunk")
+	}
+
+	if len(lines) != 2 {
+		t.Fatal("Incorrect number of lines in diff")
+	}
+
+	if lines[0].Content != "foo\n" {
+		t.Fatal("Incorrect lines in diff")
+	}
+
+	if lines[1].Content != "file changed\n" {
+		t.Fatal("Incorrect lines in diff")
+	}
+
 	errTest := errors.New("test error")
 
-	err = diff.ForEachFile(func(file *DiffDelta) error {
-		return errTest
-	})
+	err = diff.ForEach(func(file *DiffDelta, progress float64) (DiffForEachHunkCallback, error) {
+		return nil, errTest
+	}, false, false)
 
 	if err != errTest {
 		t.Fatal("Expected custom error to be returned")

@@ -151,22 +151,34 @@ func (diff *Diff) Free() error {
 	return nil
 }
 
-type DiffForEachFileCallback func(*DiffDelta) error
-
-type diffForEachFileData struct {
-	Callback DiffForEachFileCallback
-	Error    error
+type diffForEachData struct {
+	FileCallback DiffForEachFileCallback
+	HunkCallback DiffForEachHunkCallback
+	LineCallback DiffForEachLineCallback
+	Error        error
 }
 
-func (diff *Diff) ForEachFile(cb DiffForEachFileCallback) error {
+type DiffForEachFileCallback func(*DiffDelta, float64) (DiffForEachHunkCallback, error)
+
+func (diff *Diff) ForEach(cbFile DiffForEachFileCallback, diffHunks bool, diffLines bool) error {
 	if diff.ptr == nil {
 		return ErrInvalid
 	}
 
-	data := &diffForEachFileData{
-		Callback: cb,
+	intHunks := C.int(0)
+	if diffHunks {
+		intHunks = C.int(1)
 	}
-	ecode := C._go_git_diff_foreach(diff.ptr, 1, 0, 0, unsafe.Pointer(data))
+
+	intLines := C.int(0)
+	if diffLines {
+		intLines = C.int(1)
+	}
+
+	data := &diffForEachData{
+		FileCallback: cbFile,
+	}
+	ecode := C._go_git_diff_foreach(diff.ptr, 1, intHunks, intLines, unsafe.Pointer(data))
 	if ecode < 0 {
 		return data.Error
 	}
@@ -175,32 +187,37 @@ func (diff *Diff) ForEachFile(cb DiffForEachFileCallback) error {
 
 //export diffForEachFileCb
 func diffForEachFileCb(delta *C.git_diff_delta, progress C.float, payload unsafe.Pointer) int {
-	data := (*diffForEachFileData)(payload)
+	data := (*diffForEachData)(payload)
 
-	err := data.Callback(newDiffDeltaFromC(delta))
-	if err != nil {
-		data.Error = err
-		return -1
+	data.HunkCallback = nil
+	if data.FileCallback != nil {
+		cb, err := data.FileCallback(newDiffDeltaFromC(delta), float64(progress))
+		if err != nil {
+			data.Error = err
+			return -1
+		}
+		data.HunkCallback = cb
 	}
 
 	return 0
 }
 
-type diffForEachHunkData struct {
-	Callback DiffForEachHunkCallback
-	Error    error
-}
+type DiffForEachHunkCallback func(*DiffHunk) (DiffForEachLineCallback, error)
 
-type DiffForEachHunkCallback func(*DiffHunk) error
-
-func (diff *Diff) ForEachHunk(cb DiffForEachHunkCallback) error {
+func (diff *Diff) ForEachHunk(cb DiffForEachHunkCallback, diffLines bool) error {
 	if diff.ptr == nil {
 		return ErrInvalid
 	}
-	data := &diffForEachHunkData{
-		Callback: cb,
+	data := &diffForEachData{
+		HunkCallback: cb,
 	}
-	ecode := C._go_git_diff_foreach(diff.ptr, 0, 1, 0, unsafe.Pointer(data))
+
+	intLines := C.int(0)
+	if diffLines {
+		intLines = C.int(1)
+	}
+
+	ecode := C._go_git_diff_foreach(diff.ptr, 0, 1, intLines, unsafe.Pointer(data))
 	if ecode < 0 {
 		return data.Error
 	}
@@ -209,20 +226,19 @@ func (diff *Diff) ForEachHunk(cb DiffForEachHunkCallback) error {
 
 //export diffForEachHunkCb
 func diffForEachHunkCb(delta *C.git_diff_delta, hunk *C.git_diff_hunk, payload unsafe.Pointer) int {
-	data := (*diffForEachHunkData)(payload)
+	data := (*diffForEachData)(payload)
 
-	err := data.Callback(newDiffHunkFromC(delta, hunk))
-	if err != nil {
-		data.Error = err
-		return -1
+	data.LineCallback = nil
+	if data.HunkCallback != nil {
+		cb, err := data.HunkCallback(newDiffHunkFromC(delta, hunk))
+		if err != nil {
+			data.Error = err
+			return -1
+		}
+		data.LineCallback = cb
 	}
 
 	return 0
-}
-
-type diffForEachLineData struct {
-	Callback DiffForEachLineCallback
-	Error    error
 }
 
 type DiffForEachLineCallback func(*DiffLine) error
@@ -232,8 +248,8 @@ func (diff *Diff) ForEachLine(cb DiffForEachLineCallback) error {
 		return ErrInvalid
 	}
 
-	data := &diffForEachLineData{
-		Callback: cb,
+	data := &diffForEachData{
+		LineCallback: cb,
 	}
 
 	ecode := C._go_git_diff_foreach(diff.ptr, 0, 0, 1, unsafe.Pointer(data))
@@ -246,9 +262,9 @@ func (diff *Diff) ForEachLine(cb DiffForEachLineCallback) error {
 //export diffForEachLineCb
 func diffForEachLineCb(delta *C.git_diff_delta, hunk *C.git_diff_hunk, line *C.git_diff_line, payload unsafe.Pointer) int {
 
-	data := (*diffForEachLineData)(payload)
+	data := (*diffForEachData)(payload)
 
-	err := data.Callback(newDiffLineFromC(delta, hunk, line))
+	err := data.LineCallback(newDiffLineFromC(delta, hunk, line))
 	if err != nil {
 		data.Error = err
 		return -1
