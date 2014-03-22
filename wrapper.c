@@ -45,6 +45,11 @@ int _go_git_diff_foreach(git_diff *diff, int eachFile, int eachHunk, int eachLin
 
 	return git_diff_foreach(diff, fcb, hcb, lcb, payload);
 }
+
+void _go_git_setup_diff_notify_callbacks(git_diff_options *opts) {
+	opts->notify_cb = (git_diff_notify_cb)diffNotifyCb;
+}
+
 void _go_git_setup_callbacks(git_remote_callbacks *callbacks) {
 	typedef int (*progress_cb)(const char *str, int len, void *data);
 	typedef int (*completion_cb)(git_remote_completion_type type, void *data);

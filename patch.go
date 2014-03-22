@@ -40,6 +40,9 @@ func (patch *Patch) String() (string, error) {
 		return "", ErrInvalid
 	}
 	var buf C.git_buf
-	C.git_patch_to_buf(&buf, patch.ptr)
+	ecode := C.git_patch_to_buf(&buf, patch.ptr)
+	if ecode < 0 {
+		return "", MakeGitError(ecode)
+	}
 	return C.GoString(buf.ptr), nil
 }
