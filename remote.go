@@ -45,23 +45,23 @@ type TransferProgressCallback func(stats TransferProgress) int
 type UpdateTipsCallback func(refname string, a *Oid, b *Oid) int
 
 type RemoteCallbacks struct {
-	ProgressCallback
-	CompletionCallback
-	CredentialsCallback
-	TransferProgressCallback
-	UpdateTipsCallback
+	Progress         ProgressCallback
+	Completion       CompletionCallback
+	Credentials      CredentialsCallback
+	TransferProgress TransferProgressCallback
+	UpdateTips       UpdateTipsCallback
 }
 
 type Remote struct {
-	ptr              *C.git_remote
-	repo             *Repository
+	ptr  *C.git_remote
+	repo *Repository
 
 	Callbacks RemoteCallbacks
 }
 
 func newRemote(cremote *C.git_remote, repo *Repository) *Remote {
-	remote := &Remote {
-		ptr: cremote,
+	remote := &Remote{
+		ptr:  cremote,
 		repo: repo,
 	}
 
@@ -84,31 +84,31 @@ func populateRemoteCallbacks(ptr *C.git_remote_callbacks, callbacks *RemoteCallb
 //export progressCallback
 func progressCallback(_str *C.char, _len C.int, data unsafe.Pointer) int {
 	callbacks := (*RemoteCallbacks)(data)
-	if callbacks.ProgressCallback == nil {
+	if callbacks.Progress == nil {
 		return 0
 	}
 	str := C.GoStringN(_str, _len)
-	return callbacks.ProgressCallback(str)
+	return callbacks.Progress(str)
 }
 
 //export completionCallback
 func completionCallback(completion_type C.git_remote_completion_type, data unsafe.Pointer) int {
 	callbacks := (*RemoteCallbacks)(data)
-	if callbacks.CompletionCallback == nil {
+	if callbacks.Completion == nil {
 		return 0
 	}
-	return callbacks.CompletionCallback((RemoteCompletion)(completion_type))
+	return callbacks.Completion(RemoteCompletion(completion_type))
 }
 
 //export credentialsCallback
 func credentialsCallback(_cred **C.git_cred, _url *C.char, _username_from_url *C.char, allowed_types uint, data unsafe.Pointer) int {
 	callbacks := (*RemoteCallbacks)(data)
-	if callbacks.CredentialsCallback == nil {
+	if callbacks.Credentials == nil {
 		return 0
 	}
 	url := C.GoString(_url)
 	username_from_url := C.GoString(_username_from_url)
-	ret, cred := callbacks.CredentialsCallback(url, username_from_url, (CredType)(allowed_types))
+	ret, cred := callbacks.Credentials(url, username_from_url, CredType(allowed_types))
 	*_cred = cred.ptr
 	return ret
 }
@@ -116,22 +116,22 @@ func credentialsCallback(_cred **C.git_cred, _url *C.char, _username_from_url *C
 //export transferProgressCallback
 func transferProgressCallback(stats *C.git_transfer_progress, data unsafe.Pointer) int {
 	callbacks := (*RemoteCallbacks)(data)
-	if callbacks.TransferProgressCallback == nil {
+	if callbacks.TransferProgress == nil {
 		return 0
 	}
-	return callbacks.TransferProgressCallback(newTransferProgressFromC(stats))
+	return callbacks.TransferProgress(newTransferProgressFromC(stats))
 }
 
 //export updateTipsCallback
 func updateTipsCallback(_refname *C.char, _a *C.git_oid, _b *C.git_oid, data unsafe.Pointer) int {
 	callbacks := (*RemoteCallbacks)(data)
-	if callbacks.UpdateTipsCallback == nil {
+	if callbacks.UpdateTips == nil {
 		return 0
 	}
 	refname := C.GoString(_refname)
 	a := newOidFromC(_a)
 	b := newOidFromC(_b)
-	return callbacks.UpdateTipsCallback(refname, a, b)
+	return callbacks.UpdateTips(refname, a, b)
 }
 
 func RemoteIsValidName(name string) bool {
