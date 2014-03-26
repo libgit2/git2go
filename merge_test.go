@@ -15,9 +15,8 @@ func TestMergeWithSelf(t *testing.T) {
 	mergeHead, err := repo.MergeHeadFromRef(master)
 	checkFatal(t, err)
 
-	options, _ := DefaultMergeOptions()
 	mergeHeads := make([]*MergeHead, 1)
 	mergeHeads[0] = mergeHead
-	err = repo.Merge(mergeHeads, &options, nil)
+	err = repo.Merge(mergeHeads, nil, nil)
 	checkFatal(t, err)
 }

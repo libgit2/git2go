@@ -146,7 +146,7 @@ func (r *Repository) Merge(theirHeads []*MergeHead, mergeOptions *MergeOptions, 
 	return nil
 }
 
-func (r *Repository) MergeCommits(ours *Commit, theirs *Commit, options MergeOptions) (*Index, error) {
+func (r *Repository) MergeCommits(ours *Commit, theirs *Commit, options *MergeOptions) (*Index, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -162,7 +162,7 @@ func (r *Repository) MergeCommits(ours *Commit, theirs *Commit, options MergeOpt
 	return idx, nil
 }
 
-func (r *Repository) MergeTrees(ancestor *Tree, ours *Tree, theirs *Tree, options MergeOptions) (*Index, error) {
+func (r *Repository) MergeTrees(ancestor *Tree, ours *Tree, theirs *Tree, options *MergeOptions) (*Index, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
