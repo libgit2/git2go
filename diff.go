@@ -423,8 +423,6 @@ func (v *Repository) DiffTreeToTree(oldTree, newTree *Tree, opts *DiffOptions) (
 
 	if notifyData != nil && notifyData.Diff != nil {
 		return notifyData.Diff, nil
-	} else {
-		return newDiffFromC(diffPtr), nil
 	}
-
+	return newDiffFromC(diffPtr), nil
 }
