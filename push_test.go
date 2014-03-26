@@ -1,7 +1,6 @@
 package git
 
 import (
-	"log"
 	"os"
 	"testing"
 	"time"
@@ -45,7 +44,6 @@ func Test_Push_ToRemote(t *testing.T) {
 	checkFatal(t, err)
 
 	err = push.StatusForeach(func(ref string, msg string) int {
-		log.Printf("%s -> %s", ref, msg)
 		return 0
 	})
 	checkFatal(t, err)
