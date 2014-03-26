@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func Test_Merge_With_Self(t *testing.T) {
+func TestMergeWithSelf(t *testing.T) {
 
 	repo := createTestRepo(t)
 	seedTestRepo(t, repo)
@@ -15,13 +15,9 @@ func Test_Merge_With_Self(t *testing.T) {
 	mergeHead, err := repo.MergeHeadFromRef(master)
 	checkFatal(t, err)
 
-	options := DefaultMergeOptions()
+	options, _ := DefaultMergeOptions()
 	mergeHeads := make([]*MergeHead, 1)
 	mergeHeads[0] = mergeHead
-	results, err := repo.Merge(mergeHeads, options)
+	err = repo.Merge(mergeHeads, &options, nil)
 	checkFatal(t, err)
-
-	if !results.IsUpToDate() {
-		t.Fatal("Expected up to date")
-	}
 }

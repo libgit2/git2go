@@ -69,66 +69,47 @@ func (r *Repository) MergeHeadFromRef(ref *Reference) (*MergeHead, error) {
 	return mh, nil
 }
 
-type MergeFlag int
+type MergeTreeFlag int
 
 const (
-	MergeFlagDefault     MergeFlag = C.GIT_MERGE_DEFAULT
-	MergeNoFastForward             = C.GIT_MERGE_NO_FASTFORWARD
-	MergeFastForwardOnly           = C.GIT_MERGE_FASTFORWARD_ONLY
+	MergeTreeFindRenames MergeTreeFlag = C.GIT_MERGE_TREE_FIND_RENAMES
 )
 
 type MergeOptions struct {
 	Version uint
-	Flags   MergeFlag
+	Flags   MergeTreeFlag
 
-	TreeOptions MergeTreeOptions
-	//TODO: CheckoutOptions CheckoutOptions
+	RenameThreshold uint
+	TargetLimit     uint
+	FileFavor       MergeFileFavorType
+
+	//TODO: Diff similarity metric
 }
 
-func DefaultMergeOptions() MergeOptions {
-	options := MergeOptions{Version: 1}
-	options.TreeOptions = DefaultMergeTreeOptions()
-	return options
-}
-
-func (mo *MergeOptions) toC() *C.git_merge_opts {
-	return &C.git_merge_opts{
-		version:         C.uint(mo.Version),
-		merge_flags:     C.git_merge_flags_t(mo.Flags),
-		merge_tree_opts: *mo.TreeOptions.toC(),
+func mergeOptionsFromC(opts *C.git_merge_options) MergeOptions {
+	return MergeOptions{
+		Version:         uint(opts.version),
+		Flags:           MergeTreeFlag(opts.flags),
+		RenameThreshold: uint(opts.rename_threshold),
+		TargetLimit:     uint(opts.target_limit),
+		FileFavor:       MergeFileFavorType(opts.file_favor),
 	}
 }
 
-type MergeTreeFlag int
-
-const (
-	MergeTreeFindRenames MergeTreeFlag = 1 << 0
-)
-
-type MergeFileFavorType int
-
-const (
-	MergeFileFavorNormal MergeFileFavorType = 0
-	MergeFileFavorOurs                      = 1
-	MergeFileFavorTheirs                    = 2
-	MergeFileFavorUnion                     = 3
-)
-
-type MergeTreeOptions struct {
-	Version         uint
-	Flags           MergeTreeFlag
-	RenameThreshold uint
-	TargetLimit     uint
-	//TODO: SimilarityMetric *DiffSimilarityMetric
-	FileFavor MergeFileFavorType
+func DefaultMergeOptions() (MergeOptions, error) {
+	opts := C.git_merge_options{}
+	ecode := C.git_merge_init_options(&opts, C.GIT_MERGE_OPTIONS_VERSION)
+	if ecode < 0 {
+		return MergeOptions{}, MakeGitError(ecode)
+	}
+	return mergeOptionsFromC(&opts), nil
 }
 
-func DefaultMergeTreeOptions() MergeTreeOptions {
-	return MergeTreeOptions{Version: 1}
-}
-
-func (mo *MergeTreeOptions) toC() *C.git_merge_tree_opts {
-	return &C.git_merge_tree_opts{
+func (mo *MergeOptions) toC() *C.git_merge_options {
+	if mo == nil {
+		return nil
+	}
+	return &C.git_merge_options{
 		version:          C.uint(mo.Version),
 		flags:            C.git_merge_tree_flag_t(mo.Flags),
 		rename_threshold: C.uint(mo.RenameThreshold),
@@ -137,69 +118,35 @@ func (mo *MergeTreeOptions) toC() *C.git_merge_tree_opts {
 	}
 }
 
-type MergeResult struct {
-	ptr *C.git_merge_result
-}
+type MergeFileFavorType int
 
-func newMergeResultFromC(c *C.git_merge_result) *MergeResult {
-	mr := &MergeResult{ptr: c}
-	runtime.SetFinalizer(mr, (*MergeResult).Free)
-	return mr
-}
+const (
+	MergeFileFavorNormal MergeFileFavorType = C.GIT_MERGE_FILE_FAVOR_NORMAL
+	MergeFileFavorOurs                      = C.GIT_MERGE_FILE_FAVOR_OURS
+	MergeFileFavorTheirs                    = C.GIT_MERGE_FILE_FAVOR_THEIRS
+	MergeFileFavorUnion                     = C.GIT_MERGE_FILE_FAVOR_UNION
+)
 
-func (mr *MergeResult) Free() {
-	runtime.SetFinalizer(mr, nil)
-	C.git_merge_result_free(mr.ptr)
-}
-
-func (mr *MergeResult) IsFastForward() bool {
+func (r *Repository) Merge(theirHeads []*MergeHead, mergeOptions *MergeOptions, checkoutOptions *CheckoutOpts) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_merge_result_is_fastforward(mr.ptr)
-	return ret != 0
-}
+	cMergeOpts := mergeOptions.toC()
+	cCheckoutOpts := checkoutOptions.toC()
 
-func (mr *MergeResult) IsUpToDate() bool {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ret := C.git_merge_result_is_uptodate(mr.ptr)
-	return ret != 0
-}
-
-func (mr *MergeResult) FastForwardId() (*Oid, error) {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	var oid C.git_oid
-	ret := C.git_merge_result_fastforward_id(&oid, mr.ptr)
-	if ret < 0 {
-		return nil, MakeGitError(ret)
-	}
-	return newOidFromC(&oid), nil
-}
-
-func (r *Repository) Merge(theirHeads []*MergeHead, options MergeOptions) (*MergeResult, error) {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	var result *C.git_merge_result
-
-	copts := options.toC()
 	gmerge_head_array := make([]*C.git_merge_head, len(theirHeads))
 	for i := 0; i < len(theirHeads); i++ {
 		gmerge_head_array[i] = theirHeads[i].ptr
 	}
 	ptr := unsafe.Pointer(&gmerge_head_array[0])
-	err := C.git_merge(&result, r.ptr, (**C.git_merge_head)(ptr), C.size_t(len(theirHeads)), copts)
+	err := C.git_merge(r.ptr, (**C.git_merge_head)(ptr), C.size_t(len(theirHeads)), cMergeOpts, cCheckoutOpts)
 	if err < 0 {
-		return nil, MakeGitError(err)
+		return MakeGitError(err)
 	}
-	return newMergeResultFromC(result), nil
+	return nil
 }
 
-func (r *Repository) MergeCommits(ours *Commit, theirs *Commit, options MergeTreeOptions) (*Index, error) {
+func (r *Repository) MergeCommits(ours *Commit, theirs *Commit, options MergeOptions) (*Index, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -215,7 +162,7 @@ func (r *Repository) MergeCommits(ours *Commit, theirs *Commit, options MergeTre
 	return idx, nil
 }
 
-func (r *Repository) MergeTrees(ancestor *Tree, ours *Tree, theirs *Tree, options MergeTreeOptions) (*Index, error) {
+func (r *Repository) MergeTrees(ancestor *Tree, ours *Tree, theirs *Tree, options MergeOptions) (*Index, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
