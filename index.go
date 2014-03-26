@@ -23,7 +23,7 @@ type IndexEntry struct {
 	Uid   uint
 	Gid   uint
 	Size  uint
-	Id   *Oid
+	Id    *Oid
 	Path  string
 }
 
@@ -48,6 +48,20 @@ func (v *Index) AddByPath(path string) error {
 	return nil
 }
 
+func (v *Index) WriteTreeTo(repo *Repository) (*Oid, error) {
+	oid := new(Oid)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_index_write_tree_to(oid.toC(), v.ptr, repo.ptr)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return oid, nil
+}
+
 func (v *Index) WriteTree() (*Oid, error) {
 	oid := new(Oid)
 
@@ -62,7 +76,7 @@ func (v *Index) WriteTree() (*Oid, error) {
 	return oid, nil
 }
 
-func (v *Index) Write() (error) {
+func (v *Index) Write() error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
