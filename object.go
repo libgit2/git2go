@@ -48,7 +48,7 @@ func (t ObjectType) String() (string) {
 }
 
 func (o gitObject) Id() *Oid {
-	return newOidFromC(C.git_commit_id(o.ptr))
+	return newOidFromC(C.git_object_id(o.ptr))
 }
 
 func (o gitObject) Type() ObjectType {
@@ -57,24 +57,33 @@ func (o gitObject) Type() ObjectType {
 
 func (o *gitObject) Free() {
 	runtime.SetFinalizer(o, nil)
-	C.git_commit_free(o.ptr)
+	C.git_object_free(o.ptr)
 }
 
 func allocObject(cobj *C.git_object) Object {
 
 	switch ObjectType(C.git_object_type(cobj)) {
 	case ObjectCommit:
-		commit := &Commit{gitObject{cobj}}
+		commit := &Commit{
+			gitObject: gitObject{cobj},
+			cast_ptr:  (*C.git_commit)(cobj),
+		}
 		runtime.SetFinalizer(commit, (*Commit).Free)
 		return commit
 
 	case ObjectTree:
-		tree := &Tree{gitObject{cobj}}
+		tree := &Tree{
+			gitObject: gitObject{cobj},
+			cast_ptr:  (*C.git_tree)(cobj),
+		}
 		runtime.SetFinalizer(tree, (*Tree).Free)
 		return tree
 
 	case ObjectBlob:
-		blob := &Blob{gitObject{cobj}}
+		blob := &Blob{
+			gitObject: gitObject{cobj},
+			cast_ptr:  (*C.git_blob)(cobj),
+		}
 		runtime.SetFinalizer(blob, (*Blob).Free)
 		return blob
 	}

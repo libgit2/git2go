@@ -20,15 +20,16 @@ import (
 
 type Blob struct {
 	gitObject
+	cast_ptr *C.git_blob
 }
 
 func (v *Blob) Size() int64 {
-	return int64(C.git_blob_rawsize(v.ptr))
+	return int64(C.git_blob_rawsize(v.cast_ptr))
 }
 
 func (v *Blob) Contents() []byte {
-	size := C.int(C.git_blob_rawsize(v.ptr))
-	buffer := unsafe.Pointer(C.git_blob_rawcontent(v.ptr))
+	size := C.int(C.git_blob_rawsize(v.cast_ptr))
+	buffer := unsafe.Pointer(C.git_blob_rawcontent(v.cast_ptr))
 	return C.GoBytes(buffer, size)
 }
 
