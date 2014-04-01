@@ -10,7 +10,7 @@ func TestRefspecs(t *testing.T) {
 	defer os.RemoveAll(repo.Workdir())
 	defer repo.Free()
 
-	remote, err := repo.CreateAnonymousRemote("refs/heads/*:refs/heads/*", "git://foo/bar")
+	remote, err := repo.CreateAnonymousRemote("git://foo/bar", "refs/heads/*:refs/heads/*")
 	checkFatal(t, err)
 
 	expected := []string{
