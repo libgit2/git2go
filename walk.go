@@ -9,6 +9,7 @@ import "C"
 import (
 	"io"
 	"runtime"
+	"unsafe"
 )
 
 // RevWalk
@@ -37,8 +38,57 @@ func (v *RevWalk) Reset() {
 	C.git_revwalk_reset(v.ptr)
 }
 
-func (v *RevWalk) Push(id *Oid) {
-	C.git_revwalk_push(v.ptr, id.toC())
+func (v *RevWalk) Push(id *Oid) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C.git_revwalk_push(v.ptr, id.toC())
+	if ecode < 0 {
+		return MakeGitError(ecode)
+	}
+	return nil
+}
+
+func (v *RevWalk) PushGlob(glob string) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	cstr := C.CString(glob)
+	defer C.free(unsafe.Pointer(cstr))
+
+	ecode := C.git_revwalk_push_glob(v.ptr, cstr)
+	if ecode < 0 {
+		return MakeGitError(ecode)
+	}
+	return nil
+}
+
+func (v *RevWalk) PushRange(r string) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	cstr := C.CString(r)
+	defer C.free(unsafe.Pointer(cstr))
+
+	ecode := C.git_revwalk_push_range(v.ptr, cstr)
+	if ecode < 0 {
+		return MakeGitError(ecode)
+	}
+	return nil
+}
+
+func (v *RevWalk) PushRef(r string) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	cstr := C.CString(r)
+	defer C.free(unsafe.Pointer(cstr))
+
+	ecode := C.git_revwalk_push_ref(v.ptr, cstr)
+	if ecode < 0 {
+		return MakeGitError(ecode)
+	}
+	return nil
 }
 
 func (v *RevWalk) PushHead() (err error) {
@@ -49,8 +99,57 @@ func (v *RevWalk) PushHead() (err error) {
 	if ecode < 0 {
 		err = MakeGitError(ecode)
 	}
+	return nil
+}
 
-	return
+func (v *RevWalk) Hide(id *Oid) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C.git_revwalk_hide(v.ptr, id.toC())
+	if ecode < 0 {
+		return MakeGitError(ecode)
+	}
+	return nil
+}
+
+func (v *RevWalk) HideGlob(glob string) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	cstr := C.CString(glob)
+	defer C.free(unsafe.Pointer(cstr))
+
+	ecode := C.git_revwalk_hide_glob(v.ptr, cstr)
+	if ecode < 0 {
+		return MakeGitError(ecode)
+	}
+	return nil
+}
+
+func (v *RevWalk) HideRef(r string) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	cstr := C.CString(r)
+	defer C.free(unsafe.Pointer(cstr))
+
+	ecode := C.git_revwalk_hide_ref(v.ptr, cstr)
+	if ecode < 0 {
+		return MakeGitError(ecode)
+	}
+	return nil
+}
+
+func (v *RevWalk) HideHead() (err error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C.git_revwalk_hide_head(v.ptr)
+	if ecode < 0 {
+		err = MakeGitError(ecode)
+	}
+	return nil
 }
 
 func (v *RevWalk) Next(id *Oid) (err error) {
