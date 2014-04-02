@@ -62,3 +62,10 @@ func TestOidZero(t *testing.T) {
 		t.Error("Zero Oid is not zero")
 	}
 }
+
+func TestEmptyOid(t *testing.T) {
+	_, err := NewOid("")
+	if err == nil || !IsErrorCode(err, ErrGeneric) {
+		t.Fatal("Should have returned invalid error")
+	}
+}

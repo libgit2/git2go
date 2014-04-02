@@ -111,7 +111,7 @@ func TestIterator(t *testing.T) {
 		list = append(list, name)
 		name, err = iter.NextName()
 	}
-	if err != ErrIterOver {
+	if !IsErrorCode(err, ErrIterOver) {
 		t.Fatal("Iteration not over")
 	}
 
@@ -127,7 +127,7 @@ func TestIterator(t *testing.T) {
 		count++
 		_, err = iter.Next()
 	}
-	if err != ErrIterOver {
+	if !IsErrorCode(err, ErrIterOver) {
 		t.Fatal("Iteration not over")
 	}
 
