@@ -27,7 +27,7 @@ func NewOdb() (odb *Odb, err error) {
 
 	ret := C.git_odb_new(&odb.ptr)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	runtime.SetFinalizer(odb, (*Odb).Free)
@@ -43,7 +43,7 @@ func (v *Odb) AddBackend(backend *OdbBackend, priority int) (err error) {
 	ret := C.git_odb_add_backend(v.ptr, backend.ptr, C.int(priority))
 	if ret < 0 {
 		backend.Free()
-		err = LastError()
+		return MakeGitError(ret)
 	}
 	return nil
 }

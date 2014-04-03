@@ -56,7 +56,7 @@ func NewRepositoryWrapOdb(odb *Odb) (repo *Repository, err error) {
 
 	ret := C.git_repository_wrap_odb(&repo.ptr, odb.ptr)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	runtime.SetFinalizer(repo, (*Repository).Free)

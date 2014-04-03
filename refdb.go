@@ -24,7 +24,7 @@ func (v *Repository) NewRefdb() (refdb *Refdb, err error) {
 
 	ret := C.git_refdb_new(&refdb.ptr, v.ptr)
 	if ret < 0 {
-		return nil, LastError()
+		return nil, MakeGitError(ret)
 	}
 
 	runtime.SetFinalizer(refdb, (*Refdb).Free)
@@ -40,7 +40,7 @@ func (v *Refdb) SetBackend(backend *RefdbBackend) (err error) {
 	ret := C.git_refdb_set_backend(v.ptr, backend.ptr)
 	if ret < 0 {
 		backend.Free()
-		return LastError()
+		return MakeGitError(ret)
 	}
 	return nil
 }
