@@ -3,6 +3,7 @@ package git
 /*
 #include <git2.h>
 #include <git2/errors.h>
+#include <git2/sys/refdb_backend.h>
 
 extern void _go_git_refdb_backend_free(git_refdb_backend *backend);
 */
