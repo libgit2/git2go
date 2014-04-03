@@ -28,21 +28,21 @@ func (v *Repository) NewRefdb() (refdb *Refdb, err error) {
 	}
 
 	runtime.SetFinalizer(refdb, (*Refdb).Free)
-	return
+	return refdb, nil
 }
 
 func NewRefdbBackendFromC(ptr *C.git_refdb_backend) (backend *RefdbBackend) {
 	backend = &RefdbBackend{ptr}
-	return
+	return backend
 }
 
 func (v *Refdb) SetBackend(backend *RefdbBackend) (err error) {
 	ret := C.git_refdb_set_backend(v.ptr, backend.ptr)
 	if ret < 0 {
 		backend.Free()
-		err = LastError()
+		return LastError()
 	}
-	return
+	return nil
 }
 
 func (v *RefdbBackend) Free() {

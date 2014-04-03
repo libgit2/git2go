@@ -60,12 +60,11 @@ func NewRepositoryWrapOdb(odb *Odb) (repo *Repository, err error) {
 	}
 
 	runtime.SetFinalizer(repo, (*Repository).Free)
-	return
+	return repo, nil
 }
 
 func (v *Repository) SetRefdb(refdb *Refdb) {
 	C.git_repository_set_refdb(v.ptr, refdb.ptr)
-	return
 }
 
 func (v *Repository) Free() {
@@ -294,7 +293,7 @@ func (v *Repository) Odb() (odb *Odb, err error) {
 	}
 
 	runtime.SetFinalizer(odb, (*Odb).Free)
-	return
+	return odb, nil
 }
 
 func (repo *Repository) Path() string {

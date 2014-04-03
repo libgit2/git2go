@@ -31,12 +31,12 @@ func NewOdb() (odb *Odb, err error) {
 	}
 
 	runtime.SetFinalizer(odb, (*Odb).Free)
-	return
+	return odb, nil
 }
 
 func NewOdbBackendFromC(ptr *C.git_odb_backend) (backend *OdbBackend) {
 	backend = &OdbBackend{ptr}
-	return
+	return backend
 }
 
 func (v *Odb) AddBackend(backend *OdbBackend, priority int) (err error) {
@@ -63,10 +63,10 @@ func (v *Odb) Write(data []byte, otype ObjectType) (oid *Oid, err error) {
 	ret := C.git_odb_write(oid.toC(), v.ptr, unsafe.Pointer(hdr.Data), C.size_t(hdr.Len), C.git_otype(otype))
 
 	if ret < 0 {
-		err = LastError()
+		return nil, LastError()
 	}
 
-	return
+	return oid, nil
 }
 
 func (v *Odb) Read(oid *Oid) (obj *OdbObject, err error) {
@@ -81,7 +81,7 @@ func (v *Odb) Read(oid *Oid) (obj *OdbObject, err error) {
 	}
 
 	runtime.SetFinalizer(obj, (*OdbObject).Free)
-	return
+	return obj, nil
 }
 
 //export odbForEachCb
@@ -121,9 +121,9 @@ func (v *Odb) Hash(data []byte, otype ObjectType) (oid *Oid, err error) {
 
 	ret := C.git_odb_hash(oid.toC(), ptr, C.size_t(header.Len), C.git_otype(otype));
 	if ret < 0 {
-		err = LastError()
+		return nil, LastError()
 	}
-	return
+	return oid, nil
 }
 
 // NewReadStream opens a read stream from the ODB. Reading from it will give you the
