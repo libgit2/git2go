@@ -291,12 +291,7 @@ func (sub *Submodule) Reload(force bool) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	cforce := C.int(0)
-	if force {
-		cforce = C.int(1)
-	}
-
-	ret := C.git_submodule_reload(sub.ptr, cforce)
+	ret := C.git_submodule_reload(sub.ptr, cbool(force))
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -307,12 +302,7 @@ func (repo *Repository) ReloadAllSubmodules(force bool) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	cforce := C.int(0)
-	if force {
-		cforce = C.int(1)
-	}
-
-	ret := C.git_submodule_reload_all(repo.ptr, cforce)
+	ret := C.git_submodule_reload_all(repo.ptr, cbool(force))
 	if ret < 0 {
 		return MakeGitError(ret)
 	}

@@ -17,56 +17,57 @@ import (
 // Commit
 type Commit struct {
 	gitObject
+	cast_ptr *C.git_commit
 }
 
 func (c Commit) Message() string {
-	return C.GoString(C.git_commit_message(c.ptr))
+	return C.GoString(C.git_commit_message(c.cast_ptr))
 }
 
 func (c Commit) Tree() (*Tree, error) {
-	var ptr *C.git_object
+	var ptr *C.git_tree
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	err := C.git_commit_tree(&ptr, c.ptr)
+	err := C.git_commit_tree(&ptr, c.cast_ptr)
 	if err < 0 {
 		return nil, MakeGitError(err)
 	}
 
-	return allocObject(ptr).(*Tree), nil
+	return allocObject((*C.git_object)(ptr)).(*Tree), nil
 }
 
 func (c Commit) TreeId() *Oid {
-	return newOidFromC(C.git_commit_tree_id(c.ptr))
+	return newOidFromC(C.git_commit_tree_id(c.cast_ptr))
 }
 
 func (c Commit) Author() *Signature {
-	ptr := C.git_commit_author(c.ptr)
-	return newSignatureFromC(ptr)
+	cast_ptr := C.git_commit_author(c.cast_ptr)
+	return newSignatureFromC(cast_ptr)
 }
 
 func (c Commit) Committer() *Signature {
-	ptr := C.git_commit_committer(c.ptr)
-	return newSignatureFromC(ptr)
+	cast_ptr := C.git_commit_committer(c.cast_ptr)
+	return newSignatureFromC(cast_ptr)
 }
 
 func (c *Commit) Parent(n uint) *Commit {
-	var cobj *C.git_object
-	ret := C.git_commit_parent(&cobj, c.ptr, C.uint(n))
+	var cobj *C.git_commit
+	ret := C.git_commit_parent(&cobj, c.cast_ptr, C.uint(n))
 	if ret != 0 {
 		return nil
 	}
 
-	return allocObject(cobj).(*Commit)
+	return allocObject((*C.git_object)(cobj)).(*Commit)
 }
 
 func (c *Commit) ParentId(n uint) *Oid {
-	return newOidFromC(C.git_commit_parent_id(c.ptr, C.uint(n)))
+	return newOidFromC(C.git_commit_parent_id(c.cast_ptr, C.uint(n)))
 }
 
 func (c *Commit) ParentCount() uint {
-	return uint(C.git_commit_parentcount(c.ptr))
+	return uint(C.git_commit_parentcount(c.cast_ptr))
 }
 
 // Signature

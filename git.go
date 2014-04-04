@@ -149,6 +149,10 @@ func MakeGitError(errorCode C.int) error {
 	return &GitError{C.GoString(err.message), int(err.klass), int(errorCode)}
 }
 
+func MakeGitError2(err int) error {
+	return MakeGitError(C.int(err))
+}
+
 func cbool(b bool) C.int {
 	if b {
 		return C.int(1)

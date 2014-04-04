@@ -225,9 +225,8 @@ type MergeFileResult struct {
 	Automergeable bool
 	Path          string
 	Mode          uint
-	Contents      []byte // Contents of file, will be invalid after Free
-
-	ptr *C.git_merge_file_result
+	Contents      []byte
+	ptr           *C.git_merge_file_result
 }
 
 func newMergeFileResultFromC(c *C.git_merge_file_result) *MergeFileResult {
@@ -236,11 +235,14 @@ func newMergeFileResultFromC(c *C.git_merge_file_result) *MergeFileResult {
 		path = C.GoString(c.path)
 	}
 
+	originalBytes := C.GoBytes(unsafe.Pointer(c.ptr), C.int(c.len))
+	gobytes := make([]byte, len(originalBytes))
+	copy(gobytes, originalBytes)
 	r := &MergeFileResult{
 		Automergeable: c.automergeable != 0,
 		Path:          path,
 		Mode:          uint(c.mode),
-		Contents:      C.GoBytes(unsafe.Pointer(c.ptr), C.int(c.len)),
+		Contents:      gobytes,
 		ptr:           c,
 	}
 
