@@ -43,7 +43,7 @@ func (repo *Repository) CreateBranch(branchName string, target *Commit, force bo
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_branch_create(&ref.ptr, repo.ptr, cBranchName, target.ptr, cForce, cSignature, cmsg)
+	ret := C.git_branch_create(&ref.ptr, repo.ptr, cBranchName, target.cast_ptr, cForce, cSignature, cmsg)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}

@@ -253,7 +253,7 @@ func (v *Repository) CreateCommit(
 	if nparents > 0 {
 		cparents = make([]*C.git_commit, nparents)
 		for i, v := range parents {
-			cparents[i] = v.ptr
+			cparents[i] = v.cast_ptr
 		}
 		parentsarg = &cparents[0]
 	}
@@ -270,7 +270,7 @@ func (v *Repository) CreateCommit(
 	ret := C.git_commit_create(
 		oid.toC(), v.ptr, cref,
 		authorSig, committerSig,
-		nil, cmsg, tree.ptr, C.size_t(nparents), parentsarg)
+		nil, cmsg, tree.cast_ptr, C.size_t(nparents), parentsarg)
 
 	if ret < 0 {
 		return nil, MakeGitError(ret)
@@ -345,7 +345,7 @@ func (v *Repository) TreeBuilderFromTree(tree *Tree) (*TreeBuilder, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if ret := C.git_treebuilder_create(&bld.ptr, tree.ptr); ret < 0 {
+	if ret := C.git_treebuilder_create(&bld.ptr, tree.cast_ptr); ret < 0 {
 		return nil, MakeGitError(ret)
 	}
 	runtime.SetFinalizer(bld, (*TreeBuilder).Free)

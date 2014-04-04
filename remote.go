@@ -184,7 +184,7 @@ func (repo *Repository) CreateRemoteWithFetchspec(name string, url string, fetch
 	return remote, nil
 }
 
-func (repo *Repository) CreateRemoteInMemory(fetch string, url string) (*Remote, error) {
+func (repo *Repository) CreateAnonymousRemote(url, fetch string) (*Remote, error) {
 	remote := &Remote{}
 
 	curl := C.CString(url)
@@ -195,7 +195,7 @@ func (repo *Repository) CreateRemoteInMemory(fetch string, url string) (*Remote,
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_remote_create_inmemory(&remote.ptr, repo.ptr, cfetch, curl)
+	ret := C.git_remote_create_anonymous(&remote.ptr, repo.ptr, curl, cfetch)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}

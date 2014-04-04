@@ -26,6 +26,7 @@ const (
 
 type Tree struct {
 	gitObject
+	cast_ptr *C.git_tree
 }
 
 type TreeEntry struct {
@@ -48,7 +49,7 @@ func (t Tree) EntryByName(filename string) *TreeEntry {
 	cname := C.CString(filename)
 	defer C.free(unsafe.Pointer(cname))
 
-	entry := C.git_tree_entry_byname(t.ptr, cname)
+	entry := C.git_tree_entry_byname(t.cast_ptr, cname)
 	if entry == nil {
 		return nil
 	}
@@ -66,7 +67,7 @@ func (t Tree) EntryByPath(path string) (*TreeEntry, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_tree_entry_bypath(&entry, t.ptr, cpath)
+	ret := C.git_tree_entry_bypath(&entry, t.cast_ptr, cpath)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -75,7 +76,7 @@ func (t Tree) EntryByPath(path string) (*TreeEntry, error) {
 }
 
 func (t Tree) EntryByIndex(index uint64) *TreeEntry {
-	entry := C.git_tree_entry_byindex(t.ptr, C.size_t(index))
+	entry := C.git_tree_entry_byindex(t.cast_ptr, C.size_t(index))
 	if entry == nil {
 		return nil
 	}
@@ -84,7 +85,7 @@ func (t Tree) EntryByIndex(index uint64) *TreeEntry {
 }
 
 func (t Tree) EntryCount() uint64 {
-	num := C.git_tree_entrycount(t.ptr)
+	num := C.git_tree_entrycount(t.cast_ptr)
 	return uint64(num)
 }
 
@@ -104,7 +105,7 @@ func (t Tree) Walk(callback TreeWalkCallback) error {
 	defer runtime.UnlockOSThread()
 
 	err := C._go_git_treewalk(
-		t.ptr,
+		t.cast_ptr,
 		C.GIT_TREEWALK_PRE,
 		unsafe.Pointer(&callback),
 	)
