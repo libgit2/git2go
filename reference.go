@@ -210,8 +210,8 @@ func (repo *Repository) NewReferenceIterator() (*ReferenceIterator, error) {
 	return iter, nil
 }
 
-// NewReferenceIterator creates a new bane iterator over reference names
-func (repo *Repository) NewReferenceNameIterator() (*ReferenceIterator, error) {
+// NewReferenceIterator creates a new branch iterator over reference names
+func (repo *Repository) NewReferenceNameIterator() (*ReferenceNameIterator, error) {
 	var ptr *C.git_reference_iterator
 
 	runtime.LockOSThread()
@@ -224,7 +224,7 @@ func (repo *Repository) NewReferenceNameIterator() (*ReferenceIterator, error) {
 
 	iter := &ReferenceIterator{ptr: ptr, repo: repo}
 	runtime.SetFinalizer(iter, (*ReferenceIterator).Free)
-	return iter, nil
+	return iter.Names(), nil
 }
 
 // NewReferenceIteratorGlob creates an iterator over reference names
