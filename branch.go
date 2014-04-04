@@ -53,9 +53,7 @@ func (i *BranchIterator) Next() (*Branch, BranchType, error) {
 
 	ecode := C.git_branch_next(&refPtr, &refType, i.ptr)
 
-	if ecode == C.GIT_ITEROVER {
-		return nil, BranchLocal, ErrIterOver
-	} else if ecode < 0 {
+	if ecode < 0 {
 		return nil, BranchLocal, MakeGitError(ecode)
 	}
 

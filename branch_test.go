@@ -20,7 +20,7 @@ func TestBranchIterator(t *testing.T) {
 		t.Fatalf("expected BranchLocal, not %v", t)
 	}
 	b, bt, err = i.Next()
-	if err != ErrIterOver {
+	if !IsErrorCode(err, ErrIterOver) {
 		t.Fatal("expected iterover")
 	}
 }
