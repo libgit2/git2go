@@ -182,7 +182,7 @@ func (r *Repository) MergeCommits(ours *Commit, theirs *Commit, options *MergeOp
 
 	idx := &Index{}
 
-	ret := C.git_merge_commits(&idx.ptr, r.ptr, ours.ptr, theirs.ptr, copts)
+	ret := C.git_merge_commits(&idx.ptr, r.ptr, ours.cast_ptr, theirs.cast_ptr, copts)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -198,7 +198,7 @@ func (r *Repository) MergeTrees(ancestor *Tree, ours *Tree, theirs *Tree, option
 
 	idx := &Index{}
 
-	ret := C.git_merge_trees(&idx.ptr, r.ptr, ancestor.ptr, ours.ptr, theirs.ptr, copts)
+	ret := C.git_merge_trees(&idx.ptr, r.ptr, ancestor.cast_ptr, ours.cast_ptr, theirs.cast_ptr, copts)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
