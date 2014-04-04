@@ -25,6 +25,31 @@ int _go_git_odb_foreach(git_odb *db, void *payload)
     return git_odb_foreach(db, (git_odb_foreach_cb)&odbForEachCb, payload);
 }
 
+int _go_git_diff_foreach(git_diff *diff, int eachFile, int eachHunk, int eachLine, void *payload)
+{
+	git_diff_file_cb fcb = NULL;	
+	git_diff_hunk_cb hcb = NULL;
+	git_diff_line_cb lcb = NULL;
+
+	if (eachFile) {
+		fcb = (git_diff_file_cb)&diffForEachFileCb;
+	}
+
+	if (eachHunk) {
+		hcb = (git_diff_hunk_cb)&diffForEachHunkCb;
+	}
+
+	if (eachLine) {
+		lcb = (git_diff_line_cb)&diffForEachLineCb;
+	}
+
+	return git_diff_foreach(diff, fcb, hcb, lcb, payload);
+}
+
+void _go_git_setup_diff_notify_callbacks(git_diff_options *opts) {
+	opts->notify_cb = (git_diff_notify_cb)diffNotifyCb;
+}
+
 void _go_git_setup_callbacks(git_remote_callbacks *callbacks) {
 	typedef int (*progress_cb)(const char *str, int len, void *data);
 	typedef int (*completion_cb)(git_remote_completion_type type, void *data);

@@ -23,6 +23,7 @@ const (
 
 var (
 	ErrIterOver = errors.New("Iteration is over")
+	ErrInvalid  = errors.New("Invalid state for operation")
 )
 
 func init() {
