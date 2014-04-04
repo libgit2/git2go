@@ -27,7 +27,7 @@ func TestOdbStream(t *testing.T) {
 	error = stream.Close()
 	checkFatal(t, error)
 
-	expectedId, error := NewOidFromString("30f51a3fba5274d53522d0f19748456974647b4f")
+	expectedId, error := NewOid("30f51a3fba5274d53522d0f19748456974647b4f")
 	checkFatal(t, error)
 	if stream.Id.Cmp(expectedId) != 0 {
 		t.Fatal("Wrong data written")

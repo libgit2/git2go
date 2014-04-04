@@ -20,15 +20,16 @@ import (
 
 type Blob struct {
 	gitObject
+	cast_ptr *C.git_blob
 }
 
 func (v *Blob) Size() int64 {
-	return int64(C.git_blob_rawsize(v.ptr))
+	return int64(C.git_blob_rawsize(v.cast_ptr))
 }
 
 func (v *Blob) Contents() []byte {
-	size := C.int(C.git_blob_rawsize(v.ptr))
-	buffer := unsafe.Pointer(C.git_blob_rawcontent(v.ptr))
+	size := C.int(C.git_blob_rawsize(v.cast_ptr))
+	buffer := unsafe.Pointer(C.git_blob_rawcontent(v.cast_ptr))
 	return C.GoBytes(buffer, size)
 }
 
@@ -55,13 +56,13 @@ func blobChunkCb(buffer *C.char, maxLen C.size_t, payload unsafe.Pointer) int {
 	data := (*BlobCallbackData)(payload)
 	goBuf, err := data.Callback(int(maxLen))
 	if err == io.EOF {
-		return 1
+		return 0
 	} else if err != nil {
 		data.Error = err
 		return -1
 	}
-	C.memcpy(unsafe.Pointer(buffer), unsafe.Pointer(&goBuf), C.size_t(len(goBuf)))
-	return 0
+	C.memcpy(unsafe.Pointer(buffer), unsafe.Pointer(&goBuf[0]), C.size_t(len(goBuf)))
+	return len(goBuf)
 }
 
 func (repo *Repository) CreateBlobFromChunks(hintPath string, callback BlobChunkCallback) (*Oid, error) {

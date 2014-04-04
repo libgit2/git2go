@@ -238,7 +238,7 @@ func (sub *Submodule) SetUpdate(update SubmoduleUpdate) SubmoduleUpdate {
 }
 
 func (sub *Submodule) FetchRecurseSubmodules() SubmoduleRecurse {
-	return SubmoduleRecurse(C.git_submodule_fetch_recurse_submodules(sub.ptr));
+	return SubmoduleRecurse(C.git_submodule_fetch_recurse_submodules(sub.ptr))
 }
 
 func (sub *Submodule) SetFetchRecurseSubmodules(recurse SubmoduleRecurse) error {
@@ -287,22 +287,22 @@ func (sub *Submodule) Open() (*Repository, error) {
 	return repo, nil
 }
 
-func (sub *Submodule) Reload() error {
+func (sub *Submodule) Reload(force bool) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_submodule_reload(sub.ptr)
+	ret := C.git_submodule_reload(sub.ptr, cbool(force))
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
 	return nil
 }
 
-func (repo *Repository) ReloadAllSubmodules() error {
+func (repo *Repository) ReloadAllSubmodules(force bool) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_submodule_reload_all(repo.ptr)
+	ret := C.git_submodule_reload_all(repo.ptr, cbool(force))
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
