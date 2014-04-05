@@ -8,6 +8,17 @@ Installing
 
 Just `go get github.com/libgit2/git2go`. You'll need to have top-of-the-branch libgit2 from development installed in your system and available via `pkg-config`. These bindings are in sync with the top of `development`.
 
+Development
+-----------
+
+## script/bootstrap
+
+It installs `libgit2` for development.
+
+## script/test
+
+It runs tests with the proper environment variables set up.
+
 License
 -------
 
