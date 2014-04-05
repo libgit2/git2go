@@ -7,5 +7,5 @@ go:
 
 install:
   - script/build-libgit2.sh
-  - export PKG_CONFIG_PATH=$PWD/libgit2/install/lib/pkgconfig
-  - export LD_LIBRARY_PATH=$PWD/libgit2/install/lib
+script:
+  - script/test
