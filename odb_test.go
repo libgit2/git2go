@@ -36,7 +36,7 @@ func TestOdbStream(t *testing.T) {
 
 func TestOdbHash(t *testing.T) {
 
-    repo := createTestRepo(t)
+	repo := createTestRepo(t)
 	defer os.RemoveAll(repo.Workdir())
 	_, _ = seedTestRepo(t, repo)
 
@@ -48,7 +48,7 @@ parent 66e1c476199ebcd3e304659992233132c5a52c6c
 author John Doe <john@doe.com> 1390682018 +0000
 committer John Doe <john@doe.com> 1390682018 +0000
 
-Initial commit.`;
+Initial commit.`
 
 	oid, error := odb.Hash([]byte(str), ObjectCommit)
 	checkFatal(t, error)

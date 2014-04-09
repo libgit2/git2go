@@ -1,9 +1,9 @@
 package settings
 
 import (
-	"testing"
-	"runtime"
 	"github.com/libgit2/git2go"
+	"runtime"
+	"testing"
 )
 
 type pathPair struct {
@@ -13,9 +13,9 @@ type pathPair struct {
 
 func TestSearchPath(t *testing.T) {
 	paths := []pathPair{
-		pathPair{git.ConfigLevelSystem, "/tmp/system"},
-		pathPair{git.ConfigLevelGlobal, "/tmp/global"},
-		pathPair{git.ConfigLevelXDG, "/tmp/xdg"},
+		{git.ConfigLevelSystem, "/tmp/system"},
+		{git.ConfigLevelGlobal, "/tmp/global"},
+		{git.ConfigLevelXDG, "/tmp/xdg"},
 	}
 
 	for _, pair := range paths {

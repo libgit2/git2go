@@ -28,7 +28,7 @@ func (o *Cred) HasUsername() bool {
 }
 
 func (o *Cred) Type() CredType {
-	return (CredType)(o.ptr.credtype)
+	return CredType(o.ptr.credtype)
 }
 
 func credFromC(ptr *C.git_cred) *Cred {

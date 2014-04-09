@@ -5,8 +5,8 @@ package git
 */
 import "C"
 import (
-	"runtime"
 	"os"
+	"runtime"
 )
 
 type CheckoutStrategy uint
@@ -32,10 +32,10 @@ const (
 
 type CheckoutOpts struct {
 	Strategy       CheckoutStrategy // Default will be a dry run
-	DisableFilters bool				// Don't apply filters like CRLF conversion
-	DirMode        os.FileMode		// Default is 0755
-	FileMode       os.FileMode		// Default is 0644 or 0755 as dictated by blob
-	FileOpenFlags  int				// Default is O_CREAT | O_TRUNC | O_WRONLY
+	DisableFilters bool             // Don't apply filters like CRLF conversion
+	DirMode        os.FileMode      // Default is 0755
+	FileMode       os.FileMode      // Default is 0644 or 0755 as dictated by blob
+	FileOpenFlags  int              // Default is O_CREAT | O_TRUNC | O_WRONLY
 }
 
 // Convert the CheckoutOpts struct to the corresponding
