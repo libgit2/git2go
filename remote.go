@@ -81,7 +81,7 @@ func completionCallback(completion_type C.git_remote_completion_type, data unsaf
 	if callbacks.CompletionCallback == nil {
 		return 0
 	}
-	return callbacks.CompletionCallback((RemoteCompletion)(completion_type))
+	return callbacks.CompletionCallback(RemoteCompletion(completion_type))
 }
 
 //export credentialsCallback
@@ -92,7 +92,7 @@ func credentialsCallback(_cred **C.git_cred, _url *C.char, _username_from_url *C
 	}
 	url := C.GoString(_url)
 	username_from_url := C.GoString(_username_from_url)
-	ret, cred := callbacks.CredentialsCallback(url, username_from_url, (CredType)(allowed_types))
+	ret, cred := callbacks.CredentialsCallback(url, username_from_url, CredType(allowed_types))
 	*_cred = cred.ptr
 	return ret
 }

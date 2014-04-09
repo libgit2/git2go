@@ -27,9 +27,9 @@ int _go_git_opts_get_size_t(int opt, size_t *val)
 */
 import "C"
 import (
+	"github.com/libgit2/git2go"
 	"runtime"
 	"unsafe"
-	"github.com/libgit2/git2go"
 )
 
 func MakeGitError(err C.int) error {
@@ -71,7 +71,7 @@ func getSizet(opt C.int) (int, error) {
 	defer runtime.UnlockOSThread()
 
 	var val C.size_t
-	err := C._go_git_opts_get_size_t(opt, &val);
+	err := C._go_git_opts_get_size_t(opt, &val)
 	if err < 0 {
 		return 0, MakeGitError(err)
 	}
@@ -84,7 +84,7 @@ func setSizet(opt C.int, val int) error {
 	defer runtime.UnlockOSThread()
 
 	cval := C.size_t(val)
-	err := C._go_git_opts_set_size_t(opt, cval);
+	err := C._go_git_opts_set_size_t(opt, cval)
 	if err < 0 {
 		return MakeGitError(err)
 	}

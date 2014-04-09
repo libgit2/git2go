@@ -8,9 +8,9 @@ extern int _go_git_odb_foreach(git_odb *db, void *payload);
 */
 import "C"
 import (
-	"unsafe"
 	"reflect"
 	"runtime"
+	"unsafe"
 )
 
 type Odb struct {
@@ -63,9 +63,9 @@ func odbForEachCb(id *C.git_oid, payload unsafe.Pointer) int {
 	select {
 	case ch <- oid:
 	case <-ch:
-			return -1
+		return -1
 	}
-	return 0;
+	return 0
 }
 
 func (v *Odb) forEachWrap(ch chan *Oid) {
@@ -88,7 +88,7 @@ func (v *Odb) Hash(data []byte, otype ObjectType) (oid *Oid, err error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_odb_hash(oid.toC(), ptr, C.size_t(header.Len), C.git_otype(otype));
+	ret := C.git_odb_hash(oid.toC(), ptr, C.size_t(header.Len), C.git_otype(otype))
 	if ret < 0 {
 		err = MakeGitError(ret)
 	}
@@ -145,7 +145,7 @@ func (object *OdbObject) Data() (data []byte) {
 
 	len := int(C.git_odb_object_size(object.ptr))
 
-	sliceHeader := (*reflect.SliceHeader)((unsafe.Pointer(&blob)))
+	sliceHeader := (*reflect.SliceHeader)(unsafe.Pointer(&blob))
 	sliceHeader.Cap = len
 	sliceHeader.Len = len
 	sliceHeader.Data = uintptr(c_blob)
@@ -185,7 +185,7 @@ func (stream *OdbReadStream) Free() {
 
 type OdbWriteStream struct {
 	ptr *C.git_odb_stream
-	Id Oid
+	Id  Oid
 }
 
 // Write writes to the stream
