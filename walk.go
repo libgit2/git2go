@@ -7,7 +7,6 @@ package git
 import "C"
 
 import (
-	"io"
 	"runtime"
 	"unsafe"
 )
@@ -158,8 +157,6 @@ func (v *RevWalk) Next(id *Oid) (err error) {
 
 	ret := C.git_revwalk_next(id.toC(), v.ptr)
 	switch {
-	case ret == ITEROVER:
-		err = io.EOF
 	case ret < 0:
 		err = MakeGitError(ret)
 	}
@@ -173,7 +170,7 @@ func (v *RevWalk) Iterate(fun RevWalkIterator) (err error) {
 	oid := new(Oid)
 	for {
 		err = v.Next(oid)
-		if err == io.EOF {
+		if IsErrorCode(err, ErrIterOver) {
 			return nil
 		}
 		if err != nil {

@@ -266,10 +266,6 @@ func (v *IndexConflictIterator) Next() (IndexConflict, error) {
 	defer runtime.UnlockOSThread()
 
 	ecode := C.git_index_conflict_next(&cancestor, &cour, &ctheir, v.ptr)
-	if ecode == C.GIT_ITEROVER {
-		return IndexConflict{}, ErrIterOver
-	}
-
 	if ecode < 0 {
 		return IndexConflict{}, MakeGitError(ecode)
 	}

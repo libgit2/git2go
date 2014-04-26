@@ -237,9 +237,6 @@ func (v *ReferenceIterator) NextName() (string, error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_reference_next_name(&ptr, v.ptr)
-	if ret == ITEROVER {
-		return "", ErrIterOver
-	}
 	if ret < 0 {
 		return "", MakeGitError(ret)
 	}
@@ -269,9 +266,6 @@ func (v *ReferenceIterator) NameIter() <-chan string {
 func (v *ReferenceIterator) Next() (*Reference, error) {
 	var ptr *C.git_reference
 	ret := C.git_reference_next(&ptr, v.ptr)
-	if ret == ITEROVER {
-		return nil, ErrIterOver
-	}
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
