@@ -127,6 +127,26 @@ func RemoteIsValidName(name string) bool {
 	return false
 }
 
+func (r *Remote) SetCheckCert(check bool) {
+	C.git_remote_check_cert(r.ptr, cbool(check))
+}
+
+func (r *Remote) SetCallbacks(callbacks *RemoteCallbacks) error {
+	var ccallbacks C.git_remote_callbacks
+
+	populateRemoteCallbacks(&ccallbacks, callbacks)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C.git_remote_set_callbacks(r.ptr, &ccallbacks)
+	if ecode < 0 {
+		return MakeGitError(ecode)
+	}
+
+	return nil
+}
+
 func (r *Remote) Free() {
 	runtime.SetFinalizer(r, nil)
 	C.git_remote_free(r.ptr)
