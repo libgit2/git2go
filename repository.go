@@ -387,7 +387,8 @@ func (v *Repository) EnsureLog(name string) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if ret := C.git_reference_ensure_log(v.ptr, cname); ret < 0 {
+	ret := C.git_reference_ensure_log(v.ptr, cname)
+	if ret < 0 {
 		return MakeGitError(ret)
 	}
 
@@ -420,7 +421,8 @@ func (v *Repository) DwimReference(name string) (*Reference, error) {
 	defer runtime.UnlockOSThread()
 
 	var ptr *C.git_reference
-	if ret := C.git_reference_dwim(&ptr, v.ptr, cname); ret < 0 {
+	ret := C.git_reference_dwim(&ptr, v.ptr, cname)
+	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
 
