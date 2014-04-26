@@ -31,7 +31,6 @@ void _go_git_setup_callbacks(git_remote_callbacks *callbacks) {
 	typedef int (*credentials_cb)(git_cred **cred, const char *url, const char *username_from_url, unsigned int allowed_types,	void *data);
 	typedef int (*transfer_progress_cb)(const git_transfer_progress *stats, void *data);
 	typedef int (*update_tips_cb)(const char *refname, const git_oid *a, const git_oid *b, void *data);
-	callbacks->progress = (progress_cb)progressCallback;
 	callbacks->completion = (completion_cb)completionCallback;
 	callbacks->credentials = (credentials_cb)credentialsCallback;
 	callbacks->transfer_progress = (transfer_progress_cb)transferProgressCallback;
