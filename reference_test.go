@@ -60,7 +60,7 @@ func TestRefModification(t *testing.T) {
 
 }
 
-func TestIterator(t *testing.T) {
+func TestReferenceIterator(t *testing.T) {
 	repo := createTestRepo(t)
 	defer os.RemoveAll(repo.Workdir())
 
@@ -106,10 +106,11 @@ func TestIterator(t *testing.T) {
 	}
 
 	// test some manual iteration
-	name, err := iter.NextName()
+	nameIter := iter.Names()
+	name, err := nameIter.Next()
 	for err == nil {
 		list = append(list, name)
-		name, err = iter.NextName()
+		name, err = nameIter.Next()
 	}
 	if !IsErrorCode(err, ErrIterOver) {
 		t.Fatal("Iteration not over")
@@ -135,28 +136,6 @@ func TestIterator(t *testing.T) {
 		t.Fatalf("Wrong number of references returned %v", count)
 	}
 
-	// test the channel iteration
-	list = []string{}
-	iter, err = repo.NewReferenceIterator()
-	for name := range iter.NameIter() {
-		list = append(list, name)
-	}
-
-	sort.Strings(list)
-	compareStringList(t, expected, list)
-
-	iter, err = repo.NewReferenceIteratorGlob("refs/heads/t*")
-	expected = []string{
-		"refs/heads/three",
-		"refs/heads/two",
-	}
-
-	list = []string{}
-	for name := range iter.NameIter() {
-		list = append(list, name)
-	}
-
-	compareStringList(t, expected, list)
 }
 
 func TestUtil(t *testing.T) {
