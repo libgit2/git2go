@@ -51,6 +51,22 @@ func InitRepository(path string, isbare bool) (*Repository, error) {
 	return repo, nil
 }
 
+func NewRepositoryWrapOdb(odb *Odb) (repo *Repository, err error) {
+	repo = new(Repository)
+
+	ret := C.git_repository_wrap_odb(&repo.ptr, odb.ptr)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	runtime.SetFinalizer(repo, (*Repository).Free)
+	return repo, nil
+}
+
+func (v *Repository) SetRefdb(refdb *Refdb) {
+	C.git_repository_set_refdb(v.ptr, refdb.ptr)
+}
+
 func (v *Repository) Free() {
 	runtime.SetFinalizer(v, nil)
 	C.git_repository_free(v.ptr)
@@ -270,6 +286,11 @@ func (v *Odb) Free() {
 	C.git_odb_free(v.ptr)
 }
 
+func (v *Refdb) Free() {
+	runtime.SetFinalizer(v, nil)
+	C.git_refdb_free(v.ptr)
+}
+
 func (v *Repository) Odb() (odb *Odb, err error) {
 	odb = new(Odb)
 
@@ -281,7 +302,7 @@ func (v *Repository) Odb() (odb *Odb, err error) {
 	}
 
 	runtime.SetFinalizer(odb, (*Odb).Free)
-	return
+	return odb, nil
 }
 
 func (repo *Repository) Path() string {

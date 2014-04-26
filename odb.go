@@ -5,16 +5,47 @@ package git
 #include <git2/errors.h>
 
 extern int _go_git_odb_foreach(git_odb *db, void *payload);
+extern void _go_git_odb_backend_free(git_odb_backend *backend);
 */
 import "C"
 import (
-	"unsafe"
 	"reflect"
 	"runtime"
+	"unsafe"
 )
 
 type Odb struct {
 	ptr *C.git_odb
+}
+
+type OdbBackend struct {
+	ptr *C.git_odb_backend
+}
+
+func NewOdb() (odb *Odb, err error) {
+	odb = new(Odb)
+
+	ret := C.git_odb_new(&odb.ptr)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	runtime.SetFinalizer(odb, (*Odb).Free)
+	return odb, nil
+}
+
+func NewOdbBackendFromC(ptr *C.git_odb_backend) (backend *OdbBackend) {
+	backend = &OdbBackend{ptr}
+	return backend
+}
+
+func (v *Odb) AddBackend(backend *OdbBackend, priority int) (err error) {
+	ret := C.git_odb_add_backend(v.ptr, backend.ptr, C.int(priority))
+	if ret < 0 {
+		backend.Free()
+		return MakeGitError(ret)
+	}
+	return nil
 }
 
 func (v *Odb) Exists(oid *Oid) bool {
@@ -32,10 +63,10 @@ func (v *Odb) Write(data []byte, otype ObjectType) (oid *Oid, err error) {
 	ret := C.git_odb_write(oid.toC(), v.ptr, unsafe.Pointer(hdr.Data), C.size_t(hdr.Len), C.git_otype(otype))
 
 	if ret < 0 {
-		err = MakeGitError(ret)
+		return nil, MakeGitError(ret)
 	}
 
-	return
+	return oid, nil
 }
 
 func (v *Odb) Read(oid *Oid) (obj *OdbObject, err error) {
@@ -50,7 +81,7 @@ func (v *Odb) Read(oid *Oid) (obj *OdbObject, err error) {
 	}
 
 	runtime.SetFinalizer(obj, (*OdbObject).Free)
-	return
+	return obj, nil
 }
 
 //export odbForEachCb
@@ -63,9 +94,9 @@ func odbForEachCb(id *C.git_oid, payload unsafe.Pointer) int {
 	select {
 	case ch <- oid:
 	case <-ch:
-			return -1
+		return -1
 	}
-	return 0;
+	return 0
 }
 
 func (v *Odb) forEachWrap(ch chan *Oid) {
@@ -90,9 +121,9 @@ func (v *Odb) Hash(data []byte, otype ObjectType) (oid *Oid, err error) {
 
 	ret := C.git_odb_hash(oid.toC(), ptr, C.size_t(header.Len), C.git_otype(otype));
 	if ret < 0 {
-		err = MakeGitError(ret)
+		return nil, MakeGitError(ret)
 	}
-	return
+	return oid, nil
 }
 
 // NewReadStream opens a read stream from the ODB. Reading from it will give you the
@@ -120,6 +151,10 @@ func (v *Odb) NewWriteStream(size int, otype ObjectType) (*OdbWriteStream, error
 
 	runtime.SetFinalizer(stream, (*OdbWriteStream).Free)
 	return stream, nil
+}
+
+func (v *OdbBackend) Free() {
+	C._go_git_odb_backend_free(v.ptr)
 }
 
 type OdbObject struct {
@@ -185,7 +220,7 @@ func (stream *OdbReadStream) Free() {
 
 type OdbWriteStream struct {
 	ptr *C.git_odb_stream
-	Id Oid
+	Id  Oid
 }
 
 // Write writes to the stream
