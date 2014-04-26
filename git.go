@@ -89,6 +89,10 @@ const (
 	ErrIterOver = C.GIT_ITEROVER
 )
 
+var (
+	ErrInvalid = errors.New("Invalid state for operation")
+)
+
 func init() {
 	C.git_threads_init()
 }

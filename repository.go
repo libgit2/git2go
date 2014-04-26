@@ -162,6 +162,20 @@ func (v *Repository) LookupReference(name string) (*Reference, error) {
 	return newReferenceFromC(ptr), nil
 }
 
+func (v *Repository) Head() (*Reference, error) {
+	var ptr *C.git_reference
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C.git_repository_head(&ptr, v.ptr)
+	if ecode < 0 {
+		return nil, MakeGitError(ecode)
+	}
+
+	return newReferenceFromC(ptr), nil
+}
+
 func (v *Repository) CreateReference(name string, id *Oid, force bool, sig *Signature, msg string) (*Reference, error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
