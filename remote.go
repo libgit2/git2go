@@ -38,14 +38,14 @@ const (
 	RemoteCompletionError                     = C.GIT_REMOTE_COMPLETION_ERROR
 )
 
-type ProgressCallback func(str string) int
+type TransportMessageCallback func(str string) int
 type CompletionCallback func(RemoteCompletion) int
 type CredentialsCallback func(url string, username_from_url string, allowed_types CredType) (int, *Cred)
 type TransferProgressCallback func(stats TransferProgress) int
 type UpdateTipsCallback func(refname string, a *Oid, b *Oid) int
 
 type RemoteCallbacks struct {
-	ProgressCallback
+	SidebandProgressCallback TransportMessageCallback
 	CompletionCallback
 	CredentialsCallback
 	TransferProgressCallback
@@ -65,14 +65,14 @@ func populateRemoteCallbacks(ptr *C.git_remote_callbacks, callbacks *RemoteCallb
 	ptr.payload = unsafe.Pointer(callbacks)
 }
 
-//export progressCallback
-func progressCallback(_str *C.char, _len C.int, data unsafe.Pointer) int {
+//export sidebandProgressCallback
+func sidebandProgressCallback(_str *C.char, _len C.int, data unsafe.Pointer) int {
 	callbacks := (*RemoteCallbacks)(data)
-	if callbacks.ProgressCallback == nil {
+	if callbacks.SidebandProgressCallback == nil {
 		return 0
 	}
 	str := C.GoStringN(_str, _len)
-	return callbacks.ProgressCallback(str)
+	return callbacks.SidebandProgressCallback(str)
 }
 
 //export completionCallback
