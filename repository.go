@@ -24,7 +24,7 @@ func OpenRepository(path string) (*Repository, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_repository_open(&repo.ptr, cpath)
+	ret := C.git_repository_open_ext(&repo.ptr, cpath, 0, nil)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
