@@ -176,6 +176,49 @@ func (v *Repository) Head() (*Reference, error) {
 	return newReferenceFromC(ptr), nil
 }
 
+func (v *Repository) SetHead(refname string, sig *Signature, msg string) error {
+	cname := C.CString(refname)
+	defer C.free(unsafe.Pointer(cname))
+
+	csig := sig.toC()
+	defer C.free(unsafe.Pointer(csig))
+
+	var cmsg *C.char
+	if msg != "" {
+		cmsg = C.CString(msg)
+		defer C.free(unsafe.Pointer(cmsg))
+	}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C.git_repository_set_head(v.ptr, cname, csig, cmsg)
+	if ecode != 0 {
+		return MakeGitError(ecode)
+	}
+	return nil
+}
+
+func (v *Repository) SetHeadDetached(id *Oid, sig *Signature, msg string) error {
+	csig := sig.toC()
+	defer C.free(unsafe.Pointer(csig))
+
+	var cmsg *C.char
+	if msg != "" {
+		cmsg = C.CString(msg)
+		defer C.free(unsafe.Pointer(cmsg))
+	}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C.git_repository_set_head_detached(v.ptr, id.toC(), csig, cmsg)
+	if ecode != 0 {
+		return MakeGitError(ecode)
+	}
+	return nil
+}
+
 func (v *Repository) CreateReference(name string, id *Oid, force bool, sig *Signature, msg string) (*Reference, error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
