@@ -77,10 +77,15 @@ func updateReadme(t *testing.T, repo *Repository, content string) (*Oid, *Oid) {
 	treeId, err := idx.WriteTree()
 	checkFatal(t, err)
 
+	currentBranch, err := repo.Head()
+	checkFatal(t, err)
+	currentTip, err := repo.LookupCommit(currentBranch.Target())
+	checkFatal(t, err)
+
 	message := "This is a commit\n"
 	tree, err := repo.LookupTree(treeId)
 	checkFatal(t, err)
-	commitId, err := repo.CreateCommit("HEAD", sig, sig, message, tree)
+	commitId, err := repo.CreateCommit("HEAD", sig, sig, message, tree, currentTip)
 	checkFatal(t, err)
 
 	return commitId, treeId
