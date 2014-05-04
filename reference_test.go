@@ -161,7 +161,7 @@ func TestUtil(t *testing.T) {
 	hasLog, err := repo.HasLog("refs/heads/foo")
 	checkFatal(t, err)
 	if !hasLog {
-		t.Fatalf("branches ahve logs by default")
+		t.Fatalf("branches have logs by default")
 	}
 }
 
