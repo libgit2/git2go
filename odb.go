@@ -84,30 +84,40 @@ func (v *Odb) Read(oid *Oid) (obj *OdbObject, err error) {
 	return obj, nil
 }
 
+type OdbForEachCallback func(id *Oid) error
+
+type foreachData struct {
+	callback OdbForEachCallback
+	err error
+}
+
 //export odbForEachCb
 func odbForEachCb(id *C.git_oid, payload unsafe.Pointer) int {
-	ch := *(*chan *Oid)(payload)
-	oid := newOidFromC(id)
-	// Because the channel is unbuffered, we never read our own data. If ch is
-	// readable, the user has sent something on it, which means we should
-	// abort.
-	select {
-	case ch <- oid:
-	case <-ch:
-		return -1
+	data := (*foreachData)(payload)
+
+	err := data.callback(newOidFromC(id))
+	if err != nil {
+		data.err = err
+		return C.GIT_EUSER
 	}
+
 	return 0
 }
 
-func (v *Odb) forEachWrap(ch chan *Oid) {
-	C._go_git_odb_foreach(v.ptr, unsafe.Pointer(&ch))
-	close(ch)
-}
+func (v *Odb) ForEach(callback OdbForEachCallback) error {
+	data := foreachData {
+		callback: callback,
+		err: nil,
+	}
 
-func (v *Odb) ForEach() chan *Oid {
-	ch := make(chan *Oid, 0)
-	go v.forEachWrap(ch)
-	return ch
+	ret := C._go_git_odb_foreach(v.ptr, unsafe.Pointer(&data))
+	if ret == C.GIT_EUSER {
+		return data.err
+	} else if ret < 0 {
+		return MakeGitError(ret)
+	}
+
+	return nil
 }
 
 // Hash determines the object-ID (sha1) of a data buffer.

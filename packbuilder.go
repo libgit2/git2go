@@ -94,55 +94,51 @@ func (pb *Packbuilder) WriteToFile(name string, mode os.FileMode) error {
 }
 
 func (pb *Packbuilder) Write(w io.Writer) error {
-	ch, stop := pb.ForEach()
-	for slice := range ch {
+	return pb.ForEach(func(slice []byte) error {
 		_, err := w.Write(slice)
-		if err != nil {
-			close(stop)
-			return err
-		}
-	}
-	return nil
+		return err
+	})
 }
 
 func (pb *Packbuilder) Written() uint32 {
 	return uint32(C.git_packbuilder_written(pb.ptr))
 }
 
+type PackbuilderForeachCallback func([]byte) error
 type packbuilderCbData struct {
-	ch chan<- []byte
-	stop <-chan bool
+	callback PackbuilderForeachCallback
+	err      error
 }
 
 //export packbuilderForEachCb
 func packbuilderForEachCb(buf unsafe.Pointer, size C.size_t, payload unsafe.Pointer) int {
 	data := (*packbuilderCbData)(payload)
-	ch := data.ch
-	stop := data.stop
-
 	slice := C.GoBytes(buf, C.int(size))
-	select {
-	case <- stop:
-		return -1
-	case ch <- slice:
+
+	err := data.callback(slice)
+	if err != nil {
+		data.err = err
+		return C.GIT_EUSER
 	}
 
 	return 0
 }
 
-func (pb *Packbuilder) forEachWrap(data *packbuilderCbData) {
-	C._go_git_packbuilder_foreach(pb.ptr, unsafe.Pointer(data))
-	close(data.ch)
-}
+// ForEach repeatedly calls the callback with new packfile data until
+// there is no more data or the callback returns an error
+func (pb *Packbuilder) ForEach(callback PackbuilderForeachCallback) error {
+	data := packbuilderCbData{
+		callback: callback,
+		err: nil,
+	}
 
-// Foreach sends the packfile as slices through the "data" channel. If
-// you want to stop the pack-building process (e.g. there's an error
-// writing to the output), close or write a value into the "stop"
-// channel.
-func (pb *Packbuilder) ForEach() (<-chan []byte, chan<- bool) {
-	ch := make(chan []byte)
-	stop := make(chan bool)
-	data := packbuilderCbData{ch, stop}
-	go pb.forEachWrap(&data)
-	return ch, stop
+	err := C._go_git_packbuilder_foreach(pb.ptr, unsafe.Pointer(&data))
+	if err == C.GIT_EUSER {
+		return data.err
+	}
+	if err < 0 {
+		return MakeGitError(err)
+	}
+
+	return nil
 }

@@ -3,6 +3,7 @@ package git
 import (
 	"io"
 	"os"
+	"errors"
 	"testing"
 )
 
@@ -48,7 +49,7 @@ parent 66e1c476199ebcd3e304659992233132c5a52c6c
 author John Doe <john@doe.com> 1390682018 +0000
 committer John Doe <john@doe.com> 1390682018 +0000
 
-Initial commit.`;
+Initial commit.`
 
 	oid, error := odb.Hash([]byte(str), ObjectCommit)
 	checkFatal(t, error)
@@ -58,5 +59,38 @@ Initial commit.`;
 
 	if oid.Cmp(coid) != 0 {
 		t.Fatal("Hash and write Oids are different")
+	}
+}
+
+func TestOdbForeach(t *testing.T) {
+	repo := createTestRepo(t)
+	defer os.RemoveAll(repo.Workdir())
+	_, _ = seedTestRepo(t, repo)
+
+	odb, err := repo.Odb()
+	checkFatal(t, err)
+
+	expect := 3
+	count := 0
+	err = odb.ForEach(func(id *Oid) error {
+		count++
+		return nil
+	})
+
+	checkFatal(t, err)
+	if count != expect {
+		t.Fatalf("Expected %v objects, got %v")
+	}
+
+	expect = 1
+	count = 0
+	to_return := errors.New("not really an error")
+	err = odb.ForEach(func(id *Oid) error {
+		count++
+		return to_return
+	})
+
+	if err != to_return {
+		t.Fatalf("Odb.ForEach() did not return the expected error, got %v", err)
 	}
 }
