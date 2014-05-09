@@ -409,7 +409,7 @@ func (o *Remote) PushRefspecs() ([]string, error) {
 	return refspecs, nil
 }
 
-func (o *Remote) SetPushRefspecs(refspecs []string) error {
+func setPushRefspecs(remote *C.git_remote, refspecs []string) error {
 	crefspecs := C.git_strarray{}
 	crefspecs.count = C.size_t(len(refspecs))
 	crefspecs.strings = makeCStringsFromStrings(refspecs)
@@ -418,11 +418,15 @@ func (o *Remote) SetPushRefspecs(refspecs []string) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_remote_set_push_refspecs(o.ptr, &crefspecs)
+	ret := C.git_remote_set_push_refspecs(remote, &crefspecs)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
 	return nil
+}
+
+func (o *Remote) SetPushRefspecs(refspecs []string) error {
+	return setPushRefspecs(o.ptr, refspecs)
 }
 
 func (o *Remote) ClearRefspecs() {
@@ -433,7 +437,24 @@ func (o *Remote) RefspecCount() uint {
 	return uint(C.git_remote_refspec_count(o.ptr))
 }
 
-func (o *Remote) Fetch(sig *Signature, msg string) error {
+func (o *Remote) Fetch(refspecs []string, callbacks *RemoteCallbacks, sig *Signature, msg string) error {
+
+	var remote *C.git_remote
+	if ret := C.git_remote_dup(&remote, o.ptr); ret < 0 {
+		return MakeGitError(ret)
+	}
+	defer C.git_remote_free(remote)
+
+	var ccallbacks C.git_remote_callbacks
+	populateRemoteCallbacks(&ccallbacks, callbacks)
+	C.git_remote_set_callbacks(remote, &ccallbacks)
+
+	if refspecs != nil {
+		err := setPushRefspecs(remote, refspecs)
+		if err != nil {
+			return err
+		}
+	}
 
 	var csig *C.git_signature = nil
 	if sig != nil {
@@ -448,7 +469,11 @@ func (o *Remote) Fetch(sig *Signature, msg string) error {
 		cmsg = C.CString(msg)
 		defer C.free(unsafe.Pointer(cmsg))
 	}
-	ret := C.git_remote_fetch(o.ptr, csig, cmsg)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_remote_fetch(remote, csig, cmsg)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
