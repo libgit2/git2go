@@ -91,6 +91,7 @@ const (
 
 var (
 	ErrInvalid = errors.New("Invalid state for operation")
+	ErrPushUnpack = errors.New("Error unpacking on the remote end")
 )
 
 func init() {

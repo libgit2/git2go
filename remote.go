@@ -2,9 +2,10 @@ package git
 
 /*
 #include <git2.h>
-#include <git2/errors.h>
 
 extern void _go_git_setup_callbacks(git_remote_callbacks *callbacks);
+int _go_git_push_status_foreach(git_push *push, void *data);
+int _go_git_push_set_callbacks(git_push *push, void *packbuilder_progress_data, void *transfer_progress_data);
 
 */
 import "C"
@@ -477,5 +478,71 @@ func (o *Remote) Fetch(refspecs []string, callbacks *RemoteCallbacks, sig *Signa
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
+	return nil
+}
+
+func (o *Remote) Push(refspecs []string, callbacks *PushCallbacks, opts PushOptions, statusForeach StatusForeachFunc, sig *Signature, msg string) error {
+	var remote *C.git_remote
+	if ret := C.git_remote_dup(&remote, o.ptr); ret < 0 {
+		return MakeGitError(ret)
+	}
+
+	var push *C.git_push
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if ret := C.git_push_new(&push, o.ptr); ret < 0 {
+		return MakeGitError(ret)
+	}
+	defer C.git_push_free(push)
+
+	for _, str := range refspecs {
+		cstr := C.CString(str)
+		defer C.free(unsafe.Pointer(cstr))
+
+		if ret := C.git_push_add_refspec(push, cstr); ret < 0 {
+			return MakeGitError(ret)
+		}
+	}
+
+	copts := C.git_push_options{
+		version:        C.uint(opts.Version),
+		pb_parallelism: C.uint(opts.PbParallelism),
+	}
+
+	if ret := C.git_push_set_options(push, &copts); ret < 0 {
+		return MakeGitError(ret)
+	}
+
+	if ret := C.git_push_finish(push); ret < 0 {
+		return MakeGitError(ret)
+	}
+
+	if C.git_push_unpack_ok(push) == 0 {
+		return ErrPushUnpack
+	}
+
+	if ret := C._go_git_push_status_foreach(push, unsafe.Pointer(&statusForeach)); ret < 0 {
+		return MakeGitError(ret)
+	}
+
+	var csig *C.git_signature = nil
+	if sig != nil {
+		csig = sig.toC()
+		defer C.free(unsafe.Pointer(csig))
+	}
+
+	var cmsg *C.char
+	if msg == "" {
+		cmsg = nil
+	} else {
+		cmsg = C.CString(msg)
+		defer C.free(unsafe.Pointer(cmsg))
+	}
+	if ret := C.git_push_update_tips(push, csig, cmsg); ret < 0 {
+		return MakeGitError(ret)
+	}
+
 	return nil
 }
