@@ -87,6 +87,22 @@ func (v *Repository) Config() (*Config, error) {
 	return config, nil
 }
 
+// ConfigSnapshot returns a configuration snapshot from the
+// repository. This is the preferred form when not changing the
+// configuration.
+func (v *Repository) ConfigSnapshot() (*Config, error) {
+	config := new(Config)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if ret := C.git_repository_config_snapshot(&config.ptr, v.ptr); ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return config, nil
+}
+
 func (v *Repository) Index() (*Index, error) {
 	var ptr *C.git_index
 

@@ -354,6 +354,22 @@ func (c *Config) Refresh() error {
 	return nil
 }
 
+// Snapshot creates an immutable snapshot from the configuration. This
+// means that reads over multiple values will reflect the same version
+// of the configuration files
+func (c *Config) Snapshot() (*Config, error) {
+	config := new(Config)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if ret := C.git_config_snapshot(&config.ptr, c.ptr); ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return config, nil
+}
+
 type ConfigIterator struct {
 	ptr *C.git_config_iterator
 }
