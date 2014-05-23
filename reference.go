@@ -148,6 +148,19 @@ func (v *Reference) Delete() error {
 	return nil
 }
 
+func (v *Reference) Peel(t ObjectType) (Object, error) {
+	var cobj *C.git_object
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if err := C.git_reference_peel(&cobj, v.ptr, C.git_otype(t)); err < 0 {
+		return nil, MakeGitError(err)
+	}
+
+	return allocObject(cobj), nil
+}
+
 // Cmp compares both references, retursn 0 on equality, otherwise a
 // stable sorting.
 func (v *Reference) Cmp(ref2 *Reference) int {
