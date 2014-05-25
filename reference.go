@@ -161,6 +161,14 @@ func (v *Reference) Peel(t ObjectType) (Object, error) {
 	return allocObject(cobj), nil
 }
 
+// Owner returns a weak reference to the repository which owns this
+// reference.
+func (v *Reference) Owner() *Repository {
+	return &Repository{
+		ptr: C.git_reference_owner(v.ptr),
+	}
+}
+
 // Cmp compares both references, retursn 0 on equality, otherwise a
 // stable sorting.
 func (v *Reference) Cmp(ref2 *Reference) int {

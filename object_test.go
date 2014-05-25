@@ -75,3 +75,29 @@ func TestObjectPoymorphism(t *testing.T) {
 		t.Fatalf("Failed to parse the right revision")
 	}
 }
+
+func checkOwner(t *testing.T, repo *Repository, obj Object) {
+	owner := obj.Owner()
+	if owner == nil {
+		t.Fatal("bad owner")
+	}
+
+	if owner.ptr != repo.ptr {
+		t.Fatalf("bad owner, got %v expected %v\n", owner.ptr, repo.ptr)
+	}
+}
+
+func TestObjectOwner(t *testing.T) {
+	repo := createTestRepo(t)
+	defer os.RemoveAll(repo.Workdir())
+	commitId, treeId := seedTestRepo(t, repo)
+
+	commit, err := repo.LookupCommit(commitId)
+	checkFatal(t, err)
+
+	tree, err := repo.LookupTree(treeId)
+	checkFatal(t, err)
+
+	checkOwner(t, repo, commit)
+	checkOwner(t, repo, tree)
+}

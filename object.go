@@ -22,6 +22,7 @@ type Object interface {
 	Free()
 	Id() *Oid
 	Type() ObjectType
+	Owner() *Repository
 }
 
 type gitObject struct {
@@ -53,6 +54,14 @@ func (o gitObject) Id() *Oid {
 
 func (o gitObject) Type() ObjectType {
 	return ObjectType(C.git_object_type(o.ptr))
+}
+
+// Owner returns a weak reference to the repository which owns this
+// object
+func (o gitObject) Owner() *Repository {
+	return &Repository{
+		ptr: C.git_object_owner(o.ptr),
+	}
 }
 
 func (o *gitObject) Free() {

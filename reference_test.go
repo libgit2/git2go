@@ -138,6 +138,24 @@ func TestReferenceIterator(t *testing.T) {
 
 }
 
+func TestReferenceOwner(t *testing.T) {
+	repo := createTestRepo(t)
+	defer os.RemoveAll(repo.Workdir())
+	commitId, _ := seedTestRepo(t, repo)
+
+	ref, err := repo.CreateReference("refs/heads/foo", commitId, true, nil, "")
+	checkFatal(t, err)
+
+	owner := ref.Owner()
+	if owner == nil {
+		t.Fatal("nil owner")
+	}
+
+	if owner.ptr != repo.ptr {
+		t.Fatalf("bad ptr, expected %v have %v\n", repo.ptr, owner.ptr)
+	}
+}
+
 func TestUtil(t *testing.T) {
 	repo := createTestRepo(t)
 	defer os.RemoveAll(repo.Workdir())
