@@ -41,6 +41,36 @@ func TestIndexWriteTreeTo(t *testing.T) {
 	}
 }
 
+func TestIndexAddAndWriteTreeTo(t *testing.T) {
+	repo := createTestRepo(t)
+	defer os.RemoveAll(repo.Workdir())
+
+	odb, err := repo.Odb()
+	checkFatal(t, err)
+
+	blobID, err := odb.Write([]byte("foo\n"), ObjectBlob)
+	checkFatal(t, err)
+
+	idx, err := NewIndex()
+	checkFatal(t, err)
+
+	entry := IndexEntry {
+		Path: "README",
+		Id: blobID,
+		Mode: FilemodeBlob,
+	}
+
+	err = idx.Add(&entry)
+	checkFatal(t, err)
+
+	treeId, err := idx.WriteTreeTo(repo)
+	checkFatal(t, err)
+
+	if treeId.String() != "b7119b11e8ef7a1a5a34d3ac87f5b075228ac81e" {
+		t.Fatalf("%v", treeId.String())
+	}
+}
+
 func checkFatal(t *testing.T, err error) {
 	if err == nil {
 		return
