@@ -27,6 +27,7 @@ type Object interface {
 
 type gitObject struct {
 	ptr *C.git_object
+	repo *Repository
 }
 
 func (t ObjectType) String() (string) {
@@ -69,12 +70,16 @@ func (o *gitObject) Free() {
 	C.git_object_free(o.ptr)
 }
 
-func allocObject(cobj *C.git_object) Object {
+func allocObject(cobj *C.git_object, repo *Repository) Object {
+	obj := gitObject{
+		ptr: cobj,
+		repo: repo,
+	}
 
 	switch ObjectType(C.git_object_type(cobj)) {
 	case ObjectCommit:
 		commit := &Commit{
-			gitObject: gitObject{cobj},
+			gitObject: obj,
 			cast_ptr:  (*C.git_commit)(cobj),
 		}
 		runtime.SetFinalizer(commit, (*Commit).Free)
@@ -82,7 +87,7 @@ func allocObject(cobj *C.git_object) Object {
 
 	case ObjectTree:
 		tree := &Tree{
-			gitObject: gitObject{cobj},
+			gitObject: obj,
 			cast_ptr:  (*C.git_tree)(cobj),
 		}
 		runtime.SetFinalizer(tree, (*Tree).Free)
@@ -90,7 +95,7 @@ func allocObject(cobj *C.git_object) Object {
 
 	case ObjectBlob:
 		blob := &Blob{
-			gitObject: gitObject{cobj},
+			gitObject: obj,
 			cast_ptr:  (*C.git_blob)(cobj),
 		}
 		runtime.SetFinalizer(blob, (*Blob).Free)

@@ -130,7 +130,7 @@ func (v *Repository) lookupType(id *Oid, t ObjectType) (Object, error) {
 		return nil, MakeGitError(ret)
 	}
 
-	return allocObject(ptr), nil
+	return allocObject(ptr, v), nil
 }
 
 func (v *Repository) Lookup(id *Oid) (Object, error) {
@@ -177,7 +177,7 @@ func (v *Repository) LookupReference(name string) (*Reference, error) {
 		return nil, MakeGitError(ecode)
 	}
 
-	return newReferenceFromC(ptr), nil
+	return newReferenceFromC(ptr, v), nil
 }
 
 func (v *Repository) Head() (*Reference, error) {
@@ -191,7 +191,7 @@ func (v *Repository) Head() (*Reference, error) {
 		return nil, MakeGitError(ecode)
 	}
 
-	return newReferenceFromC(ptr), nil
+	return newReferenceFromC(ptr, v), nil
 }
 
 func (v *Repository) SetHead(refname string, sig *Signature, msg string) error {
@@ -262,7 +262,7 @@ func (v *Repository) CreateReference(name string, id *Oid, force bool, sig *Sign
 		return nil, MakeGitError(ecode)
 	}
 
-	return newReferenceFromC(ptr), nil
+	return newReferenceFromC(ptr, v), nil
 }
 
 func (v *Repository) CreateSymbolicReference(name, target string, force bool, sig *Signature, msg string) (*Reference, error) {
@@ -293,7 +293,7 @@ func (v *Repository) CreateSymbolicReference(name, target string, force bool, si
 		return nil, MakeGitError(ecode)
 	}
 
-	return newReferenceFromC(ptr), nil
+	return newReferenceFromC(ptr, v), nil
 }
 
 func (v *Repository) Walk() (*RevWalk, error) {
@@ -450,7 +450,7 @@ func (v *Repository) RevparseSingle(spec string) (Object, error) {
 		return nil, MakeGitError(ecode)
 	}
 
-	return allocObject(ptr), nil
+	return allocObject(ptr, v), nil
 }
 
 // EnsureLog ensures that there is a reflog for the given reference
@@ -501,5 +501,5 @@ func (v *Repository) DwimReference(name string) (*Reference, error) {
 		return nil, MakeGitError(ret)
 	}
 
-	return newReferenceFromC(ptr), nil
+	return newReferenceFromC(ptr, v), nil
 }

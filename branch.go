@@ -57,7 +57,7 @@ func (i *BranchIterator) Next() (*Branch, BranchType, error) {
 		return nil, BranchLocal, MakeGitError(ecode)
 	}
 
-	branch := newReferenceFromC(refPtr).Branch()
+	branch := newReferenceFromC(refPtr, i.repo).Branch()
 
 	return branch, BranchType(refType), nil
 }
@@ -144,7 +144,7 @@ func (b *Branch) Move(newBranchName string, force bool, signature *Signature, ms
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	return newReferenceFromC(ptr).Branch(), nil
+	return newReferenceFromC(ptr, b.repo).Branch(), nil
 }
 
 func (b *Branch) IsHead() (bool, error) {
@@ -175,7 +175,7 @@ func (repo *Repository) LookupBranch(branchName string, bt BranchType) (*Branch,
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	return newReferenceFromC(ptr).Branch(), nil
+	return newReferenceFromC(ptr, repo).Branch(), nil
 }
 
 func (b *Branch) Name() (string, error) {
@@ -233,7 +233,7 @@ func (b *Branch) Upstream() (*Reference, error) {
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	return newReferenceFromC(ptr), nil
+	return newReferenceFromC(ptr, b.repo), nil
 }
 
 func (repo *Repository) UpstreamName(canonicalBranchName string) (string, error) {

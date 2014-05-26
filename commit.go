@@ -35,7 +35,7 @@ func (c Commit) Tree() (*Tree, error) {
 		return nil, MakeGitError(err)
 	}
 
-	return allocObject((*C.git_object)(ptr)).(*Tree), nil
+	return allocObject((*C.git_object)(ptr), c.repo).(*Tree), nil
 }
 
 func (c Commit) TreeId() *Oid {
@@ -59,7 +59,7 @@ func (c *Commit) Parent(n uint) *Commit {
 		return nil
 	}
 
-	return allocObject((*C.git_object)(cobj)).(*Commit)
+	return allocObject((*C.git_object)(cobj), c.repo).(*Commit)
 }
 
 func (c *Commit) ParentId(n uint) *Oid {
