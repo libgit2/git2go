@@ -166,7 +166,7 @@ func (r *Repository) MergeAnalysis(theirHeads []*MergeHead) (MergeAnalysis, erro
 	}
 	ptr := unsafe.Pointer(&gmerge_head_array[0])
 	var analysis C.git_merge_analysis_t
-	err := C.git_merge_analysis(&analysis, r.ptr, (**C.git_merge_head)(ptr), C.size_t(len(theirHeads)))
+	err := C.git_merge_analysis(&analysis, nil, r.ptr, (**C.git_merge_head)(ptr), C.size_t(len(theirHeads)))
 	if err < 0 {
 		return MergeAnalysisNone, MakeGitError(err)
 	}

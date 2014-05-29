@@ -61,7 +61,7 @@ func blobChunkCb(buffer *C.char, maxLen C.size_t, payload unsafe.Pointer) int {
 		data.Error = err
 		return -1
 	}
-	C.memcpy(unsafe.Pointer(buffer), unsafe.Pointer(&goBuf[0]), C.size_t(len(goBuf)))
+	C.memcpy(unsafe.Pointer(buffer), unsafe.Pointer(&goBuf[0]), C.ulong(len(goBuf)))
 	return len(goBuf)
 }
 
