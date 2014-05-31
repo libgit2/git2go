@@ -34,7 +34,7 @@ func TestMergeAnalysisWithSelf(t *testing.T) {
 
 	mergeHeads := make([]*MergeHead, 1)
 	mergeHeads[0] = mergeHead
-	a, err := repo.MergeAnalysis(mergeHeads)
+	a, _, err := repo.MergeAnalysis(mergeHeads)
 	checkFatal(t, err)
 
 	if a != MergeAnalysisUpToDate {

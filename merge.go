@@ -156,7 +156,15 @@ const (
 	MergeAnalysisUnborn                    = C.GIT_MERGE_ANALYSIS_UNBORN
 )
 
-func (r *Repository) MergeAnalysis(theirHeads []*MergeHead) (MergeAnalysis, error) {
+type MergePreference int
+
+const (
+	MergePreferenceNone MergePreference = C.GIT_MERGE_PREFERENCE_NONE
+	MergePreferenceNoFastForward         = C.GIT_MERGE_PREFERENCE_NO_FASTFORWARD
+	MergePreferenceFastForwardOnly      =  C.GIT_MERGE_PREFERENCE_FASTFORWARD_ONLY
+)
+
+func (r *Repository) MergeAnalysis(theirHeads []*MergeHead) (MergeAnalysis, MergePreference, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -166,11 +174,12 @@ func (r *Repository) MergeAnalysis(theirHeads []*MergeHead) (MergeAnalysis, erro
 	}
 	ptr := unsafe.Pointer(&gmerge_head_array[0])
 	var analysis C.git_merge_analysis_t
-	err := C.git_merge_analysis(&analysis, r.ptr, (**C.git_merge_head)(ptr), C.size_t(len(theirHeads)))
+	var preference C.git_merge_preference_t
+	err := C.git_merge_analysis(&analysis, &preference, r.ptr, (**C.git_merge_head)(ptr), C.size_t(len(theirHeads)))
 	if err < 0 {
-		return MergeAnalysisNone, MakeGitError(err)
+		return MergeAnalysisNone, MergePreferenceNone, MakeGitError(err)
 	}
-	return MergeAnalysis(analysis), nil
+	return MergeAnalysis(analysis), MergePreference(preference), nil
 
 }
 
