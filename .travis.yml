@@ -3,9 +3,10 @@ language: go
 go:
   - 1.0
   - 1.1
+  - 1.2
   - tip
 
 install:
-  - script/build-libgit2.sh
-  - export PKG_CONFIG_PATH=$PWD/libgit2/install/lib/pkgconfig
-  - export LD_LIBRARY_PATH=$PWD/libgit2/install/lib
+  - script/bootstrap
+script:
+  - script/test

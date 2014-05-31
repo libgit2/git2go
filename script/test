@@ -1,0 +1,9 @@
+#!/bin/sh
+
+set -e
+
+export PKG_CONFIG_PATH=$PWD/libgit2/install/lib/pkgconfig
+export LD_LIBRARY_PATH=$PWD/libgit2/install/lib
+export DYLD_LIBRARY_PATH=$PWD/libgit2/install/lib
+
+go test -v ./...
