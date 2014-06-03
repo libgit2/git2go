@@ -2,21 +2,19 @@
 
 set -ex
 
+VENDORED_PATH=vendor/libgit2
+
 # Make sure we have the latest libgit2
-if [ -d libgit2 ]; then
-    cd libgit2
-    git fetch origin development
-    git checkout FETCH_HEAD
-    cd ..
-else
-    git clone --depth 1 --single-branch git://github.com/libgit2/libgit2 libgit2
+if [ ! -d $VENDORED_PATH ]; then
+    git clone --depth 1 --single-branch git://github.com/libgit2/libgit2 $VENDORED_PATH
 fi
 
-cd libgit2
+cd $VENDORED_PATH
+
 cmake -DTHREADSAFE=ON \
       -DBUILD_CLAR=OFF \
       -DBUILD_SHARED_LIBS=OFF \
-      -DCMAKE_INSTALL_PREFIX=$PWD/install \
+      -DCMAKE_INSTALL_PREFIX=../install \
       .
 
 make install
