@@ -1,7 +1,7 @@
 package settings
 
 /*
-#cgo pkg-config: libgit2
+#cgo pkg-config: --static libgit2
 #include <git2.h>
 
 int _go_git_opts_get_search_path(int level, git_buf *buf)
