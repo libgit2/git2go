@@ -6,11 +6,6 @@ go:
   - 1.2
   - tip
 
-install:
-  - script/build-libgit2.sh
-  - export PKG_CONFIG_PATH=$PWD/libgit2/install/lib/pkgconfig
-  - export LD_LIBRARY_PATH=$PWD/libgit2/install/lib
-
 matrix:
   allow_failures:
     - go: tip
