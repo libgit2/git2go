@@ -2,12 +2,10 @@
 
 set -ex
 
-export INSTALL_LOCATION=$PWD/vendor/install
-export PKG_CONFIG_PATH=$INSTALL_LOCATION/lib/pkgconfig
+export BUILD="$PWD/vendor/libgit2/build"
+export PCFILE="$BUILD/libgit2.pc"
 
-export PCFILE="$PWD/vendor/libgit2/libgit2.pc"
-
-export CGO_LDFLAGS="$PWD/vendor/libgit2/libgit2.a $(pkg-config --static --libs $PCFILE)"
-export CGO_CFLAGS="$(pkg-config --static --cflags $PCFILE)"
+export CGO_LDFLAGS="$BUILD/libgit2.a -L$BUILD $(pkg-config --static --libs $PCFILE)"
+export CGO_CFLAGS="-I$PWD/vendor/libgit2/include"
 
 $@
