@@ -6,7 +6,12 @@ Go bindings for [libgit2](http://libgit2.github.com/). These bindings are for to
 Installing
 ----------
 
-Just `go get github.com/libgit2/git2go`. You'll need to have top-of-the-branch libgit2 from development installed in your system and available via `pkg-config`. These bindings are in sync with the top of `development`.
+This project needs libgit2, which is written in C so we need to take an extra step. Run `go get github.com/libgit2/git2go` and go to your `$GOROOT/src/github.com/libgt2/git2go` dir. From there, we need to build the C code and put it into the resulting go binary.
+
+    git submodule update --init
+	make install
+
+will compile libgit2, build it statically into git2go and install the resulting object file where your Go project can use it.
 
 License
 -------
