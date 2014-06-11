@@ -1,9 +1,9 @@
 package git
 
 import (
+	"errors"
 	"io"
 	"os"
-	"errors"
 	"testing"
 )
 
@@ -37,7 +37,7 @@ func TestOdbStream(t *testing.T) {
 
 func TestOdbHash(t *testing.T) {
 
-    repo := createTestRepo(t)
+	repo := createTestRepo(t)
 	defer os.RemoveAll(repo.Workdir())
 	_, _ = seedTestRepo(t, repo)
 

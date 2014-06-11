@@ -159,9 +159,9 @@ const (
 type MergePreference int
 
 const (
-	MergePreferenceNone MergePreference = C.GIT_MERGE_PREFERENCE_NONE
-	MergePreferenceNoFastForward         = C.GIT_MERGE_PREFERENCE_NO_FASTFORWARD
-	MergePreferenceFastForwardOnly      =  C.GIT_MERGE_PREFERENCE_FASTFORWARD_ONLY
+	MergePreferenceNone            MergePreference = C.GIT_MERGE_PREFERENCE_NONE
+	MergePreferenceNoFastForward                   = C.GIT_MERGE_PREFERENCE_NO_FASTFORWARD
+	MergePreferenceFastForwardOnly                 = C.GIT_MERGE_PREFERENCE_FASTFORWARD_ONLY
 )
 
 func (r *Repository) MergeAnalysis(theirHeads []*MergeHead) (MergeAnalysis, MergePreference, error) {

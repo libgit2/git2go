@@ -54,9 +54,9 @@ func TestIndexAddAndWriteTreeTo(t *testing.T) {
 	idx, err := NewIndex()
 	checkFatal(t, err)
 
-	entry := IndexEntry {
+	entry := IndexEntry{
 		Path: "README",
-		Id: blobID,
+		Id:   blobID,
 		Mode: FilemodeBlob,
 	}
 
