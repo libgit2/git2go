@@ -379,7 +379,7 @@ func (v *Repository) CreateTag(
 	taggerSig := tagger.toC()
 	defer C.git_signature_free(taggerSig)
 
-  ctarget := commit.gitObject.ptr
+	ctarget := commit.gitObject.ptr
 
 	ret := C.git_tag_create(oid.toC(), v.ptr, cname, ctarget, taggerSig, cmessage, 0)
 	if ret < 0 {
