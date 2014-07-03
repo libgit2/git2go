@@ -1,7 +1,7 @@
 git2go
 ======
 
-Go bindings for [libgit2](http://libgit2.github.com/). These bindings are for top-of-the-branch libgit2, and they move fast, things may or may not work. Operator get me Beijing-jing-jing-jing!
+Go bindings for [libgit2](http://libgit2.github.com/). The master branch follows the latest libgit2 release.
 
 Installing
 ----------
@@ -14,6 +14,19 @@ Run `go get github.com/libgit2/git2go` to download the code and go to your `$GOP
     make install
 
 will compile libgit2 and run `go install` such that it's statically linked to the git2go package.
+
+Running the tests
+-----------------
+
+Similarly to installing, running the tests requires linking against the local libgit2 library, so the Makefile provides a wrapper
+
+    make test
+
+alternatively, if you want to pass arguments to `go test`, you can use the script that sets it all up
+
+    ./script/with-static.sh go test -v
+
+which will run the specified arguments with the correct environment variables.
 
 License
 -------
