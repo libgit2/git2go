@@ -100,6 +100,13 @@ func allocObject(cobj *C.git_object, repo *Repository) Object {
 		}
 		runtime.SetFinalizer(blob, (*Blob).Free)
 		return blob
+	case ObjectTag:
+		tag := &Tag{
+			gitObject: obj,
+			cast_ptr:  (*C.git_tag)(cobj),
+		}
+		runtime.SetFinalizer(tag, (*Tag).Free)
+		return tag
 	}
 
 	return nil

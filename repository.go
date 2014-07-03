@@ -164,6 +164,15 @@ func (v *Repository) LookupBlob(id *Oid) (*Blob, error) {
 	return obj.(*Blob), nil
 }
 
+func (v *Repository) LookupTag(id *Oid) (*Tag, error) {
+	obj, err := v.lookupType(id, ObjectTag)
+	if err != nil {
+		return nil, err
+	}
+
+	return obj.(*Tag), nil
+}
+
 func (v *Repository) LookupReference(name string) (*Reference, error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
@@ -349,6 +358,30 @@ func (v *Repository) CreateCommit(
 		authorSig, committerSig,
 		nil, cmsg, tree.cast_ptr, C.size_t(nparents), parentsarg)
 
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return oid, nil
+}
+
+func (v *Repository) CreateTag(
+	name string, commit *Commit, tagger *Signature, message string) (*Oid, error) {
+
+	oid := new(Oid)
+
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+
+	cmessage := C.CString(message)
+	defer C.free(unsafe.Pointer(cmessage))
+
+	taggerSig := tagger.toC()
+	defer C.git_signature_free(taggerSig)
+
+	ctarget := commit.gitObject.ptr
+
+	ret := C.git_tag_create(oid.toC(), v.ptr, cname, ctarget, taggerSig, cmessage, 0)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
