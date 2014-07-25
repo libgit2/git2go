@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestRevParseSingle(t *testing.T) {
+func TestRevParse(t *testing.T) {
 	repo := createTestRepo(t)
 	defer os.RemoveAll(repo.Workdir())
 
@@ -15,6 +15,18 @@ func TestRevParseSingle(t *testing.T) {
 	checkFatal(t, err)
 
 	checkObject(t, revSpec.From(), commitId)
+}
+
+func TestRevParseSingle(t *testing.T) {
+	repo := createTestRepo(t)
+	defer os.RemoveAll(repo.Workdir())
+
+	commitId, _ := seedTestRepo(t, repo)
+
+	obj, err := repo.RevParseSingle("HEAD")
+	checkFatal(t, err)
+
+	checkObject(t, obj, commitId)
 }
 
 func checkObject(t *testing.T, obj Object, id *Oid) {

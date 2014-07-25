@@ -58,3 +58,20 @@ func (r *Repository) RevParse(spec string) (*RevSpec, error) {
 
 	return newRevSpecFrom(ptr, r), nil
 }
+
+func (r *Repository) RevParseSingle(spec string) (Object, error) {
+	cspec := C.CString(spec)
+	defer C.free(unsafe.Pointer(cspec))
+
+	var obj *C.git_object
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C.git_revparse_single(&obj, r.ptr, cspec)
+	if ecode != 0 {
+		return nil, MakeGitError(ecode)
+	}
+
+	return allocObject(obj, r), nil
+}
