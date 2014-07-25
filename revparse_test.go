@@ -29,6 +29,24 @@ func TestRevParseSingle(t *testing.T) {
 	checkObject(t, obj, commitId)
 }
 
+func TestRevParseExt(t *testing.T) {
+	repo := createTestRepo(t)
+	defer os.RemoveAll(repo.Workdir())
+
+	_, treeId := seedTestRepo(t, repo)
+
+	ref, err := repo.CreateReference("refs/heads/master", treeId, true, nil, "")
+	checkFatal(t, err)
+
+	obj, ref, err := repo.RevParseExt("master")
+	checkFatal(t, err)
+
+	checkObject(t, obj, treeId)
+	if ref == nil {
+		t.Fatalf("bad reference")
+	}
+}
+
 func checkObject(t *testing.T, obj Object, id *Oid) {
 	if obj == nil {
 		t.Fatalf("bad object")

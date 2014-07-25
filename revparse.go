@@ -75,3 +75,25 @@ func (r *Repository) RevParseSingle(spec string) (Object, error) {
 
 	return allocObject(obj, r), nil
 }
+
+func (r *Repository) RevParseExt(spec string) (Object, *Reference, error) {
+	cspec := C.CString(spec)
+	defer C.free(unsafe.Pointer(cspec))
+
+	var obj *C.git_object
+	var ref *C.git_reference
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C.git_revparse_ext(&obj, &ref, r.ptr, cspec)
+	if ecode != 0 {
+		return nil, nil, MakeGitError(ecode)
+	}
+
+	if ref == nil {
+		return allocObject(obj, r), nil, nil
+	}
+
+	return allocObject(obj, r), newReferenceFromC(ref, r), nil
+}
