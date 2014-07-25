@@ -46,7 +46,7 @@ func (r *Repository) RevParse(spec string) (*RevSpec, error) {
 	cspec := C.CString(spec)
 	defer C.free(unsafe.Pointer(cspec))
 
-	var ptr *C.git_revspec
+	ptr := new(C.git_revspec)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()

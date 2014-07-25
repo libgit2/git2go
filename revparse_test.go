@@ -1,7 +1,6 @@
 package git
 
 import (
-	"fmt"
 	"os"
 	"testing"
 )
@@ -11,7 +10,6 @@ func TestRevParseSingle(t *testing.T) {
 	defer os.RemoveAll(repo.Workdir())
 
 	commitId, _ := seedTestRepo(t, repo)
-	fmt.Println(commitId)
 
 	revSpec, err := repo.RevParse("HEAD")
 	checkFatal(t, err)
