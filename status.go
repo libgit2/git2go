@@ -3,11 +3,14 @@ package git
 /*
 #include <git2.h>
 #include <git2/errors.h>
+
+int _go_git_status_foreach(git_repository *repo, void *data);
 */
 import "C"
 
 import (
 	"runtime"
+	"unsafe"
 )
 
 type Status int
@@ -167,4 +170,27 @@ func (v *Repository) StatusFile(path string) (Status, error) {
 		return 0, MakeGitError(ret)
 	}
 	return Status(statusFlags), nil
+}
+
+type StatusCallback func(path string, status Status) int
+
+//export fileStatusForeach
+func fileStatusForeach(_path *C.char, _flags C.uint, _payload unsafe.Pointer) C.int {
+	path := C.GoString(_path)
+	flags := Status(_flags)
+
+	cb := (*StatusCallback)(_payload)
+	return C.int((*cb)(path, flags))
+}
+
+func (v *Repository) StatusForeach(callback StatusCallback) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C._go_git_status_foreach(v.ptr, unsafe.Pointer(&callback))
+
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+	return nil
 }
