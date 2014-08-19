@@ -75,3 +75,10 @@ func (statusList *StatusList) ByIndex(index int) (StatusEntry, error) {
 	ptr := C.git_status_byindex(statusList.ptr, C.size_t(index))
 	return statusEntryFromC(ptr), nil
 }
+
+func (statusList *StatusList) EntryCount() (int, error) {
+	if statusList.ptr == nil {
+		return -1, ErrInvalid
+	}
+	return int(C.git_status_list_entrycount(statusList.ptr)), nil
+}
