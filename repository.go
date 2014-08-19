@@ -119,6 +119,26 @@ func (v *Repository) Index() (*Index, error) {
 	return newIndexFromC(ptr), nil
 }
 
+func (v *Repository) StatusList() (*StatusList, error) {
+	var ptr *C.git_status_list
+	var options *C.git_status_options
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_status_init_options(options, C.GIT_STATUS_OPTIONS_VERSION)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	ret = C.git_status_list_new(&ptr, v.ptr, options)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return newStatusListFromC(ptr), nil
+}
+
 func (v *Repository) lookupType(id *Oid, t ObjectType) (Object, error) {
 	var ptr *C.git_object
 
