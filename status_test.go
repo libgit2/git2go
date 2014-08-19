@@ -15,7 +15,7 @@ func TestEntryCount(t *testing.T) {
 	err := ioutil.WriteFile(path.Join(path.Dir(repo.Path()), "hello.txt"), []byte("Hello, World"), 0644)
 	checkFatal(t, err)
 
-	statusList, err := repo.StatusList()
+	statusList, err := repo.StatusList(nil)
 	checkFatal(t, err)
 
 	entryCount, err := statusList.EntryCount()

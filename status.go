@@ -82,3 +82,78 @@ func (statusList *StatusList) EntryCount() (int, error) {
 	}
 	return int(C.git_status_list_entrycount(statusList.ptr)), nil
 }
+
+const (
+	StatusOptIncludeUntracked             = C.GIT_STATUS_OPT_INCLUDE_UNTRACKED
+	StatusOptIncludeIgnored               = C.GIT_STATUS_OPT_INCLUDE_IGNORED
+	StatusOptIncludeUnmodified            = C.GIT_STATUS_OPT_INCLUDE_UNMODIFIED
+	StatusOptExcludeSubmodules            = C.GIT_STATUS_OPT_EXCLUDE_SUBMODULES
+	StatusOptRecurseUntrackedDirs         = C.GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS
+	StatusOptDisablePathspecMatch         = C.GIT_STATUS_OPT_DISABLE_PATHSPEC_MATCH
+	StatusOptRecurseIgnoredDirs           = C.GIT_STATUS_OPT_RECURSE_IGNORED_DIRS
+	StatusOptRenamesHeadToIndex           = C.GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX
+	StatusOptRenamesIndexToWorkdir        = C.GIT_STATUS_OPT_RENAMES_INDEX_TO_WORKDIR
+	StatusOptSortCaseSensitively          = C.GIT_STATUS_OPT_SORT_CASE_SENSITIVELY
+	StatusOptSortCaseInsensitively        = C.GIT_STATUS_OPT_SORT_CASE_INSENSITIVELY
+	StatusOptRenamesFromRewrites          = C.GIT_STATUS_OPT_RENAMES_FROM_REWRITES
+	StatusOptNoRefresh                    = C.GIT_STATUS_OPT_NO_REFRESH
+	StatusOptUpdateIndex                  = C.GIT_STATUS_OPT_UPDATE_INDEX
+)
+
+type StatusShow int
+
+const (
+	StatusShowIndexAndWorkdir StatusShow = C.GIT_STATUS_SHOW_INDEX_AND_WORKDIR
+	StatusShowIndexOnly                  = C.GIT_STATUS_SHOW_INDEX_ONLY
+	StatusShowWorkdirOnly                = C.GIT_STATUS_SHOW_WORKDIR_ONLY
+)
+
+type StatusOptions struct {
+	Version  int
+	Show     StatusShow
+	Flags    int
+	Pathspec []string
+}
+
+func (opts *StatusOptions) toC() *C.git_status_options {
+	if opts == nil {
+		return nil
+	}
+
+	cpathspec := C.git_strarray{}
+	if opts.Pathspec != nil {
+		cpathspec.count = C.size_t(len(opts.Pathspec))
+		cpathspec.strings = makeCStringsFromStrings(opts.Pathspec)
+		defer freeStrarray(&cpathspec)
+	}
+
+	copts := &C.git_status_options{
+		version:  C.GIT_STATUS_OPTIONS_VERSION,
+		show:     C.git_status_show_t(opts.Show),
+		flags:    C.uint(opts.Flags),
+		pathspec: cpathspec,
+	}
+
+	return copts
+}
+
+func (v *Repository) StatusList(opts *StatusOptions) (*StatusList, error) {
+	var ptr *C.git_status_list
+	var copts *C.git_status_options
+
+	if opts != nil {
+		copts = opts.toC()
+	} else {
+		copts = &C.git_status_options{}
+		ret := C.git_status_init_options(copts, C.GIT_STATUS_OPTIONS_VERSION)
+		if ret < 0 {
+			return nil, MakeGitError(ret)
+		}
+	}
+
+	ret := C.git_status_list_new(&ptr, v.ptr, copts)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+	return newStatusListFromC(ptr), nil
+}
