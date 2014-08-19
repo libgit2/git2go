@@ -27,14 +27,22 @@ const (
 	StatusIgnored                = C.GIT_STATUS_IGNORED
 )
 
-type StatusList struct {
-	ptr *C.git_status_list
-}
-
 type StatusEntry struct {
 	Status         Status
 	HeadToIndex    DiffDelta
 	IndexToWorkdir DiffDelta
+}
+
+func statusEntryFromC(statusEntry *C.git_status_entry) StatusEntry {
+	return StatusEntry {
+		Status:         Status(statusEntry.status),
+		HeadToIndex:    diffDeltaFromC(statusEntry.head_to_index),
+		IndexToWorkdir: diffDeltaFromC(statusEntry.index_to_workdir),
+	}
+}
+
+type StatusList struct {
+	ptr *C.git_status_list
 }
 
 func newStatusListFromC(ptr *C.git_status_list) *StatusList {
@@ -60,10 +68,10 @@ func (statusList *StatusList) Free() error {
 	return nil
 }
 
-func statusEntryFromC(statusEntry *C.git_status_entry) StatusEntry {
-	return StatusEntry {
-		Status:         Status(statusEntry.status),
-		HeadToIndex:    diffDeltaFromC(statusEntry.head_to_index),
-		IndexToWorkdir: diffDeltaFromC(statusEntry.index_to_workdir),
+func (statusList *StatusList) ByIndex(index int) (StatusEntry, error) {
+	if statusList.ptr == nil {
+		return StatusEntry{}, ErrInvalid
 	}
+	ptr := C.git_status_byindex(statusList.ptr, C.size_t(index))
+	return statusEntryFromC(ptr), nil
 }
