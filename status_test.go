@@ -7,12 +7,28 @@ import (
 	"testing"
 )
 
+func TestStatusFile(t *testing.T) {
+	repo := createTestRepo(t)
+	defer repo.Free()
+	defer os.RemoveAll(repo.Workdir())
+
+	err := ioutil.WriteFile(path.Join(path.Dir(repo.Workdir()), "hello.txt"), []byte("Hello, World"), 0644)
+	checkFatal(t, err)
+
+	status, err := repo.StatusFile("hello.txt")
+	checkFatal(t, err)
+
+	if status != StatusWtNew {
+		t.Fatal("Incorrect status flags: ", status)
+	}
+}
+
 func TestEntryCount(t *testing.T) {
 	repo := createTestRepo(t)
 	defer repo.Free()
 	defer os.RemoveAll(repo.Workdir())
 
-	err := ioutil.WriteFile(path.Join(path.Dir(repo.Path()), "hello.txt"), []byte("Hello, World"), 0644)
+	err := ioutil.WriteFile(path.Join(path.Dir(repo.Workdir()), "hello.txt"), []byte("Hello, World"), 0644)
 	checkFatal(t, err)
 
 	statusList, err := repo.StatusList(nil)

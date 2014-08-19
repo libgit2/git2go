@@ -20,7 +20,7 @@ const (
 	StatusIndexRenamed           = C.GIT_STATUS_INDEX_RENAMED
 	StatusIndexTypeChange        = C.GIT_STATUS_INDEX_TYPECHANGE
 	StatusWtNew                  = C.GIT_STATUS_WT_NEW
-	StatusWtModified             = C.GIT_STATUS_WT_NEW
+	StatusWtModified             = C.GIT_STATUS_WT_MODIFIED
 	StatusWtDeleted              = C.GIT_STATUS_WT_DELETED
 	StatusWtTypeChange           = C.GIT_STATUS_WT_TYPECHANGE
 	StatusWtRenamed              = C.GIT_STATUS_WT_RENAMED
@@ -156,4 +156,15 @@ func (v *Repository) StatusList(opts *StatusOptions) (*StatusList, error) {
 		return nil, MakeGitError(ret)
 	}
 	return newStatusListFromC(ptr), nil
+}
+
+
+func (v *Repository) StatusFile(path string) (Status, error) {
+	var statusFlags C.uint
+	cPath := C.CString(path)
+	ret := C.git_status_file(&statusFlags, v.ptr, cPath)
+	if ret < 0 {
+		return 0, MakeGitError(ret)
+	}
+	return Status(statusFlags), nil
 }
