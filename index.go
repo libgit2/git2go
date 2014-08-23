@@ -114,6 +114,21 @@ func (v *Index) AddByPath(path string) error {
 	return nil
 }
 
+func (v *Index) RemoveByPath(path string) error {
+	cstr := C.CString(path)
+	defer C.free(unsafe.Pointer(cstr))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_index_remove_bypath(v.ptr, cstr)
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+
+	return nil
+}
+
 func (v *Index) WriteTreeTo(repo *Repository) (*Oid, error) {
 	oid := new(Oid)
 
