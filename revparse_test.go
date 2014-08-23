@@ -5,31 +5,31 @@ import (
 	"testing"
 )
 
-func TestRevParse(t *testing.T) {
+func TestRevparse(t *testing.T) {
 	repo := createTestRepo(t)
 	defer os.RemoveAll(repo.Workdir())
 
 	commitId, _ := seedTestRepo(t, repo)
 
-	revSpec, err := repo.RevParse("HEAD")
+	revSpec, err := repo.Revparse("HEAD")
 	checkFatal(t, err)
 
 	checkObject(t, revSpec.From(), commitId)
 }
 
-func TestRevParseSingle(t *testing.T) {
+func TestRevparseSingle(t *testing.T) {
 	repo := createTestRepo(t)
 	defer os.RemoveAll(repo.Workdir())
 
 	commitId, _ := seedTestRepo(t, repo)
 
-	obj, err := repo.RevParseSingle("HEAD")
+	obj, err := repo.RevparseSingle("HEAD")
 	checkFatal(t, err)
 
 	checkObject(t, obj, commitId)
 }
 
-func TestRevParseExt(t *testing.T) {
+func TestRevparseExt(t *testing.T) {
 	repo := createTestRepo(t)
 	defer os.RemoveAll(repo.Workdir())
 
@@ -38,7 +38,7 @@ func TestRevParseExt(t *testing.T) {
 	ref, err := repo.CreateReference("refs/heads/master", treeId, true, nil, "")
 	checkFatal(t, err)
 
-	obj, ref, err := repo.RevParseExt("master")
+	obj, ref, err := repo.RevparseExt("master")
 	checkFatal(t, err)
 
 	checkObject(t, obj, treeId)

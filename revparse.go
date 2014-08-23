@@ -12,37 +12,52 @@ import (
 	"unsafe"
 )
 
-type RevSpec struct {
-	ptr  *C.git_revspec
-	repo *Repository
+type RevparseFlag int
+
+const (
+	RevparseSingle    RevparseFlag = C.GIT_REVPARSE_SINGLE
+	RevparseRange                  = C.GIT_REVPARSE_RANGE
+	RevparseMergeBase              = C.GIT_REVPARSE_MERGE_BASE
+)
+
+type Revspec struct {
+	to    Object
+	from  Object
+	flags RevparseFlag
 }
 
-func newRevSpecFrom(ptr *C.git_revspec, repo *Repository) *RevSpec {
-	rev := &RevSpec{
-		ptr:  ptr,
-		repo: repo,
+func (rs *Revspec) To() Object {
+	return rs.to
+}
+
+func (rs *Revspec) From() Object {
+	return rs.from
+}
+
+func (rs *Revspec) Flags() RevparseFlag {
+	return rs.flags
+}
+
+func newRevspecFromC(ptr *C.git_revspec, repo *Repository) *Revspec {
+	var to Object
+	var from Object
+
+	if ptr.to != nil {
+		to = allocObject(ptr.to, repo)
 	}
 
-	return rev
-}
-
-func (r *RevSpec) From() Object {
-	if r.ptr.from == nil {
-		return nil
+	if ptr.from != nil {
+		from = allocObject(ptr.from, repo)
 	}
 
-	return allocObject(r.ptr.from, r.repo)
-}
-
-func (r *RevSpec) To() Object {
-	if r.ptr.to == nil {
-		return nil
+	return &Revspec{
+		to:    to,
+		from:  from,
+		flags: RevparseFlag(ptr.flags),
 	}
-
-	return allocObject(r.ptr.to, r.repo)
 }
 
-func (r *Repository) RevParse(spec string) (*RevSpec, error) {
+func (r *Repository) Revparse(spec string) (*Revspec, error) {
 	cspec := C.CString(spec)
 	defer C.free(unsafe.Pointer(cspec))
 
@@ -56,27 +71,27 @@ func (r *Repository) RevParse(spec string) (*RevSpec, error) {
 		return nil, MakeGitError(ecode)
 	}
 
-	return newRevSpecFrom(ptr, r), nil
+	return newRevspecFromC(ptr, r), nil
 }
 
-func (r *Repository) RevParseSingle(spec string) (Object, error) {
+func (v *Repository) RevparseSingle(spec string) (Object, error) {
 	cspec := C.CString(spec)
 	defer C.free(unsafe.Pointer(cspec))
 
-	var obj *C.git_object
+	var ptr *C.git_object
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_revparse_single(&obj, r.ptr, cspec)
-	if ecode != 0 {
+	ecode := C.git_revparse_single(&ptr, v.ptr, cspec)
+	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
 
-	return allocObject(obj, r), nil
+	return allocObject(ptr, v), nil
 }
 
-func (r *Repository) RevParseExt(spec string) (Object, *Reference, error) {
+func (r *Repository) RevparseExt(spec string) (Object, *Reference, error) {
 	cspec := C.CString(spec)
 	defer C.free(unsafe.Pointer(cspec))
 
