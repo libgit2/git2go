@@ -5,6 +5,7 @@ set -ex
 VENDORED_PATH=vendor/libgit2
 
 cd $VENDORED_PATH &&
+mkdir -p install/lib &&
 mkdir -p build &&
 cd build &&
 cmake -DTHREADSAFE=ON \
