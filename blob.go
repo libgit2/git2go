@@ -36,12 +36,21 @@ func (v *Blob) Contents() []byte {
 func (repo *Repository) CreateBlobFromBuffer(data []byte) (*Oid, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-	oid := C.git_oid{}
-	ecode := C.git_blob_create_frombuffer(&oid, repo.ptr, unsafe.Pointer(&data[0]), C.size_t(len(data)))
+
+	var id C.git_oid
+	var ptr unsafe.Pointer
+
+	if len(data) > 0 {
+		ptr = unsafe.Pointer(&data[0])
+	} else {
+		ptr = unsafe.Pointer(nil)
+	}
+
+	ecode := C.git_blob_create_frombuffer(&id, repo.ptr, ptr, C.size_t(len(data)))
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
-	return newOidFromC(&oid), nil
+	return newOidFromC(&id), nil
 }
 
 type BlobChunkCallback func(maxLen int) ([]byte, error)
