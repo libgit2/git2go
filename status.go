@@ -8,6 +8,7 @@ import "C"
 
 import (
 	"runtime"
+	"unsafe"
 )
 
 type Status int
@@ -150,6 +151,9 @@ func (v *Repository) StatusList(opts *StatusOptions) (*StatusList, error) {
 		}
 	}
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_status_list_new(&ptr, v.ptr, copts)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
@@ -161,6 +165,11 @@ func (v *Repository) StatusList(opts *StatusOptions) (*StatusList, error) {
 func (v *Repository) StatusFile(path string) (Status, error) {
 	var statusFlags C.uint
 	cPath := C.CString(path)
+	defer C.free(unsafe.Pointer(cPath))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_status_file(&statusFlags, v.ptr, cPath)
 	if ret < 0 {
 		return 0, MakeGitError(ret)
