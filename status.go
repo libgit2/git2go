@@ -61,14 +61,13 @@ func newStatusListFromC(ptr *C.git_status_list) *StatusList {
 	return statusList
 }
 
-func (statusList *StatusList) Free() error {
+func (statusList *StatusList) Free() {
 	if statusList.ptr == nil {
-		return ErrInvalid
+		return
 	}
 	runtime.SetFinalizer(statusList, nil)
 	C.git_status_list_free(statusList.ptr)
 	statusList.ptr = nil
-	return nil
 }
 
 func (statusList *StatusList) ByIndex(index int) (StatusEntry, error) {
