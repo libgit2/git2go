@@ -23,29 +23,6 @@ func TestStatusFile(t *testing.T) {
 	}
 }
 
-func TestStatusForeach(t *testing.T) {
-	repo := createTestRepo(t)
-	defer repo.Free()
-	defer os.RemoveAll(repo.Workdir())
-
-	err := ioutil.WriteFile(path.Join(path.Dir(repo.Workdir()), "hello.txt"), []byte("Hello, World"), 0644)
-	checkFatal(t, err)
-
-	statusFound := false
-	err = repo.StatusForeach(func (path string, statusFlags Status) int {
-		if path == "hello.txt" && statusFlags & StatusWtNew != 0 {
-			statusFound = true
-		}
-
-		return 0
-	});
-	checkFatal(t, err)
-
-	if !statusFound {
-		t.Fatal("Status callback not called with the new file")
-	}
-}
-
 func TestEntryCount(t *testing.T) {
 	repo := createTestRepo(t)
 	defer repo.Free()

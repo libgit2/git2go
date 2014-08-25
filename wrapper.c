@@ -105,9 +105,4 @@ int _go_git_blob_create_fromchunks(git_oid *id,
     return git_blob_create_fromchunks(id, repo, hintpath, _go_blob_chunk_cb, payload);
 }
 
-int _go_git_status_foreach(git_repository *repo, void *data)
-{
-	return git_status_foreach(repo, (git_status_cb)fileStatusForeach, data);
-}
-
 /* EOF */
