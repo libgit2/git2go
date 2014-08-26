@@ -61,17 +61,17 @@ func (r *Repository) Revparse(spec string) (*Revspec, error) {
 	cspec := C.CString(spec)
 	defer C.free(unsafe.Pointer(cspec))
 
-	ptr := new(C.git_revspec)
+	var crevspec C.git_revspec
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_revparse(ptr, r.ptr, cspec)
+	ecode := C.git_revparse(&crevspec, r.ptr, cspec)
 	if ecode != 0 {
 		return nil, MakeGitError(ecode)
 	}
 
-	return newRevspecFromC(ptr, r), nil
+	return newRevspecFromC(&crevspec, r), nil
 }
 
 func (v *Repository) RevparseSingle(spec string) (Object, error) {
