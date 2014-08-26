@@ -469,23 +469,6 @@ func (v *Repository) TreeBuilderFromTree(tree *Tree) (*TreeBuilder, error) {
 	return bld, nil
 }
 
-func (v *Repository) RevparseSingle(spec string) (Object, error) {
-	cspec := C.CString(spec)
-	defer C.free(unsafe.Pointer(cspec))
-
-	var ptr *C.git_object
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ecode := C.git_revparse_single(&ptr, v.ptr, cspec)
-	if ecode < 0 {
-		return nil, MakeGitError(ecode)
-	}
-
-	return allocObject(ptr, v), nil
-}
-
 // EnsureLog ensures that there is a reflog for the given reference
 // name and creates an empty one if necessary.
 func (v *Repository) EnsureLog(name string) error {
