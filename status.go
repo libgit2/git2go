@@ -35,10 +35,21 @@ type StatusEntry struct {
 }
 
 func statusEntryFromC(statusEntry *C.git_status_entry) StatusEntry {
+	var headToIndex DiffDelta = DiffDelta{}
+	var indexToWorkdir DiffDelta = DiffDelta{}
+
+	// Based on the libgit2 status example, head_to_index can be null in some cases
+	if statusEntry.head_to_index != nil {
+		headToIndex = diffDeltaFromC(statusEntry.head_to_index)
+	}
+	if statusEntry.index_to_workdir != nil {
+		indexToWorkdir = diffDeltaFromC(statusEntry.index_to_workdir)
+	}
+
 	return StatusEntry {
 		Status:         Status(statusEntry.status),
-		HeadToIndex:    diffDeltaFromC(statusEntry.head_to_index),
-		IndexToWorkdir: diffDeltaFromC(statusEntry.index_to_workdir),
+		HeadToIndex:    headToIndex,
+		IndexToWorkdir: indexToWorkdir,
 	}
 }
 
@@ -158,6 +169,7 @@ func (v *Repository) StatusList(opts *StatusOptions) (*StatusList, error) {
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
+
 	return newStatusListFromC(ptr), nil
 }
 

@@ -23,22 +23,36 @@ func TestStatusFile(t *testing.T) {
 	}
 }
 
-func TestEntryCount(t *testing.T) {
+func TestStatusList(t *testing.T) {
 	repo := createTestRepo(t)
+	// This commits the test repo README, so it doesn't show up in the status list and there's a head to compare to
+	seedTestRepo(t, repo)
 	defer repo.Free()
 	defer os.RemoveAll(repo.Workdir())
 
 	err := ioutil.WriteFile(path.Join(path.Dir(repo.Workdir()), "hello.txt"), []byte("Hello, World"), 0644)
 	checkFatal(t, err)
 
-	statusList, err := repo.StatusList(nil)
+	opts := &StatusOptions{}
+	opts.Show = StatusShowIndexAndWorkdir
+	opts.Flags = StatusOptIncludeUntracked | StatusOptRenamesHeadToIndex | StatusOptSortCaseSensitively
+
+	statusList, err := repo.StatusList(opts)
 	checkFatal(t, err)
 
 	entryCount, err := statusList.EntryCount()
 	checkFatal(t, err)
 
 	if entryCount != 1 {
-		// FIXME: this is 0 even though the same setup above returns the correct status, as does a call to StatusFile here
-		// t.Fatal("Incorrect number of status entries: ", entryCount)
+		t.Fatal("Incorrect number of status entries: ", entryCount)
+	}
+
+	entry, err := statusList.ByIndex(0)
+	checkFatal(t, err)
+	if entry.Status != StatusWtNew {
+		t.Fatal("Incorrect status flags: ", entry.Status)
+	}
+	if entry.IndexToWorkdir.NewFile.Path != "hello.txt" {
+		t.Fatal("Incorrect entry path: ", entry.IndexToWorkdir.NewFile.Path)
 	}
 }
