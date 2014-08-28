@@ -98,23 +98,7 @@ func (v *Repository) CheckoutIndex(index *Index, opts *CheckoutOpts) error {
 	return nil
 }
 
-func (v *Repository) CheckoutTree(treeish string, opts *CheckoutOpts) error {
-	obj, err := v.RevparseSingle(treeish)
-	if err != nil {
-		return err
-	}
-	defer obj.Free()
-
-	commit, err := v.LookupCommit(obj.Id())
-	if err != nil {
-		return err
-	}
-
-	tree, err := commit.Tree()
-	if err != nil {
-		return err
-	}
-
+func (v *Repository) CheckoutTree(tree *Tree, opts *CheckoutOpts) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
