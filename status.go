@@ -94,21 +94,23 @@ func (statusList *StatusList) EntryCount() (int, error) {
 	return int(C.git_status_list_entrycount(statusList.ptr)), nil
 }
 
+type StatusOpt int
+
 const (
-	StatusOptIncludeUntracked             = C.GIT_STATUS_OPT_INCLUDE_UNTRACKED
-	StatusOptIncludeIgnored               = C.GIT_STATUS_OPT_INCLUDE_IGNORED
-	StatusOptIncludeUnmodified            = C.GIT_STATUS_OPT_INCLUDE_UNMODIFIED
-	StatusOptExcludeSubmodules            = C.GIT_STATUS_OPT_EXCLUDE_SUBMODULES
-	StatusOptRecurseUntrackedDirs         = C.GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS
-	StatusOptDisablePathspecMatch         = C.GIT_STATUS_OPT_DISABLE_PATHSPEC_MATCH
-	StatusOptRecurseIgnoredDirs           = C.GIT_STATUS_OPT_RECURSE_IGNORED_DIRS
-	StatusOptRenamesHeadToIndex           = C.GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX
-	StatusOptRenamesIndexToWorkdir        = C.GIT_STATUS_OPT_RENAMES_INDEX_TO_WORKDIR
-	StatusOptSortCaseSensitively          = C.GIT_STATUS_OPT_SORT_CASE_SENSITIVELY
-	StatusOptSortCaseInsensitively        = C.GIT_STATUS_OPT_SORT_CASE_INSENSITIVELY
-	StatusOptRenamesFromRewrites          = C.GIT_STATUS_OPT_RENAMES_FROM_REWRITES
-	StatusOptNoRefresh                    = C.GIT_STATUS_OPT_NO_REFRESH
-	StatusOptUpdateIndex                  = C.GIT_STATUS_OPT_UPDATE_INDEX
+	StatusOptIncludeUntracked           StatusOpt  = C.GIT_STATUS_OPT_INCLUDE_UNTRACKED
+	StatusOptIncludeIgnored                        = C.GIT_STATUS_OPT_INCLUDE_IGNORED
+	StatusOptIncludeUnmodified                     = C.GIT_STATUS_OPT_INCLUDE_UNMODIFIED
+	StatusOptExcludeSubmodules                     = C.GIT_STATUS_OPT_EXCLUDE_SUBMODULES
+	StatusOptRecurseUntrackedDirs                  = C.GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS
+	StatusOptDisablePathspecMatch                  = C.GIT_STATUS_OPT_DISABLE_PATHSPEC_MATCH
+	StatusOptRecurseIgnoredDirs                    = C.GIT_STATUS_OPT_RECURSE_IGNORED_DIRS
+	StatusOptRenamesHeadToIndex                    = C.GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX
+	StatusOptRenamesIndexToWorkdir                 = C.GIT_STATUS_OPT_RENAMES_INDEX_TO_WORKDIR
+	StatusOptSortCaseSensitively                   = C.GIT_STATUS_OPT_SORT_CASE_SENSITIVELY
+	StatusOptSortCaseInsensitively                 = C.GIT_STATUS_OPT_SORT_CASE_INSENSITIVELY
+	StatusOptRenamesFromRewrites                   = C.GIT_STATUS_OPT_RENAMES_FROM_REWRITES
+	StatusOptNoRefresh                             = C.GIT_STATUS_OPT_NO_REFRESH
+	StatusOptUpdateIndex                           = C.GIT_STATUS_OPT_UPDATE_INDEX
 )
 
 type StatusShow int
@@ -122,7 +124,7 @@ const (
 type StatusOptions struct {
 	Version  int
 	Show     StatusShow
-	Flags    int
+	Flags    StatusOpt
 	Pathspec []string
 }
 
