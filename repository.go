@@ -326,10 +326,12 @@ func (v *Repository) CreateCommit(
 
 	oid := new(Oid)
 
-	cref := C.CString(refname)
-	defer C.free(unsafe.Pointer(cref))
+	var cref *C.char
 	if refname == "" {
 		cref = nil
+	} else {
+		cref = C.CString(refname)
+		defer C.free(unsafe.Pointer(cref))
 	}
 
 	cmsg := C.CString(message)
