@@ -16,8 +16,7 @@ import (
 type Filemode int
 
 const (
-	FilemodeNew            Filemode = C.GIT_FILEMODE_NEW
-	FilemodeTree                    = C.GIT_FILEMODE_TREE
+	FilemodeTree           Filemode = C.GIT_FILEMODE_TREE
 	FilemodeBlob                    = C.GIT_FILEMODE_BLOB
 	FilemodeBlobExecutable          = C.GIT_FILEMODE_BLOB_EXECUTABLE
 	FilemodeLink                    = C.GIT_FILEMODE_LINK

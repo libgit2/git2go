@@ -14,10 +14,10 @@ import (
 type CloneOptions struct {
 	*CheckoutOpts
 	*RemoteCallbacks
-	Bare             bool
-	IgnoreCertErrors bool
-	RemoteName       string
-	CheckoutBranch   string
+	Bare                 bool
+	CheckoutBranch       string
+	RemoteCreateCallback C.git_remote_create_cb
+	RemoteCreatePayload  unsafe.Pointer
 }
 
 func Clone(url string, path string, options *CloneOptions) (*Repository, error) {
@@ -31,12 +31,6 @@ func Clone(url string, path string, options *CloneOptions) (*Repository, error) 
 
 	var copts C.git_clone_options
 	populateCloneOptions(&copts, options)
-
-	// finish populating clone options here so we can defer CString free
-	if len(options.RemoteName) != 0 {
-		copts.remote_name = C.CString(options.RemoteName)
-		defer C.free(unsafe.Pointer(copts.remote_name))
-	}
 
 	if len(options.CheckoutBranch) != 0 {
 		copts.checkout_branch = C.CString(options.CheckoutBranch)
@@ -67,9 +61,14 @@ func populateCloneOptions(ptr *C.git_clone_options, opts *CloneOptions) {
 	} else {
 		ptr.bare = 0
 	}
-	if opts.IgnoreCertErrors {
-		ptr.ignore_cert_errors = 1
-	} else {
-		ptr.ignore_cert_errors = 0
+
+	if opts.RemoteCreateCallback != nil {
+		ptr.remote_cb = opts.RemoteCreateCallback
+		defer C.free(unsafe.Pointer(opts.RemoteCreateCallback))
+
+		if opts.RemoteCreatePayload != nil {
+			ptr.remote_cb_payload = opts.RemoteCreatePayload
+			defer C.free(opts.RemoteCreatePayload)
+		}
 	}
 }
