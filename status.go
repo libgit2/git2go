@@ -122,7 +122,6 @@ const (
 )
 
 type StatusOptions struct {
-	Version  int
 	Show     StatusShow
 	Flags    StatusOpt
 	Pathspec []string
