@@ -67,14 +67,10 @@ func populateCheckoutOpts(ptr *C.git_checkout_options, opts *CheckoutOpts) *C.gi
 // Updates files in the index and the working tree to match the content of
 // the commit pointed at by HEAD. opts may be nil.
 func (v *Repository) CheckoutHead(opts *CheckoutOpts) error {
-	var copts C.git_checkout_options
-
-	ptr := populateCheckoutOpts(&copts, opts)
-
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_checkout_head(v.ptr, ptr)
+	ret := C.git_checkout_head(v.ptr, opts.toC())
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -86,9 +82,6 @@ func (v *Repository) CheckoutHead(opts *CheckoutOpts) error {
 // index. If index is nil, the repository's index will be used. opts
 // may be nil.
 func (v *Repository) CheckoutIndex(index *Index, opts *CheckoutOpts) error {
-	var copts C.git_checkout_options
-	ptr := populateCheckoutOpts(&copts, opts)
-
 	var iptr *C.git_index = nil
 	if index != nil {
 		iptr = index.ptr
@@ -97,7 +90,19 @@ func (v *Repository) CheckoutIndex(index *Index, opts *CheckoutOpts) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_checkout_index(v.ptr, iptr, ptr)
+	ret := C.git_checkout_index(v.ptr, iptr, opts.toC())
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+
+	return nil
+}
+
+func (v *Repository) CheckoutTree(tree *Tree, opts *CheckoutOpts) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_checkout_tree(v.ptr, tree.ptr, opts.toC())
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
