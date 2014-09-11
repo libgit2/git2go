@@ -45,7 +45,7 @@ void _go_git_refdb_backend_free(git_refdb_backend *backend)
 
 int _go_git_diff_foreach(git_diff *diff, int eachFile, int eachHunk, int eachLine, void *payload)
 {
-	git_diff_file_cb fcb = NULL;	
+	git_diff_file_cb fcb = NULL;
 	git_diff_hunk_cb hcb = NULL;
 	git_diff_line_cb lcb = NULL;
 
