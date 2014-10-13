@@ -433,6 +433,18 @@ func (o *Remote) RefspecCount() uint {
 	return uint(C.git_remote_refspec_count(o.ptr))
 }
 
+func (o *Remote) SetUpdateFetchHead(val bool) {
+        i := 0
+        if val {
+            i = 1
+        }
+        C.git_remote_set_update_fetchhead(o.ptr, C.int(i)) 
+}
+
+func (o *Remote) UpdateFetchHead() bool {
+        return C.git_remote_update_fetchhead(o.ptr) > 0
+}
+
 func (o *Remote) Fetch(sig *Signature, msg string) error {
 
 	var csig *C.git_signature = nil
