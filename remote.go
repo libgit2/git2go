@@ -461,6 +461,14 @@ func (o *Remote) RefspecCount() uint {
 	return uint(C.git_remote_refspec_count(o.ptr))
 }
 
+func (o *Remote) SetUpdateFetchHead(val bool) {
+        C.git_remote_set_update_fetchhead(o.ptr, cbool(val))
+}
+
+func (o *Remote) UpdateFetchHead() bool {
+        return C.git_remote_update_fetchhead(o.ptr) > 0
+}
+
 // Fetch performs a fetch operation. refspecs specifies which refspecs
 // to use for this fetch, use an empty list to use the refspecs from
 // the configuration; sig and msg specify what to use for the reflog
