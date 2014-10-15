@@ -434,11 +434,7 @@ func (o *Remote) RefspecCount() uint {
 }
 
 func (o *Remote) SetUpdateFetchHead(val bool) {
-        i := 0
-        if val {
-            i = 1
-        }
-        C.git_remote_set_update_fetchhead(o.ptr, C.int(i)) 
+        C.git_remote_set_update_fetchhead(o.ptr, cbool(val)) 
 }
 
 func (o *Remote) UpdateFetchHead() bool {
