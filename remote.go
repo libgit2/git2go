@@ -2,7 +2,7 @@ package git
 
 /*
 #include <git2.h>
-#include <strings.h>
+#include <string.h>
 
 extern void _go_git_setup_callbacks(git_remote_callbacks *callbacks);
 
