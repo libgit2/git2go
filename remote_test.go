@@ -1,6 +1,8 @@
 package git
 
 import (
+	"fmt"
+	"crypto/x509"
 	"os"
 	"testing"
 )
@@ -44,4 +46,36 @@ func TestListRemotes(t *testing.T) {
 	checkFatal(t, err)
 
 	compareStringList(t, expected, actual)
+}
+
+
+func assertHostname(cert *x509.Certificate, valid bool, hostname string, t *testing.T) int {
+	fmt.Println("hostname", hostname)
+	if hostname != "github.com" {
+		t.Fatal("Hostname does not match")
+		return ErrUser
+	}
+
+	return 0
+}
+
+func TestCertificateCheck(t *testing.T) {
+	repo := createTestRepo(t)
+	defer os.RemoveAll(repo.Workdir())
+	defer repo.Free()
+
+	remote, err := repo.CreateRemote("origin", "https://github.com/libgit2/TestGitRepository")
+	checkFatal(t, err)
+
+	callbacks := RemoteCallbacks{
+		CertificateCheckCallback: func (cert *x509.Certificate, valid bool, hostname string) int {
+			return assertHostname(cert, valid, hostname, t)
+		},
+	}
+
+	err = remote.SetCallbacks(&callbacks)
+	checkFatal(t, err)
+	err = remote.Fetch([]string{}, nil, "")
+	checkFatal(t, err)
+	fmt.Println("after Fetch()")
 }

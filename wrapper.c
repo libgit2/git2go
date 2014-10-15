@@ -70,14 +70,13 @@ void _go_git_setup_diff_notify_callbacks(git_diff_options *opts) {
 
 void _go_git_setup_callbacks(git_remote_callbacks *callbacks) {
 	typedef int (*completion_cb)(git_remote_completion_type type, void *data);
-	typedef int (*credentials_cb)(git_cred **cred, const char *url, const char *username_from_url, unsigned int allowed_types,	void *data);
-	typedef int (*transfer_progress_cb)(const git_transfer_progress *stats, void *data);
 	typedef int (*update_tips_cb)(const char *refname, const git_oid *a, const git_oid *b, void *data);
 	callbacks->sideband_progress = (git_transport_message_cb)sidebandProgressCallback;
 	callbacks->completion = (completion_cb)completionCallback;
-	callbacks->credentials = (credentials_cb)credentialsCallback;
-	callbacks->transfer_progress = (transfer_progress_cb)transferProgressCallback;
+	callbacks->credentials = (git_cred_acquire_cb)credentialsCallback;
+	callbacks->transfer_progress = (git_transfer_progress_cb)transferProgressCallback;
 	callbacks->update_tips = (update_tips_cb)updateTipsCallback;
+	callbacks->certificate_check = (git_transport_certificate_check_cb) certificateCheckCallback;
 }
 
 typedef int (*status_foreach_cb)(const char *ref, const char *msg, void *data);
