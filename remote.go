@@ -160,8 +160,13 @@ func updateTipsCallback(_refname *C.char, _a *C.git_oid, _b *C.git_oid, data uns
 //export certificateCheckCallback
 func certificateCheckCallback(_cert *C.git_cert, _valid C.int, _host *C.char, data unsafe.Pointer) int {
 	callbacks := (*RemoteCallbacks)(data)
+	// if there's no callback set, we need to make sure we fail if the library didn't consider this cert valid
 	if callbacks.CertificateCheckCallback == nil {
-		return 0
+		if _valid == 1 {
+			return 0
+		} else {
+			return C.GIT_ECERTIFICATE
+		}
 	}
 	host := C.GoString(_host)
 	valid := _valid != 0
