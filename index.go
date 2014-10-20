@@ -19,7 +19,7 @@ type Index struct {
 type IndexEntry struct {
 	Ctime time.Time
 	Mtime time.Time
-	Mode  uint
+	Mode  Filemode
 	Uid   uint
 	Gid   uint
 	Size  uint
@@ -34,7 +34,7 @@ func newIndexEntryFromC(entry *C.git_index_entry) *IndexEntry {
 	return &IndexEntry{
 		time.Unix(int64(entry.ctime.seconds), int64(entry.ctime.nanoseconds)),
 		time.Unix(int64(entry.mtime.seconds), int64(entry.mtime.nanoseconds)),
-		uint(entry.mode),
+		Filemode(entry.mode),
 		uint(entry.uid),
 		uint(entry.gid),
 		uint(entry.file_size),
