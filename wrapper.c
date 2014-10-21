@@ -104,4 +104,19 @@ int _go_git_blob_create_fromchunks(git_oid *id,
     return git_blob_create_fromchunks(id, repo, hintpath, _go_blob_chunk_cb, payload);
 }
 
+int _go_git_index_add_all(git_index *index, const git_strarray *pathspec, unsigned int flags, void *callback) {
+	git_index_matched_path_cb cb = callback ? (git_index_matched_path_cb) &indexMatchedPathCallback : NULL;
+	return git_index_add_all(index, pathspec, flags, cb, callback);
+}
+
+int _go_git_index_update_all(git_index *index, const git_strarray *pathspec, void *callback) {
+	git_index_matched_path_cb cb = callback ? (git_index_matched_path_cb) &indexMatchedPathCallback : NULL;
+	return git_index_update_all(index, pathspec, cb, callback);
+}
+
+int _go_git_index_remove_all(git_index *index, const git_strarray *pathspec, void *callback) {
+	git_index_matched_path_cb cb = callback ? (git_index_matched_path_cb) &indexMatchedPathCallback : NULL;
+	return git_index_remove_all(index, pathspec, cb, callback);
+}
+
 /* EOF */

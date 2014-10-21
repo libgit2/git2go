@@ -1,6 +1,7 @@
 package git
 
 import (
+	"io/ioutil"
 	"os"
 	"runtime"
 	"testing"
@@ -54,14 +55,63 @@ func TestIndexAddAndWriteTreeTo(t *testing.T) {
 	idx, err := NewIndex()
 	checkFatal(t, err)
 
-	entry := IndexEntry {
+	entry := IndexEntry{
 		Path: "README",
-		Id: blobID,
+		Id:   blobID,
 		Mode: FilemodeBlob,
 	}
 
 	err = idx.Add(&entry)
 	checkFatal(t, err)
+
+	treeId, err := idx.WriteTreeTo(repo)
+	checkFatal(t, err)
+
+	if treeId.String() != "b7119b11e8ef7a1a5a34d3ac87f5b075228ac81e" {
+		t.Fatalf("%v", treeId.String())
+	}
+}
+
+func TestIndexAddAllNoCallback(t *testing.T) {
+	repo := createTestRepo(t)
+	defer os.RemoveAll(repo.Workdir())
+
+	err := ioutil.WriteFile(repo.Workdir()+"/README", []byte("foo\n"), 0644)
+	checkFatal(t, err)
+
+	idx, err := repo.Index()
+	checkFatal(t, err)
+
+	err = idx.AddAll([]string{}, IndexAddDefault, nil)
+	checkFatal(t, err)
+
+	treeId, err := idx.WriteTreeTo(repo)
+	checkFatal(t, err)
+
+	if treeId.String() != "b7119b11e8ef7a1a5a34d3ac87f5b075228ac81e" {
+		t.Fatalf("%v", treeId.String())
+	}
+}
+
+func TestIndexAddAllCallback(t *testing.T) {
+	repo := createTestRepo(t)
+	defer os.RemoveAll(repo.Workdir())
+
+	err := ioutil.WriteFile(repo.Workdir()+"/README", []byte("foo\n"), 0644)
+	checkFatal(t, err)
+
+	idx, err := repo.Index()
+	checkFatal(t, err)
+
+	cbPath := ""
+	err = idx.AddAll([]string{}, IndexAddDefault, func(p, mP string) int {
+		cbPath = p
+		return 0
+	})
+	checkFatal(t, err)
+	if cbPath != "README" {
+		t.Fatalf("%v", cbPath)
+	}
 
 	treeId, err := idx.WriteTreeTo(repo)
 	checkFatal(t, err)
