@@ -9,9 +9,11 @@ extern void _go_git_setup_callbacks(git_remote_callbacks *callbacks);
 */
 import "C"
 import (
-	"unsafe"
-	"runtime"
 	"crypto/x509"
+	"reflect"
+	"runtime"
+	"strings"
+	"unsafe"
 )
 
 type TransferProgress struct {
@@ -39,6 +41,8 @@ const (
 	RemoteCompletionDownload RemoteCompletion = C.GIT_REMOTE_COMPLETION_DOWNLOAD
 	RemoteCompletionIndexing                  = C.GIT_REMOTE_COMPLETION_INDEXING
 	RemoteCompletionError                     = C.GIT_REMOTE_COMPLETION_ERROR
+
+	RemoteFetchDirection = C.GIT_DIRECTION_FETCH
 )
 
 type TransportMessageCallback func(str string) int
@@ -58,7 +62,7 @@ type RemoteCallbacks struct {
 }
 
 type Remote struct {
-	ptr *C.git_remote
+	ptr       *C.git_remote
 	callbacks RemoteCallbacks
 }
 
@@ -93,6 +97,18 @@ type HostkeyCertificate struct {
 	Kind     HostkeyKind
 	HashMD5  [16]byte
 	HashSHA1 [20]byte
+}
+
+type RemoteHead struct {
+	Id   *Oid
+	Name string
+}
+
+func newRemoteHeadFromC(ptr *C.git_remote_head) RemoteHead {
+	return RemoteHead{
+		Id:   newOidFromC(&ptr.oid),
+		Name: C.GoString(ptr.name),
+	}
 }
 
 func populateRemoteCallbacks(ptr *C.git_remote_callbacks, callbacks *RemoteCallbacks) {
@@ -194,7 +210,6 @@ func certificateCheckCallback(_cert *C.git_cert, _valid C.int, _host *C.char, da
 		C.free(unsafe.Pointer(cstr))
 		return -1 // we don't support anything else atm
 	}
-
 
 	return callbacks.CertificateCheckCallback(&cert, valid, host)
 }
@@ -547,4 +562,53 @@ func (o *Remote) Fetch(refspecs []string, sig *Signature, msg string) error {
 		return MakeGitError(ret)
 	}
 	return nil
+}
+
+func (o *Remote) Ls(filterRefs ...string) ([]RemoteHead, error) {
+	if ret := C.git_remote_connect(o.ptr, RemoteFetchDirection); ret != 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	var refs **C.git_remote_head
+	var length C.size_t
+
+	if ret := C.git_remote_ls(&refs, &length, o.ptr); ret != 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	size := int(length)
+
+	if size == 0 {
+		return make([]RemoteHead, 0), nil
+	}
+
+	hdr := reflect.SliceHeader{
+		Data: uintptr(unsafe.Pointer(refs)),
+		Len:  size,
+		Cap:  size,
+	}
+
+	goSlice := *(*[]*C.git_remote_head)(unsafe.Pointer(&hdr))
+
+	var heads []RemoteHead
+
+	if len(filterRefs) > 0 {
+		for _, s := range goSlice {
+			head := newRemoteHeadFromC(s)
+
+			for _, r := range filterRefs {
+				if strings.Contains(head.Name, r) {
+					heads = append(heads, head)
+					break
+				}
+			}
+		}
+	} else {
+		heads = make([]RemoteHead, size)
+		for i, s := range goSlice {
+			heads[i] = newRemoteHeadFromC(s)
+		}
+	}
+
+	return heads, nil
 }
