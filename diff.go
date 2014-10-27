@@ -17,37 +17,37 @@ type DiffFlag int
 
 const (
 	DiffFlagBinary    DiffFlag = C.GIT_DIFF_FLAG_BINARY
-	DiffFlagNotBinary          = C.GIT_DIFF_FLAG_NOT_BINARY
-	DiffFlagValidOid           = C.GIT_DIFF_FLAG_VALID_ID
+	DiffFlagNotBinary DiffFlag = C.GIT_DIFF_FLAG_NOT_BINARY
+	DiffFlagValidOid  DiffFlag = C.GIT_DIFF_FLAG_VALID_ID
 )
 
 type Delta int
 
 const (
 	DeltaUnmodified Delta = C.GIT_DELTA_UNMODIFIED
-	DeltaAdded            = C.GIT_DELTA_ADDED
-	DeltaDeleted          = C.GIT_DELTA_DELETED
-	DeltaModified         = C.GIT_DELTA_MODIFIED
-	DeltaRenamed          = C.GIT_DELTA_RENAMED
-	DeltaCopied           = C.GIT_DELTA_COPIED
-	DeltaIgnored          = C.GIT_DELTA_IGNORED
-	DeltaUntracked        = C.GIT_DELTA_UNTRACKED
-	DeltaTypeChange       = C.GIT_DELTA_TYPECHANGE
+	DeltaAdded      Delta = C.GIT_DELTA_ADDED
+	DeltaDeleted    Delta = C.GIT_DELTA_DELETED
+	DeltaModified   Delta = C.GIT_DELTA_MODIFIED
+	DeltaRenamed    Delta = C.GIT_DELTA_RENAMED
+	DeltaCopied     Delta = C.GIT_DELTA_COPIED
+	DeltaIgnored    Delta = C.GIT_DELTA_IGNORED
+	DeltaUntracked  Delta = C.GIT_DELTA_UNTRACKED
+	DeltaTypeChange Delta = C.GIT_DELTA_TYPECHANGE
 )
 
 type DiffLineType int
 
 const (
 	DiffLineContext      DiffLineType = C.GIT_DIFF_LINE_CONTEXT
-	DiffLineAddition                  = C.GIT_DIFF_LINE_ADDITION
-	DiffLineDeletion                  = C.GIT_DIFF_LINE_DELETION
-	DiffLineContextEOFNL              = C.GIT_DIFF_LINE_CONTEXT_EOFNL
-	DiffLineAddEOFNL                  = C.GIT_DIFF_LINE_ADD_EOFNL
-	DiffLineDelEOFNL                  = C.GIT_DIFF_LINE_DEL_EOFNL
+	DiffLineAddition     DiffLineType = C.GIT_DIFF_LINE_ADDITION
+	DiffLineDeletion     DiffLineType = C.GIT_DIFF_LINE_DELETION
+	DiffLineContextEOFNL DiffLineType = C.GIT_DIFF_LINE_CONTEXT_EOFNL
+	DiffLineAddEOFNL     DiffLineType = C.GIT_DIFF_LINE_ADD_EOFNL
+	DiffLineDelEOFNL     DiffLineType = C.GIT_DIFF_LINE_DEL_EOFNL
 
-	DiffLineFileHdr = C.GIT_DIFF_LINE_FILE_HDR
-	DiffLineHunkHdr = C.GIT_DIFF_LINE_HUNK_HDR
-	DiffLineBinary  = C.GIT_DIFF_LINE_BINARY
+	DiffLineFileHdr DiffLineType = C.GIT_DIFF_LINE_FILE_HDR
+	DiffLineHunkHdr DiffLineType = C.GIT_DIFF_LINE_HUNK_HDR
+	DiffLineBinary  DiffLineType = C.GIT_DIFF_LINE_BINARY
 )
 
 type DiffFile struct {
@@ -276,33 +276,33 @@ type DiffOptionsFlag int
 
 const (
 	DiffNormal                 DiffOptionsFlag = C.GIT_DIFF_NORMAL
-	DiffReverse                                = C.GIT_DIFF_REVERSE
-	DiffIncludeIgnored                         = C.GIT_DIFF_INCLUDE_IGNORED
-	DiffRecurseIgnoredDirs                     = C.GIT_DIFF_RECURSE_IGNORED_DIRS
-	DiffIncludeUntracked                       = C.GIT_DIFF_INCLUDE_UNTRACKED
-	DiffRecurseUntracked                       = C.GIT_DIFF_RECURSE_UNTRACKED_DIRS
-	DiffIncludeUnmodified                      = C.GIT_DIFF_INCLUDE_UNMODIFIED
-	DiffIncludeTypeChange                      = C.GIT_DIFF_INCLUDE_TYPECHANGE
-	DiffIncludeTypeChangeTrees                 = C.GIT_DIFF_INCLUDE_TYPECHANGE_TREES
-	DiffIgnoreFilemode                         = C.GIT_DIFF_IGNORE_FILEMODE
-	DiffIgnoreSubmodules                       = C.GIT_DIFF_IGNORE_SUBMODULES
-	DiffIgnoreCase                             = C.GIT_DIFF_IGNORE_CASE
+	DiffReverse                DiffOptionsFlag = C.GIT_DIFF_REVERSE
+	DiffIncludeIgnored         DiffOptionsFlag = C.GIT_DIFF_INCLUDE_IGNORED
+	DiffRecurseIgnoredDirs     DiffOptionsFlag = C.GIT_DIFF_RECURSE_IGNORED_DIRS
+	DiffIncludeUntracked       DiffOptionsFlag = C.GIT_DIFF_INCLUDE_UNTRACKED
+	DiffRecurseUntracked       DiffOptionsFlag = C.GIT_DIFF_RECURSE_UNTRACKED_DIRS
+	DiffIncludeUnmodified      DiffOptionsFlag = C.GIT_DIFF_INCLUDE_UNMODIFIED
+	DiffIncludeTypeChange      DiffOptionsFlag = C.GIT_DIFF_INCLUDE_TYPECHANGE
+	DiffIncludeTypeChangeTrees DiffOptionsFlag = C.GIT_DIFF_INCLUDE_TYPECHANGE_TREES
+	DiffIgnoreFilemode         DiffOptionsFlag = C.GIT_DIFF_IGNORE_FILEMODE
+	DiffIgnoreSubmodules       DiffOptionsFlag = C.GIT_DIFF_IGNORE_SUBMODULES
+	DiffIgnoreCase             DiffOptionsFlag = C.GIT_DIFF_IGNORE_CASE
 
-	DiffDisablePathspecMatch    = C.GIT_DIFF_DISABLE_PATHSPEC_MATCH
-	DiffSkipBinaryCheck         = C.GIT_DIFF_SKIP_BINARY_CHECK
-	DiffEnableFastUntrackedDirs = C.GIT_DIFF_ENABLE_FAST_UNTRACKED_DIRS
+	DiffDisablePathspecMatch    DiffOptionsFlag = C.GIT_DIFF_DISABLE_PATHSPEC_MATCH
+	DiffSkipBinaryCheck         DiffOptionsFlag = C.GIT_DIFF_SKIP_BINARY_CHECK
+	DiffEnableFastUntrackedDirs DiffOptionsFlag = C.GIT_DIFF_ENABLE_FAST_UNTRACKED_DIRS
 
-	DiffForceText   = C.GIT_DIFF_FORCE_TEXT
-	DiffForceBinary = C.GIT_DIFF_FORCE_BINARY
+	DiffForceText   DiffOptionsFlag = C.GIT_DIFF_FORCE_TEXT
+	DiffForceBinary DiffOptionsFlag = C.GIT_DIFF_FORCE_BINARY
 
-	DiffIgnoreWhitespace       = C.GIT_DIFF_IGNORE_WHITESPACE
-	DiffIgnoreWhitespaceChange = C.GIT_DIFF_IGNORE_WHITESPACE_CHANGE
-	DiffIgnoreWitespaceEol     = C.GIT_DIFF_IGNORE_WHITESPACE_EOL
+	DiffIgnoreWhitespace       DiffOptionsFlag = C.GIT_DIFF_IGNORE_WHITESPACE
+	DiffIgnoreWhitespaceChange DiffOptionsFlag = C.GIT_DIFF_IGNORE_WHITESPACE_CHANGE
+	DiffIgnoreWitespaceEol     DiffOptionsFlag = C.GIT_DIFF_IGNORE_WHITESPACE_EOL
 
-	DiffShowUntrackedContent = C.GIT_DIFF_SHOW_UNTRACKED_CONTENT
-	DiffShowUnmodified       = C.GIT_DIFF_SHOW_UNMODIFIED
-	DiffPatience             = C.GIT_DIFF_PATIENCE
-	DiffMinimal              = C.GIT_DIFF_MINIMAL
+	DiffShowUntrackedContent DiffOptionsFlag = C.GIT_DIFF_SHOW_UNTRACKED_CONTENT
+	DiffShowUnmodified       DiffOptionsFlag = C.GIT_DIFF_SHOW_UNMODIFIED
+	DiffPatience             DiffOptionsFlag = C.GIT_DIFF_PATIENCE
+	DiffMinimal              DiffOptionsFlag = C.GIT_DIFF_MINIMAL
 )
 
 type DiffNotifyCallback func(diffSoFar *Diff, deltaToAdd DiffDelta, matchedPathspec string) error

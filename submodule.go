@@ -21,47 +21,47 @@ type SubmoduleUpdate int
 
 const (
 	SubmoduleUpdateReset    SubmoduleUpdate = C.GIT_SUBMODULE_UPDATE_RESET
-	SubmoduleUpdateCheckout                 = C.GIT_SUBMODULE_UPDATE_CHECKOUT
-	SubmoduleUpdateRebase                   = C.GIT_SUBMODULE_UPDATE_REBASE
-	SubmoduleUpdateMerge                    = C.GIT_SUBMODULE_UPDATE_MERGE
-	SubmoduleUpdateNone                     = C.GIT_SUBMODULE_UPDATE_NONE
+	SubmoduleUpdateCheckout SubmoduleUpdate  = C.GIT_SUBMODULE_UPDATE_CHECKOUT
+	SubmoduleUpdateRebase   SubmoduleUpdate  = C.GIT_SUBMODULE_UPDATE_REBASE
+	SubmoduleUpdateMerge    SubmoduleUpdate  = C.GIT_SUBMODULE_UPDATE_MERGE
+	SubmoduleUpdateNone     SubmoduleUpdate  = C.GIT_SUBMODULE_UPDATE_NONE
 )
 
 type SubmoduleIgnore int
 
 const (
 	SubmoduleIgnoreReset     SubmoduleIgnore = C.GIT_SUBMODULE_IGNORE_RESET
-	SubmoduleIgnoreNone                      = C.GIT_SUBMODULE_IGNORE_NONE
-	SubmoduleIgnoreUntracked                 = C.GIT_SUBMODULE_IGNORE_UNTRACKED
-	SubmoduleIgnoreDirty                     = C.GIT_SUBMODULE_IGNORE_DIRTY
-	SubmoduleIgnoreAll                       = C.GIT_SUBMODULE_IGNORE_ALL
+	SubmoduleIgnoreNone      SubmoduleIgnore = C.GIT_SUBMODULE_IGNORE_NONE
+	SubmoduleIgnoreUntracked SubmoduleIgnore = C.GIT_SUBMODULE_IGNORE_UNTRACKED
+	SubmoduleIgnoreDirty     SubmoduleIgnore = C.GIT_SUBMODULE_IGNORE_DIRTY
+	SubmoduleIgnoreAll       SubmoduleIgnore = C.GIT_SUBMODULE_IGNORE_ALL
 )
 
 type SubmoduleStatus int
 
 const (
 	SubmoduleStatusInHead          SubmoduleStatus = C.GIT_SUBMODULE_STATUS_IN_HEAD
-	SubmoduleStatusInIndex                         = C.GIT_SUBMODULE_STATUS_IN_INDEX
-	SubmoduleStatusInConfig                        = C.GIT_SUBMODULE_STATUS_IN_CONFIG
-	SubmoduleStatusInWd                            = C.GIT_SUBMODULE_STATUS_IN_WD
-	SubmoduleStatusIndexAdded                      = C.GIT_SUBMODULE_STATUS_INDEX_ADDED
-	SubmoduleStatusIndexDeleted                    = C.GIT_SUBMODULE_STATUS_INDEX_DELETED
-	SubmoduleStatusIndexModified                   = C.GIT_SUBMODULE_STATUS_INDEX_MODIFIED
-	SubmoduleStatusWdUninitialized                 = C.GIT_SUBMODULE_STATUS_WD_UNINITIALIZED
-	SubmoduleStatusWdAdded                         = C.GIT_SUBMODULE_STATUS_WD_ADDED
-	SubmoduleStatusWdDeleted                       = C.GIT_SUBMODULE_STATUS_WD_DELETED
-	SubmoduleStatusWdModified                      = C.GIT_SUBMODULE_STATUS_WD_MODIFIED
-	SubmoduleStatusWdIndexModified                 = C.GIT_SUBMODULE_STATUS_WD_INDEX_MODIFIED
-	SubmoduleStatusWdWdModified                    = C.GIT_SUBMODULE_STATUS_WD_WD_MODIFIED
-	SubmoduleStatusWdUntracked                     = C.GIT_SUBMODULE_STATUS_WD_UNTRACKED
+	SubmoduleStatusInIndex         SubmoduleStatus = C.GIT_SUBMODULE_STATUS_IN_INDEX
+	SubmoduleStatusInConfig        SubmoduleStatus = C.GIT_SUBMODULE_STATUS_IN_CONFIG
+	SubmoduleStatusInWd            SubmoduleStatus = C.GIT_SUBMODULE_STATUS_IN_WD
+	SubmoduleStatusIndexAdded      SubmoduleStatus = C.GIT_SUBMODULE_STATUS_INDEX_ADDED
+	SubmoduleStatusIndexDeleted    SubmoduleStatus = C.GIT_SUBMODULE_STATUS_INDEX_DELETED
+	SubmoduleStatusIndexModified   SubmoduleStatus = C.GIT_SUBMODULE_STATUS_INDEX_MODIFIED
+	SubmoduleStatusWdUninitialized SubmoduleStatus = C.GIT_SUBMODULE_STATUS_WD_UNINITIALIZED
+	SubmoduleStatusWdAdded         SubmoduleStatus = C.GIT_SUBMODULE_STATUS_WD_ADDED
+	SubmoduleStatusWdDeleted       SubmoduleStatus = C.GIT_SUBMODULE_STATUS_WD_DELETED
+	SubmoduleStatusWdModified      SubmoduleStatus = C.GIT_SUBMODULE_STATUS_WD_MODIFIED
+	SubmoduleStatusWdIndexModified SubmoduleStatus = C.GIT_SUBMODULE_STATUS_WD_INDEX_MODIFIED
+	SubmoduleStatusWdWdModified    SubmoduleStatus = C.GIT_SUBMODULE_STATUS_WD_WD_MODIFIED
+	SubmoduleStatusWdUntracked     SubmoduleStatus = C.GIT_SUBMODULE_STATUS_WD_UNTRACKED
 )
 
 type SubmoduleRecurse int
 
 const (
 	SubmoduleRecurseNo       SubmoduleRecurse = C.GIT_SUBMODULE_RECURSE_NO
-	SubmoduleRecurseYes                       = C.GIT_SUBMODULE_RECURSE_YES
-	SubmoduleRecurseOndemand                  = C.GIT_SUBMODULE_RECURSE_ONDEMAND
+	SubmoduleRecurseYes      SubmoduleRecurse = C.GIT_SUBMODULE_RECURSE_YES
+	SubmoduleRecurseOndemand SubmoduleRecurse = C.GIT_SUBMODULE_RECURSE_ONDEMAND
 )
 
 func SubmoduleStatusIsUnmodified(status int) bool {

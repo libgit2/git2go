@@ -15,7 +15,7 @@ type BranchType uint
 
 const (
 	BranchLocal  BranchType = C.GIT_BRANCH_LOCAL
-	BranchRemote            = C.GIT_BRANCH_REMOTE
+	BranchRemote BranchType = C.GIT_BRANCH_REMOTE
 )
 
 type Branch struct {

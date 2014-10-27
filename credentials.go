@@ -11,9 +11,9 @@ type CredType uint
 
 const (
 	CredTypeUserpassPlaintext CredType = C.GIT_CREDTYPE_USERPASS_PLAINTEXT
-	CredTypeSshKey                     = C.GIT_CREDTYPE_SSH_KEY
-	CredTypeSshCustom                  = C.GIT_CREDTYPE_SSH_CUSTOM
-	CredTypeDefault                    = C.GIT_CREDTYPE_DEFAULT
+	CredTypeSshKey            CredType = C.GIT_CREDTYPE_SSH_KEY
+	CredTypeSshCustom         CredType = C.GIT_CREDTYPE_SSH_CUSTOM
+	CredTypeDefault           CredType = C.GIT_CREDTYPE_DEFAULT
 )
 
 type Cred struct {
