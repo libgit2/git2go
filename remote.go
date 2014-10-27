@@ -607,21 +607,18 @@ func (o *Remote) Ls(filterRefs ...string) ([]RemoteHead, error) {
 
 	var heads []RemoteHead
 
-	if len(filterRefs) > 0 {
-		for _, s := range goSlice {
-			head := newRemoteHeadFromC(s)
+	for _, s := range goSlice {
+		head := newRemoteHeadFromC(s)
 
+		if len(filterRefs) > 0 {
 			for _, r := range filterRefs {
 				if strings.Contains(head.Name, r) {
 					heads = append(heads, head)
 					break
 				}
 			}
-		}
-	} else {
-		heads = make([]RemoteHead, size)
-		for i, s := range goSlice {
-			heads[i] = newRemoteHeadFromC(s)
+		} else {
+			heads = append(heads, head)
 		}
 	}
 
