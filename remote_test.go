@@ -75,12 +75,27 @@ func TestCertificateCheck(t *testing.T) {
 	checkFatal(t, err)
 }
 
+func TestRemoteConnect(t *testing.T) {
+	repo := createTestRepo(t)
+	defer os.RemoveAll(repo.Workdir())
+	defer repo.Free()
+
+	remote, err := repo.CreateRemote("origin", "https://github.com/libgit2/TestGitRepository")
+	checkFatal(t, err)
+
+	err = remote.ConnectFetch()
+	checkFatal(t, err)
+}
+
 func TestRemoteLs(t *testing.T) {
 	repo := createTestRepo(t)
 	defer os.RemoveAll(repo.Workdir())
 	defer repo.Free()
 
 	remote, err := repo.CreateRemote("origin", "https://github.com/libgit2/TestGitRepository")
+	checkFatal(t, err)
+
+	err = remote.ConnectFetch()
 	checkFatal(t, err)
 
 	heads, err := remote.Ls()
@@ -97,6 +112,9 @@ func TestRemoteLsFiltering(t *testing.T) {
 	defer repo.Free()
 
 	remote, err := repo.CreateRemote("origin", "https://github.com/libgit2/TestGitRepository")
+	checkFatal(t, err)
+
+	err = remote.ConnectFetch()
 	checkFatal(t, err)
 
 	heads, err := remote.Ls("master")

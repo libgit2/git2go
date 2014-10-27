@@ -41,8 +41,8 @@ const (
 	RemoteCompletionDownload RemoteCompletion = C.GIT_REMOTE_COMPLETION_DOWNLOAD
 	RemoteCompletionIndexing                  = C.GIT_REMOTE_COMPLETION_INDEXING
 	RemoteCompletionError                     = C.GIT_REMOTE_COMPLETION_ERROR
-
-	RemoteFetchDirection = C.GIT_DIRECTION_FETCH
+	RemoteDirectionFetch                      = C.GIT_DIRECTION_FETCH
+	RemoteDirectionPush                       = C.GIT_DIRECTION_PUSH
 )
 
 type TransportMessageCallback func(str string) int
@@ -564,10 +564,25 @@ func (o *Remote) Fetch(refspecs []string, sig *Signature, msg string) error {
 	return nil
 }
 
-func (o *Remote) Ls(filterRefs ...string) ([]RemoteHead, error) {
-	if ret := C.git_remote_connect(o.ptr, RemoteFetchDirection); ret != 0 {
-		return nil, MakeGitError(ret)
+func (o *Remote) ConnectFetch() error {
+	return o.Connect(RemoteDirectionFetch)
+}
+
+func (o *Remote) ConnectPush() error {
+	return o.Connect(RemoteDirectionPush)
+}
+
+func (o *Remote) Connect(direction C.git_direction) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if ret := C.git_remote_connect(o.ptr, direction); ret != 0 {
+		return MakeGitError(ret)
 	}
+	return nil
+}
+
+func (o *Remote) Ls(filterRefs ...string) ([]RemoteHead, error) {
 
 	var refs **C.git_remote_head
 	var length C.size_t
