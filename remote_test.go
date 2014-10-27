@@ -46,7 +46,6 @@ func TestListRemotes(t *testing.T) {
 	compareStringList(t, expected, actual)
 }
 
-
 func assertHostname(cert *Certificate, valid bool, hostname string, t *testing.T) int {
 	if hostname != "github.com" {
 		t.Fatal("Hostname does not match")
@@ -65,7 +64,7 @@ func TestCertificateCheck(t *testing.T) {
 	checkFatal(t, err)
 
 	callbacks := RemoteCallbacks{
-		CertificateCheckCallback: func (cert *Certificate, valid bool, hostname string) int {
+		CertificateCheckCallback: func(cert *Certificate, valid bool, hostname string) int {
 			return assertHostname(cert, valid, hostname, t)
 		},
 	}
@@ -74,4 +73,62 @@ func TestCertificateCheck(t *testing.T) {
 	checkFatal(t, err)
 	err = remote.Fetch([]string{}, nil, "")
 	checkFatal(t, err)
+}
+
+func TestRemoteConnect(t *testing.T) {
+	repo := createTestRepo(t)
+	defer os.RemoveAll(repo.Workdir())
+	defer repo.Free()
+
+	remote, err := repo.CreateRemote("origin", "https://github.com/libgit2/TestGitRepository")
+	checkFatal(t, err)
+
+	err = remote.ConnectFetch()
+	checkFatal(t, err)
+}
+
+func TestRemoteLs(t *testing.T) {
+	repo := createTestRepo(t)
+	defer os.RemoveAll(repo.Workdir())
+	defer repo.Free()
+
+	remote, err := repo.CreateRemote("origin", "https://github.com/libgit2/TestGitRepository")
+	checkFatal(t, err)
+
+	err = remote.ConnectFetch()
+	checkFatal(t, err)
+
+	heads, err := remote.Ls()
+	checkFatal(t, err)
+
+	if len(heads) == 0 {
+		t.Error("Expected remote heads")
+	}
+}
+
+func TestRemoteLsFiltering(t *testing.T) {
+	repo := createTestRepo(t)
+	defer os.RemoveAll(repo.Workdir())
+	defer repo.Free()
+
+	remote, err := repo.CreateRemote("origin", "https://github.com/libgit2/TestGitRepository")
+	checkFatal(t, err)
+
+	err = remote.ConnectFetch()
+	checkFatal(t, err)
+
+	heads, err := remote.Ls("master")
+	checkFatal(t, err)
+
+	if len(heads) != 1 {
+		t.Fatalf("Expected one head for master but I got %d", len(heads))
+	}
+
+	if heads[0].Id == nil {
+		t.Fatalf("Expected head to have an Id, but it's nil")
+	}
+
+	if heads[0].Name == "" {
+		t.Fatalf("Expected head to have a name, but it's empty")
+	}
 }
