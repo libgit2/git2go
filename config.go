@@ -342,18 +342,6 @@ func OpenOndisk(parent *Config, path string) (*Config, error) {
 	return config, nil
 }
 
-// Refresh refreshes the configuration to reflect any changes made externally e.g. on disk
-func (c *Config) Refresh() error {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	if ret := C.git_config_refresh(c.ptr); ret < 0 {
-		return MakeGitError(ret)
-	}
-
-	return nil
-}
-
 type ConfigIterator struct {
 	ptr *C.git_config_iterator
 }
@@ -374,4 +362,3 @@ func (iter *ConfigIterator) Free() {
 	runtime.SetFinalizer(iter, nil)
 	C.free(unsafe.Pointer(iter.ptr))
 }
-

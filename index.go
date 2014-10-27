@@ -3,6 +3,11 @@ package git
 /*
 #include <git2.h>
 #include <git2/errors.h>
+
+extern int _go_git_index_add_all(git_index*, const git_strarray*, unsigned int, void*);
+extern int _go_git_index_update_all(git_index*, const git_strarray*, void*);
+extern int _go_git_index_remove_all(git_index*, const git_strarray*, void*);
+
 */
 import "C"
 import (
@@ -10,6 +15,17 @@ import (
 	"runtime"
 	"time"
 	"unsafe"
+)
+
+type IndexMatchedPathCallback func(string, string) int
+
+type IndexAddOpts uint
+
+const (
+	IndexAddDefault              IndexAddOpts = C.GIT_INDEX_ADD_DEFAULT
+	IndexAddForce                IndexAddOpts = C.GIT_INDEX_ADD_FORCE
+	IndexAddDisablePathspecMatch IndexAddOpts = C.GIT_INDEX_ADD_DISABLE_PATHSPEC_MATCH
+	IndexAddCheckPathspec        IndexAddOpts = C.GIT_INDEX_ADD_CHECK_PATHSPEC
 )
 
 type Index struct {
@@ -112,6 +128,88 @@ func (v *Index) AddByPath(path string) error {
 	}
 
 	return nil
+}
+
+func (v *Index) AddAll(pathspecs []string, flags IndexAddOpts, callback IndexMatchedPathCallback) error {
+	cpathspecs := C.git_strarray{}
+	cpathspecs.count = C.size_t(len(pathspecs))
+	cpathspecs.strings = makeCStringsFromStrings(pathspecs)
+	defer freeStrarray(&cpathspecs)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var cb *IndexMatchedPathCallback
+	if callback != nil {
+		cb = &callback
+	}
+
+	ret := C._go_git_index_add_all(
+		v.ptr,
+		&cpathspecs,
+		C.uint(flags),
+		unsafe.Pointer(cb),
+	)
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+	return nil
+}
+
+func (v *Index) UpdateAll(pathspecs []string, callback IndexMatchedPathCallback) error {
+	cpathspecs := C.git_strarray{}
+	cpathspecs.count = C.size_t(len(pathspecs))
+	cpathspecs.strings = makeCStringsFromStrings(pathspecs)
+	defer freeStrarray(&cpathspecs)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var cb *IndexMatchedPathCallback
+	if callback != nil {
+		cb = &callback
+	}
+
+	ret := C._go_git_index_update_all(
+		v.ptr,
+		&cpathspecs,
+		unsafe.Pointer(cb),
+	)
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+	return nil
+}
+
+func (v *Index) RemoveAll(pathspecs []string, callback IndexMatchedPathCallback) error {
+	cpathspecs := C.git_strarray{}
+	cpathspecs.count = C.size_t(len(pathspecs))
+	cpathspecs.strings = makeCStringsFromStrings(pathspecs)
+	defer freeStrarray(&cpathspecs)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var cb *IndexMatchedPathCallback
+	if callback != nil {
+		cb = &callback
+	}
+
+	ret := C._go_git_index_remove_all(
+		v.ptr,
+		&cpathspecs,
+		unsafe.Pointer(cb),
+	)
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+	return nil
+}
+
+//export indexMatchedPathCallback
+func indexMatchedPathCallback(cPath, cMatchedPathspec *C.char, payload unsafe.Pointer) int {
+	callback := (*IndexMatchedPathCallback)(payload)
+	return (*callback)(C.GoString(cPath), C.GoString(cMatchedPathspec))
 }
 
 func (v *Index) RemoveByPath(path string) error {
