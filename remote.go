@@ -36,13 +36,15 @@ func newTransferProgressFromC(c *C.git_transfer_progress) TransferProgress {
 }
 
 type RemoteCompletion uint
+type ConnectDirection uint
 
 const (
 	RemoteCompletionDownload RemoteCompletion = C.GIT_REMOTE_COMPLETION_DOWNLOAD
 	RemoteCompletionIndexing                  = C.GIT_REMOTE_COMPLETION_INDEXING
 	RemoteCompletionError                     = C.GIT_REMOTE_COMPLETION_ERROR
-	RemoteDirectionFetch                      = C.GIT_DIRECTION_FETCH
-	RemoteDirectionPush                       = C.GIT_DIRECTION_PUSH
+
+	ConnectDirectionFetch ConnectDirection = C.GIT_DIRECTION_FETCH
+	ConnectDirectionPush                   = C.GIT_DIRECTION_PUSH
 )
 
 type TransportMessageCallback func(str string) int
@@ -565,18 +567,18 @@ func (o *Remote) Fetch(refspecs []string, sig *Signature, msg string) error {
 }
 
 func (o *Remote) ConnectFetch() error {
-	return o.Connect(RemoteDirectionFetch)
+	return o.Connect(ConnectDirectionFetch)
 }
 
 func (o *Remote) ConnectPush() error {
-	return o.Connect(RemoteDirectionPush)
+	return o.Connect(ConnectDirectionPush)
 }
 
-func (o *Remote) Connect(direction C.git_direction) error {
+func (o *Remote) Connect(direction ConnectDirection) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if ret := C.git_remote_connect(o.ptr, direction); ret != 0 {
+	if ret := C.git_remote_connect(o.ptr, C.git_direction(direction)); ret != 0 {
 		return MakeGitError(ret)
 	}
 	return nil
