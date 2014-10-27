@@ -36,14 +36,14 @@ const (
 )
 
 type ConfigEntry struct {
-	Name string
+	Name  string
 	Value string
 	Level ConfigLevel
 }
 
 func newConfigEntryFromC(centry *C.git_config_entry) *ConfigEntry {
 	return &ConfigEntry{
-		Name: C.GoString(centry.name),
+		Name:  C.GoString(centry.name),
 		Value: C.GoString(centry.value),
 		Level: ConfigLevel(centry.level),
 	}
@@ -74,7 +74,6 @@ func (c *Config) AddFile(path string, level ConfigLevel, force bool) error {
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-
 
 	ret := C.git_config_add_file_ondisk(c.ptr, cpath, C.git_config_level_t(level), cbool(force))
 	if ret < 0 {
@@ -130,7 +129,6 @@ func (c *Config) LookupString(name string) (string, error) {
 
 	return C.GoString(ptr), nil
 }
-
 
 func (c *Config) LookupBool(name string) (bool, error) {
 	var out C.int

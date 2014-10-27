@@ -10,12 +10,12 @@ import "runtime"
 type ObjectType int
 
 const (
-	ObjectAny ObjectType = C.GIT_OBJ_ANY
-	ObjectBad            = C.GIT_OBJ_BAD
-	ObjectCommit         = C.GIT_OBJ_COMMIT
-	ObjectTree           = C.GIT_OBJ_TREE
-	ObjectBlob           = C.GIT_OBJ_BLOB
-	ObjectTag            = C.GIT_OBJ_TAG
+	ObjectAny    ObjectType = C.GIT_OBJ_ANY
+	ObjectBad               = C.GIT_OBJ_BAD
+	ObjectCommit            = C.GIT_OBJ_COMMIT
+	ObjectTree              = C.GIT_OBJ_TREE
+	ObjectBlob              = C.GIT_OBJ_BLOB
+	ObjectTag               = C.GIT_OBJ_TAG
 )
 
 type Object interface {
@@ -26,12 +26,12 @@ type Object interface {
 }
 
 type gitObject struct {
-	ptr *C.git_object
+	ptr  *C.git_object
 	repo *Repository
 }
 
-func (t ObjectType) String() (string) {
-	switch (t) {
+func (t ObjectType) String() string {
+	switch t {
 	case ObjectAny:
 		return "Any"
 	case ObjectBad:
@@ -72,7 +72,7 @@ func (o *gitObject) Free() {
 
 func allocObject(cobj *C.git_object, repo *Repository) Object {
 	obj := gitObject{
-		ptr: cobj,
+		ptr:  cobj,
 		repo: repo,
 	}
 
