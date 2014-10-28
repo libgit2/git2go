@@ -1,5 +1,7 @@
 git2go
 ======
+[![GoDoc](https://godoc.org/github.com/libgit2/git2go?status.svg)](http://godoc.org/github.com/libgit2/git2go)
+
 
 Go bindings for [libgit2](http://libgit2.github.com/). The master branch follows the latest libgit2 release.
 
