@@ -14,7 +14,7 @@ type ReferenceType int
 
 const (
 	ReferenceSymbolic ReferenceType = C.GIT_REF_SYMBOLIC
-	ReferenceOid                    = C.GIT_REF_OID
+	ReferenceOid      ReferenceType = C.GIT_REF_OID
 )
 
 type Reference struct {

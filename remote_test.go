@@ -46,7 +46,7 @@ func TestListRemotes(t *testing.T) {
 	compareStringList(t, expected, actual)
 }
 
-func assertHostname(cert *Certificate, valid bool, hostname string, t *testing.T) int {
+func assertHostname(cert *Certificate, valid bool, hostname string, t *testing.T) ErrorCode {
 	if hostname != "github.com" {
 		t.Fatal("Hostname does not match")
 		return ErrUser
@@ -64,7 +64,7 @@ func TestCertificateCheck(t *testing.T) {
 	checkFatal(t, err)
 
 	callbacks := RemoteCallbacks{
-		CertificateCheckCallback: func(cert *Certificate, valid bool, hostname string) int {
+		CertificateCheckCallback: func(cert *Certificate, valid bool, hostname string) ErrorCode {
 			return assertHostname(cert, valid, hostname, t)
 		},
 	}

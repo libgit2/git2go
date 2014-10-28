@@ -40,19 +40,19 @@ type ConnectDirection uint
 
 const (
 	RemoteCompletionDownload RemoteCompletion = C.GIT_REMOTE_COMPLETION_DOWNLOAD
-	RemoteCompletionIndexing                  = C.GIT_REMOTE_COMPLETION_INDEXING
-	RemoteCompletionError                     = C.GIT_REMOTE_COMPLETION_ERROR
+	RemoteCompletionIndexing RemoteCompletion = C.GIT_REMOTE_COMPLETION_INDEXING
+	RemoteCompletionError    RemoteCompletion = C.GIT_REMOTE_COMPLETION_ERROR
 
 	ConnectDirectionFetch ConnectDirection = C.GIT_DIRECTION_FETCH
-	ConnectDirectionPush                   = C.GIT_DIRECTION_PUSH
+	ConnectDirectionPush  ConnectDirection = C.GIT_DIRECTION_PUSH
 )
 
-type TransportMessageCallback func(str string) int
-type CompletionCallback func(RemoteCompletion) int
-type CredentialsCallback func(url string, username_from_url string, allowed_types CredType) (int, *Cred)
-type TransferProgressCallback func(stats TransferProgress) int
-type UpdateTipsCallback func(refname string, a *Oid, b *Oid) int
-type CertificateCheckCallback func(cert *Certificate, valid bool, hostname string) int
+type TransportMessageCallback func(str string) ErrorCode
+type CompletionCallback func(RemoteCompletion) ErrorCode
+type CredentialsCallback func(url string, username_from_url string, allowed_types CredType) (ErrorCode, *Cred)
+type TransferProgressCallback func(stats TransferProgress) ErrorCode
+type UpdateTipsCallback func(refname string, a *Oid, b *Oid) ErrorCode
+type CertificateCheckCallback func(cert *Certificate, valid bool, hostname string) ErrorCode
 
 type RemoteCallbacks struct {
 	SidebandProgressCallback TransportMessageCallback
@@ -72,7 +72,7 @@ type CertificateKind uint
 
 const (
 	CertificateX509    CertificateKind = C.GIT_CERT_X509
-	CertificateHostkey                 = C.GIT_CERT_HOSTKEY_LIBSSH2
+	CertificateHostkey CertificateKind = C.GIT_CERT_HOSTKEY_LIBSSH2
 )
 
 // Certificate represents the two possible certificates which libgit2
@@ -89,7 +89,7 @@ type HostkeyKind uint
 
 const (
 	HostkeyMD5  HostkeyKind = C.GIT_CERT_SSH_MD5
-	HostkeySHA1             = C.GIT_CERT_SSH_SHA1
+	HostkeySHA1 HostkeyKind = C.GIT_CERT_SSH_SHA1
 )
 
 // Server host key information. If Kind is HostkeyMD5 the MD5 field
@@ -129,7 +129,7 @@ func sidebandProgressCallback(_str *C.char, _len C.int, data unsafe.Pointer) int
 		return 0
 	}
 	str := C.GoStringN(_str, _len)
-	return callbacks.SidebandProgressCallback(str)
+	return int(callbacks.SidebandProgressCallback(str))
 }
 
 //export completionCallback
@@ -138,7 +138,7 @@ func completionCallback(completion_type C.git_remote_completion_type, data unsaf
 	if callbacks.CompletionCallback == nil {
 		return 0
 	}
-	return callbacks.CompletionCallback((RemoteCompletion)(completion_type))
+	return int(callbacks.CompletionCallback(RemoteCompletion(completion_type)))
 }
 
 //export credentialsCallback
@@ -151,7 +151,7 @@ func credentialsCallback(_cred **C.git_cred, _url *C.char, _username_from_url *C
 	username_from_url := C.GoString(_username_from_url)
 	ret, cred := callbacks.CredentialsCallback(url, username_from_url, (CredType)(allowed_types))
 	*_cred = cred.ptr
-	return ret
+	return int(ret)
 }
 
 //export transferProgressCallback
@@ -160,7 +160,7 @@ func transferProgressCallback(stats *C.git_transfer_progress, data unsafe.Pointe
 	if callbacks.TransferProgressCallback == nil {
 		return 0
 	}
-	return callbacks.TransferProgressCallback(newTransferProgressFromC(stats))
+	return int(callbacks.TransferProgressCallback(newTransferProgressFromC(stats)))
 }
 
 //export updateTipsCallback
@@ -172,7 +172,7 @@ func updateTipsCallback(_refname *C.char, _a *C.git_oid, _b *C.git_oid, data uns
 	refname := C.GoString(_refname)
 	a := newOidFromC(_a)
 	b := newOidFromC(_b)
-	return callbacks.UpdateTipsCallback(refname, a, b)
+	return int(callbacks.UpdateTipsCallback(refname, a, b))
 }
 
 //export certificateCheckCallback
@@ -213,7 +213,7 @@ func certificateCheckCallback(_cert *C.git_cert, _valid C.int, _host *C.char, da
 		return -1 // we don't support anything else atm
 	}
 
-	return callbacks.CertificateCheckCallback(&cert, valid, host)
+	return int(callbacks.CertificateCheckCallback(&cert, valid, host))
 }
 
 func RemoteIsValidName(name string) bool {

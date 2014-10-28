@@ -10,12 +10,12 @@ import "runtime"
 type ObjectType int
 
 const (
-	ObjectAny ObjectType = C.GIT_OBJ_ANY
-	ObjectBad            = C.GIT_OBJ_BAD
-	ObjectCommit         = C.GIT_OBJ_COMMIT
-	ObjectTree           = C.GIT_OBJ_TREE
-	ObjectBlob           = C.GIT_OBJ_BLOB
-	ObjectTag            = C.GIT_OBJ_TAG
+	ObjectAny    ObjectType = C.GIT_OBJ_ANY
+	ObjectBad    ObjectType = C.GIT_OBJ_BAD
+	ObjectCommit ObjectType = C.GIT_OBJ_COMMIT
+	ObjectTree   ObjectType = C.GIT_OBJ_TREE
+	ObjectBlob   ObjectType = C.GIT_OBJ_BLOB
+	ObjectTag    ObjectType = C.GIT_OBJ_TAG
 )
 
 type Object interface {

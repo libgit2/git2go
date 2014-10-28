@@ -15,17 +15,17 @@ type Status int
 
 const (
 	StatusCurrent         Status = C.GIT_STATUS_CURRENT
-	StatusIndexNew               = C.GIT_STATUS_INDEX_NEW
-	StatusIndexModified          = C.GIT_STATUS_INDEX_MODIFIED
-	StatusIndexDeleted           = C.GIT_STATUS_INDEX_DELETED
-	StatusIndexRenamed           = C.GIT_STATUS_INDEX_RENAMED
-	StatusIndexTypeChange        = C.GIT_STATUS_INDEX_TYPECHANGE
-	StatusWtNew                  = C.GIT_STATUS_WT_NEW
-	StatusWtModified             = C.GIT_STATUS_WT_MODIFIED
-	StatusWtDeleted              = C.GIT_STATUS_WT_DELETED
-	StatusWtTypeChange           = C.GIT_STATUS_WT_TYPECHANGE
-	StatusWtRenamed              = C.GIT_STATUS_WT_RENAMED
-	StatusIgnored                = C.GIT_STATUS_IGNORED
+	StatusIndexNew        Status = C.GIT_STATUS_INDEX_NEW
+	StatusIndexModified   Status = C.GIT_STATUS_INDEX_MODIFIED
+	StatusIndexDeleted    Status = C.GIT_STATUS_INDEX_DELETED
+	StatusIndexRenamed    Status = C.GIT_STATUS_INDEX_RENAMED
+	StatusIndexTypeChange Status = C.GIT_STATUS_INDEX_TYPECHANGE
+	StatusWtNew           Status = C.GIT_STATUS_WT_NEW
+	StatusWtModified      Status = C.GIT_STATUS_WT_MODIFIED
+	StatusWtDeleted       Status = C.GIT_STATUS_WT_DELETED
+	StatusWtTypeChange    Status = C.GIT_STATUS_WT_TYPECHANGE
+	StatusWtRenamed       Status = C.GIT_STATUS_WT_RENAMED
+	StatusIgnored         Status = C.GIT_STATUS_IGNORED
 )
 
 type StatusEntry struct {
@@ -97,28 +97,28 @@ func (statusList *StatusList) EntryCount() (int, error) {
 type StatusOpt int
 
 const (
-	StatusOptIncludeUntracked           StatusOpt  = C.GIT_STATUS_OPT_INCLUDE_UNTRACKED
-	StatusOptIncludeIgnored                        = C.GIT_STATUS_OPT_INCLUDE_IGNORED
-	StatusOptIncludeUnmodified                     = C.GIT_STATUS_OPT_INCLUDE_UNMODIFIED
-	StatusOptExcludeSubmodules                     = C.GIT_STATUS_OPT_EXCLUDE_SUBMODULES
-	StatusOptRecurseUntrackedDirs                  = C.GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS
-	StatusOptDisablePathspecMatch                  = C.GIT_STATUS_OPT_DISABLE_PATHSPEC_MATCH
-	StatusOptRecurseIgnoredDirs                    = C.GIT_STATUS_OPT_RECURSE_IGNORED_DIRS
-	StatusOptRenamesHeadToIndex                    = C.GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX
-	StatusOptRenamesIndexToWorkdir                 = C.GIT_STATUS_OPT_RENAMES_INDEX_TO_WORKDIR
-	StatusOptSortCaseSensitively                   = C.GIT_STATUS_OPT_SORT_CASE_SENSITIVELY
-	StatusOptSortCaseInsensitively                 = C.GIT_STATUS_OPT_SORT_CASE_INSENSITIVELY
-	StatusOptRenamesFromRewrites                   = C.GIT_STATUS_OPT_RENAMES_FROM_REWRITES
-	StatusOptNoRefresh                             = C.GIT_STATUS_OPT_NO_REFRESH
-	StatusOptUpdateIndex                           = C.GIT_STATUS_OPT_UPDATE_INDEX
+	StatusOptIncludeUntracked           StatusOpt = C.GIT_STATUS_OPT_INCLUDE_UNTRACKED
+	StatusOptIncludeIgnored             StatusOpt = C.GIT_STATUS_OPT_INCLUDE_IGNORED
+	StatusOptIncludeUnmodified          StatusOpt = C.GIT_STATUS_OPT_INCLUDE_UNMODIFIED
+	StatusOptExcludeSubmodules          StatusOpt = C.GIT_STATUS_OPT_EXCLUDE_SUBMODULES
+	StatusOptRecurseUntrackedDirs       StatusOpt = C.GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS
+	StatusOptDisablePathspecMatch       StatusOpt = C.GIT_STATUS_OPT_DISABLE_PATHSPEC_MATCH
+	StatusOptRecurseIgnoredDirs         StatusOpt = C.GIT_STATUS_OPT_RECURSE_IGNORED_DIRS
+	StatusOptRenamesHeadToIndex         StatusOpt = C.GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX
+	StatusOptRenamesIndexToWorkdir      StatusOpt = C.GIT_STATUS_OPT_RENAMES_INDEX_TO_WORKDIR
+	StatusOptSortCaseSensitively        StatusOpt = C.GIT_STATUS_OPT_SORT_CASE_SENSITIVELY
+	StatusOptSortCaseInsensitively      StatusOpt = C.GIT_STATUS_OPT_SORT_CASE_INSENSITIVELY
+	StatusOptRenamesFromRewrites        StatusOpt = C.GIT_STATUS_OPT_RENAMES_FROM_REWRITES
+	StatusOptNoRefresh                  StatusOpt = C.GIT_STATUS_OPT_NO_REFRESH
+	StatusOptUpdateIndex                StatusOpt = C.GIT_STATUS_OPT_UPDATE_INDEX
 )
 
 type StatusShow int
 
 const (
 	StatusShowIndexAndWorkdir StatusShow = C.GIT_STATUS_SHOW_INDEX_AND_WORKDIR
-	StatusShowIndexOnly                  = C.GIT_STATUS_SHOW_INDEX_ONLY
-	StatusShowWorkdirOnly                = C.GIT_STATUS_SHOW_WORKDIR_ONLY
+	StatusShowIndexOnly       StatusShow = C.GIT_STATUS_SHOW_INDEX_ONLY
+	StatusShowWorkdirOnly     StatusShow = C.GIT_STATUS_SHOW_WORKDIR_ONLY
 )
 
 type StatusOptions struct {
