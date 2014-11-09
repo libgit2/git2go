@@ -206,8 +206,11 @@ func (r *Repository) MergeTrees(ancestor *Tree, ours *Tree, theirs *Tree, option
 	copts := options.toC()
 
 	idx := &Index{}
-
-	ret := C.git_merge_trees(&idx.ptr, r.ptr, ancestor.cast_ptr, ours.cast_ptr, theirs.cast_ptr, copts)
+	var ancestor_ptr *C.git_tree
+	if ancestor != nil {
+		ancestor_ptr = ancestor.cast_ptr
+	}
+	ret := C.git_merge_trees(&idx.ptr, r.ptr, ancestor_ptr, ours.cast_ptr, theirs.cast_ptr, copts)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -273,8 +276,10 @@ type MergeFileInput struct {
 // populate a C struct with merge file input, make sure to use freeMergeFileInput to clean up allocs
 func populateCMergeFileInput(c *C.git_merge_file_input, input MergeFileInput) {
 	c.path = C.CString(input.Path)
-	c.ptr = (*C.char)(unsafe.Pointer(&input.Contents[0]))
-	c.size = C.size_t(len(input.Contents))
+	if input.Contents != nil {
+		c.ptr = (*C.char)(unsafe.Pointer(&input.Contents[0]))
+		c.size = C.size_t(len(input.Contents))
+	}
 	c.mode = C.uint(input.Mode)
 }
 
