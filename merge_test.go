@@ -1,6 +1,7 @@
 package git
 
 import (
+	"os"
 	"testing"
 )
 
@@ -63,6 +64,28 @@ func TestMergeSameFile(t *testing.T) {
 	}
 
 	compareBytes(t, file.Contents, result.Contents)
+
+}
+func TestMergeTreesWithoutAncestor(t *testing.T) {
+	repo := createTestRepo(t)
+	defer repo.Free()
+	defer os.RemoveAll(repo.Workdir())
+
+	_, originalTreeId := seedTestRepo(t, repo)
+	originalTree, err := repo.LookupTree(originalTreeId)
+
+	checkFatal(t, err)
+
+	_, newTreeId := updateReadme(t, repo, "file changed\n")
+
+	newTree, err := repo.LookupTree(newTreeId)
+	checkFatal(t, err)
+	index, err := repo.MergeTrees(nil, originalTree, newTree, nil)
+	if !index.HasConflicts() {
+		t.Fatal("expected conflicts in the index")
+	}
+	_, err = index.GetConflict("README")
+	checkFatal(t, err)
 
 }
 
