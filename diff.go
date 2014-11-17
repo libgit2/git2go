@@ -426,3 +426,53 @@ func (v *Repository) DiffTreeToTree(oldTree, newTree *Tree, opts *DiffOptions) (
 	}
 	return newDiffFromC(diffPtr), nil
 }
+
+func (v *Repository) DiffTreeToWorkdir(oldTree *Tree, opts *DiffOptions) (*Diff, error) {
+	var diffPtr *C.git_diff
+	var oldPtr *C.git_tree
+
+	if oldTree != nil {
+		oldPtr = oldTree.cast_ptr
+	}
+
+	cpathspec := C.git_strarray{}
+	var copts *C.git_diff_options
+	var notifyData *diffNotifyData
+	if opts != nil {
+		notifyData = &diffNotifyData{
+			Callback: opts.NotifyCallback,
+		}
+		if opts.Pathspec != nil {
+			cpathspec.count = C.size_t(len(opts.Pathspec))
+			cpathspec.strings = makeCStringsFromStrings(opts.Pathspec)
+			defer freeStrarray(&cpathspec)
+		}
+
+		copts = &C.git_diff_options{
+			version:           C.GIT_DIFF_OPTIONS_VERSION,
+			flags:             C.uint32_t(opts.Flags),
+			ignore_submodules: C.git_submodule_ignore_t(opts.IgnoreSubmodules),
+			pathspec:          cpathspec,
+			context_lines:     C.uint16_t(opts.ContextLines),
+			interhunk_lines:   C.uint16_t(opts.InterhunkLines),
+			id_abbrev:         C.uint16_t(opts.IdAbbrev),
+			max_size:          C.git_off_t(opts.MaxSize),
+		}
+
+		if opts.NotifyCallback != nil {
+			C._go_git_setup_diff_notify_callbacks(copts)
+			copts.notify_payload = unsafe.Pointer(notifyData)
+		}
+	}
+
+	ecode := C.git_diff_tree_to_workdir(&diffPtr, v.ptr, oldPtr, copts)
+	if ecode < 0 {
+		return nil, MakeGitError(ecode)
+	}
+
+	if notifyData != nil && notifyData.Diff != nil {
+		return notifyData.Diff, nil
+	}
+	return newDiffFromC(diffPtr), nil
+
+}
