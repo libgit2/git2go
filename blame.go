@@ -99,6 +99,14 @@ func (blame *Blame) HunkByIndex(index int) (BlameHunk, error) {
 	return blameHunkFromC(ptr), nil
 }
 
+func (blame *Blame) HunkByLine(lineno int) (BlameHunk, error) {
+	ptr := C.git_blame_get_hunk_byline(blame.ptr, C.uint32_t(lineno))
+	if ptr == nil {
+		return BlameHunk{}, ErrInvalid
+	}
+	return blameHunkFromC(ptr), nil
+}
+
 func newBlameFromC(ptr *C.git_blame) *Blame {
 	if ptr == nil {
 		return nil
