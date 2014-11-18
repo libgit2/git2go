@@ -4,7 +4,10 @@ package git
 #include <git2.h>
 */
 import "C"
-import "runtime"
+import (
+	"runtime"
+	"unsafe"
+)
 
 type BlameOptions struct {
 	Flags              BlameOptionsFlag
@@ -66,10 +69,13 @@ func (v *Repository) BlameFile(path string, opts *BlameOptions) (*Blame, error) 
 		}
 	}
 
+	cpath := C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
+
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_blame_file(&blamePtr, v.ptr, C.CString(path), copts)
+	ecode := C.git_blame_file(&blamePtr, v.ptr, cpath, copts)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
