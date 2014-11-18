@@ -16,6 +16,9 @@ type BlameOptions struct {
 }
 
 func DefaultBlameOptions() (BlameOptions, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	opts := C.git_blame_options{}
 	ecode := C.git_blame_init_options(&opts, C.GIT_BLAME_OPTIONS_VERSION)
 	if ecode < 0 {
@@ -62,6 +65,9 @@ func (v *Repository) BlameFile(path string, opts *BlameOptions) (*Blame, error) 
 			copts.oldest_commit = *opts.OldestCommit.toC()
 		}
 	}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	ecode := C.git_blame_file(&blamePtr, v.ptr, C.CString(path), copts)
 	if ecode < 0 {
