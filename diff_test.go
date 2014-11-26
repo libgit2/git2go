@@ -6,20 +6,68 @@ import (
 	"testing"
 )
 
-func TestDiffTreeToTree(t *testing.T) {
+func TestFindSimilar(t *testing.T) {
 	repo := createTestRepo(t)
 	defer repo.Free()
 	defer os.RemoveAll(repo.Workdir())
 
-	_, originalTreeId := seedTestRepo(t, repo)
-	originalTree, err := repo.LookupTree(originalTreeId)
+	originalTree, newTree := createTestTrees(t, repo)
 
+	diffOpt, _ := DefaultDiffOptions()
+
+	diff, err := repo.DiffTreeToTree(originalTree, newTree, &diffOpt)
+	checkFatal(t, err)
+	if diff == nil {
+		t.Fatal("no diff returned")
+	}
+
+	findOpts, err := DefaultDiffFindOptions()
+	checkFatal(t, err)
+	findOpts.Flags = DiffFindBreakRewrites
+
+	err = diff.FindSimilar(&findOpts)
 	checkFatal(t, err)
 
-	_, newTreeId := updateReadme(t, repo, "file changed\n")
+	numDiffs := 0
+	numAdded := 0
+	numDeleted := 0
 
-	newTree, err := repo.LookupTree(newTreeId)
-	checkFatal(t, err)
+	err = diff.ForEach(func(file DiffDelta, progress float64) (DiffForEachHunkCallback, error) {
+		numDiffs++
+
+		switch file.Status {
+		case DeltaAdded:
+			numAdded++
+		case DeltaDeleted:
+			numDeleted++
+		}
+
+		return func(hunk DiffHunk) (DiffForEachLineCallback, error) {
+			return func(line DiffLine) error {
+				return nil
+			}, nil
+		}, nil
+	}, DiffDetailLines)
+
+	if numDiffs != 2 {
+		t.Fatal("Incorrect number of files in diff")
+	}
+	if numAdded != 1 {
+		t.Fatal("Incorrect number of new files in diff")
+	}
+	if numDeleted != 1 {
+		t.Fatal("Incorrect number of deleted files in diff")
+	}
+
+}
+
+func TestDiffTreeToTree(t *testing.T) {
+
+	repo := createTestRepo(t)
+	defer repo.Free()
+	defer os.RemoveAll(repo.Workdir())
+
+	originalTree, newTree := createTestTrees(t, repo)
 
 	callbackInvoked := false
 	opts := DiffOptions{
@@ -93,4 +141,19 @@ func TestDiffTreeToTree(t *testing.T) {
 		t.Fatal("Expected custom error to be returned")
 	}
 
+}
+
+func createTestTrees(t *testing.T, repo *Repository) (originalTree *Tree, newTree *Tree) {
+	var err error
+	_, originalTreeId := seedTestRepo(t, repo)
+	originalTree, err = repo.LookupTree(originalTreeId)
+
+	checkFatal(t, err)
+
+	_, newTreeId := updateReadme(t, repo, "file changed\n")
+
+	newTree, err = repo.LookupTree(newTreeId)
+	checkFatal(t, err)
+
+	return originalTree, newTree
 }
