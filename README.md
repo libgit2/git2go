@@ -17,6 +17,11 @@ Run `go get -d github.com/libgit2/git2go` to download the code and go to your `$
 
 will compile libgit2 and run `go install` such that it's statically linked to the git2go package.
 
+Paralellism and network operations
+----------------------------------
+
+libgit2 uses OpenSSL and LibSSH2 for performing encrypted network connections. For now, git2go asks libgit2 to set locking for OpenSSL. This makes HTTPS connections thread-safe, but it is fragile and will likely stop doing it soon. This may also make SSH connections thread-safe if your copy of libssh2 is linked against OpenSSL. Check libgit2's `THREADSAFE.md` for more information.
+
 Running the tests
 -----------------
 

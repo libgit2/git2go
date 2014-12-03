@@ -13,10 +13,10 @@ func TestMergeWithSelf(t *testing.T) {
 	master, err := repo.LookupReference("refs/heads/master")
 	checkFatal(t, err)
 
-	mergeHead, err := repo.MergeHeadFromRef(master)
+	mergeHead, err := repo.AnnotatedCommitFromRef(master)
 	checkFatal(t, err)
 
-	mergeHeads := make([]*MergeHead, 1)
+	mergeHeads := make([]*AnnotatedCommit, 1)
 	mergeHeads[0] = mergeHead
 	err = repo.Merge(mergeHeads, nil, nil)
 	checkFatal(t, err)
@@ -30,10 +30,10 @@ func TestMergeAnalysisWithSelf(t *testing.T) {
 	master, err := repo.LookupReference("refs/heads/master")
 	checkFatal(t, err)
 
-	mergeHead, err := repo.MergeHeadFromRef(master)
+	mergeHead, err := repo.AnnotatedCommitFromRef(master)
 	checkFatal(t, err)
 
-	mergeHeads := make([]*MergeHead, 1)
+	mergeHeads := make([]*AnnotatedCommit, 1)
 	mergeHeads[0] = mergeHead
 	a, _, err := repo.MergeAnalysis(mergeHeads)
 	checkFatal(t, err)

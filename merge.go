@@ -4,9 +4,9 @@ package git
 #include <git2.h>
 #include <git2/errors.h>
 
-extern git_merge_head** _go_git_make_merge_head_array(size_t len);
-extern void _go_git_merge_head_array_set(git_merge_head** array, git_merge_head* ptr, size_t n);
-extern git_merge_head* _go_git_merge_head_array_get(git_merge_head** array, size_t n);
+extern git_annotated_commit** _go_git_make_merge_head_array(size_t len);
+extern void _go_git_annotated_commit_array_set(git_annotated_commit** array, git_annotated_commit* ptr, size_t n);
+extern git_annotated_commit* _go_git_annotated_commit_array_get(git_annotated_commit** array, size_t n);
 
 */
 import "C"
@@ -15,23 +15,23 @@ import (
 	"unsafe"
 )
 
-type MergeHead struct {
-	ptr *C.git_merge_head
+type AnnotatedCommit struct {
+	ptr *C.git_annotated_commit
 }
 
-func newMergeHeadFromC(c *C.git_merge_head) *MergeHead {
-	mh := &MergeHead{ptr: c}
-	runtime.SetFinalizer(mh, (*MergeHead).Free)
+func newAnnotatedCommitFromC(c *C.git_annotated_commit) *AnnotatedCommit {
+	mh := &AnnotatedCommit{ptr: c}
+	runtime.SetFinalizer(mh, (*AnnotatedCommit).Free)
 	return mh
 }
 
-func (mh *MergeHead) Free() {
+func (mh *AnnotatedCommit) Free() {
 	runtime.SetFinalizer(mh, nil)
-	C.git_merge_head_free(mh.ptr)
+	C.git_annotated_commit_free(mh.ptr)
 }
 
-func (r *Repository) MergeHeadFromFetchHead(branchName string, remoteURL string, oid *Oid) (*MergeHead, error) {
-	mh := &MergeHead{}
+func (r *Repository) AnnotatedCommitFromFetchHead(branchName string, remoteURL string, oid *Oid) (*AnnotatedCommit, error) {
+	mh := &AnnotatedCommit{}
 
 	cbranchName := C.CString(branchName)
 	defer C.free(unsafe.Pointer(cbranchName))
@@ -39,33 +39,33 @@ func (r *Repository) MergeHeadFromFetchHead(branchName string, remoteURL string,
 	cremoteURL := C.CString(remoteURL)
 	defer C.free(unsafe.Pointer(cremoteURL))
 
-	ret := C.git_merge_head_from_fetchhead(&mh.ptr, r.ptr, cbranchName, cremoteURL, oid.toC())
+	ret := C.git_annotated_commit_from_fetchhead(&mh.ptr, r.ptr, cbranchName, cremoteURL, oid.toC())
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	runtime.SetFinalizer(mh, (*MergeHead).Free)
+	runtime.SetFinalizer(mh, (*AnnotatedCommit).Free)
 	return mh, nil
 }
 
-func (r *Repository) MergeHeadFromId(oid *Oid) (*MergeHead, error) {
-	mh := &MergeHead{}
+func (r *Repository) LookupAnnotatedCommit(oid *Oid) (*AnnotatedCommit, error) {
+	mh := &AnnotatedCommit{}
 
-	ret := C.git_merge_head_from_id(&mh.ptr, r.ptr, oid.toC())
+	ret := C.git_annotated_commit_lookup(&mh.ptr, r.ptr, oid.toC())
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	runtime.SetFinalizer(mh, (*MergeHead).Free)
+	runtime.SetFinalizer(mh, (*AnnotatedCommit).Free)
 	return mh, nil
 }
 
-func (r *Repository) MergeHeadFromRef(ref *Reference) (*MergeHead, error) {
-	mh := &MergeHead{}
+func (r *Repository) AnnotatedCommitFromRef(ref *Reference) (*AnnotatedCommit, error) {
+	mh := &AnnotatedCommit{}
 
-	ret := C.git_merge_head_from_ref(&mh.ptr, r.ptr, ref.ptr)
+	ret := C.git_annotated_commit_from_ref(&mh.ptr, r.ptr, ref.ptr)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	runtime.SetFinalizer(mh, (*MergeHead).Free)
+	runtime.SetFinalizer(mh, (*AnnotatedCommit).Free)
 	return mh, nil
 }
 
@@ -127,19 +127,19 @@ const (
 	MergeFileFavorUnion  MergeFileFavor = C.GIT_MERGE_FILE_FAVOR_UNION
 )
 
-func (r *Repository) Merge(theirHeads []*MergeHead, mergeOptions *MergeOptions, checkoutOptions *CheckoutOpts) error {
+func (r *Repository) Merge(theirHeads []*AnnotatedCommit, mergeOptions *MergeOptions, checkoutOptions *CheckoutOpts) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
 	cMergeOpts := mergeOptions.toC()
 	cCheckoutOpts := checkoutOptions.toC()
 
-	gmerge_head_array := make([]*C.git_merge_head, len(theirHeads))
+	gmerge_head_array := make([]*C.git_annotated_commit, len(theirHeads))
 	for i := 0; i < len(theirHeads); i++ {
 		gmerge_head_array[i] = theirHeads[i].ptr
 	}
 	ptr := unsafe.Pointer(&gmerge_head_array[0])
-	err := C.git_merge(r.ptr, (**C.git_merge_head)(ptr), C.size_t(len(theirHeads)), cMergeOpts, cCheckoutOpts)
+	err := C.git_merge(r.ptr, (**C.git_annotated_commit)(ptr), C.size_t(len(theirHeads)), cMergeOpts, cCheckoutOpts)
 	if err < 0 {
 		return MakeGitError(err)
 	}
@@ -164,18 +164,18 @@ const (
 	MergePreferenceFastForwardOnly MergePreference = C.GIT_MERGE_PREFERENCE_FASTFORWARD_ONLY
 )
 
-func (r *Repository) MergeAnalysis(theirHeads []*MergeHead) (MergeAnalysis, MergePreference, error) {
+func (r *Repository) MergeAnalysis(theirHeads []*AnnotatedCommit) (MergeAnalysis, MergePreference, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	gmerge_head_array := make([]*C.git_merge_head, len(theirHeads))
+	gmerge_head_array := make([]*C.git_annotated_commit, len(theirHeads))
 	for i := 0; i < len(theirHeads); i++ {
 		gmerge_head_array[i] = theirHeads[i].ptr
 	}
 	ptr := unsafe.Pointer(&gmerge_head_array[0])
 	var analysis C.git_merge_analysis_t
 	var preference C.git_merge_preference_t
-	err := C.git_merge_analysis(&analysis, &preference, r.ptr, (**C.git_merge_head)(ptr), C.size_t(len(theirHeads)))
+	err := C.git_merge_analysis(&analysis, &preference, r.ptr, (**C.git_annotated_commit)(ptr), C.size_t(len(theirHeads)))
 	if err < 0 {
 		return MergeAnalysisNone, MergePreferenceNone, MakeGitError(err)
 	}
