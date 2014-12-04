@@ -272,6 +272,31 @@ func (diff *Diff) Patch(deltaIndex int) (*Patch, error) {
 	return newPatchFromC(patchPtr), nil
 }
 
+/*
+This modifies a diff in place, replacing old entries that look like renames or copies with new entries reflecting those changes. This also will, if requested, break modified files into add/remove pairs if the amount of change is above a threshold.
+
+If opts is nil, default options will be used.
+*/
+func (diff *Diff) FindSimilar(opts *DiffFindOptions) error {
+	var copts *C.git_diff_find_options
+	if opts != nil {
+		copts = &C.git_diff_find_options{
+			version:                       C.GIT_DIFF_FIND_OPTIONS_VERSION,
+			flags:                         C.uint32_t(opts.Flags),
+			rename_threshold:              C.uint16_t(opts.RenameThreshold),
+			rename_from_rewrite_threshold: C.uint16_t(opts.RenameFromRewriteThreshold),
+			copy_threshold:                C.uint16_t(opts.CopyThreshold),
+			break_rewrite_threshold:       C.uint16_t(opts.BreakRewriteThreshold),
+			rename_limit:                  C.size_t(opts.RenameLimit),
+		}
+	}
+	ecode := C.git_diff_find_similar(diff.ptr, copts)
+	if ecode < 0 {
+		return MakeGitError(ecode)
+	}
+	return nil
+}
+
 type DiffOptionsFlag int
 
 const (
@@ -323,6 +348,78 @@ type DiffOptions struct {
 	NewPrefix string
 }
 
+type DiffFindOptionsFlag int
+
+const (
+	/** Obey `diff.renames`. Overridden by any other DiffFind DiffFindOptionsFlag = C.GIT_DIFF_FIND_... flag. */
+	DiffFindByConfig DiffFindOptionsFlag = C.GIT_DIFF_FIND_BY_CONFIG
+
+	/** Look for renames? (`--find-renames`) */
+	DiffFindRenames DiffFindOptionsFlag = C.GIT_DIFF_FIND_RENAMES
+
+	/** Consider old side of MODIFIED for renames? (`--break-rewrites=N`) */
+	DiffFindRenamesFromRewrites DiffFindOptionsFlag = C.GIT_DIFF_FIND_RENAMES_FROM_REWRITES
+
+	/** Look for copies? (a la `--find-copies`). */
+	DiffFindCopies DiffFindOptionsFlag = C.GIT_DIFF_FIND_COPIES
+
+	/** Consider UNMODIFIED as copy sources? (`--find-copies-harder`).
+	 *
+	 * For this to work correctly, use DiffFind DiffFindOptionsFlag = C.GIT_DIFF_INCLUDE_UNMODIFIED
+	 * the initial `git_diff` is being generated.
+	 */
+	DiffFindCopiesFromUnmodified DiffFindOptionsFlag = C.GIT_DIFF_FIND_COPIES_FROM_UNMODIFIED
+
+	/** Mark significant rewrites for split (`--break-rewrites=/M`) */
+	DiffFindRewrites DiffFindOptionsFlag = C.GIT_DIFF_FIND_REWRITES
+	/** Actually split large rewrites into delete/add pairs */
+	DiffBreakRewrites DiffFindOptionsFlag = C.GIT_DIFF_BREAK_REWRITES
+	/** Mark rewrites for split and break into delete/add pairs */
+	DiffFindAndBreakRewrites DiffFindOptionsFlag = C.GIT_DIFF_FIND_AND_BREAK_REWRITES
+
+	/** Find renames/copies for UNTRACKED items in working directory.
+	 *
+	 * For this to work correctly, use DiffFind DiffFindOptionsFlag = C.GIT_DIFF_INCLUDE_UNTRACKED
+	 * initial `git_diff` is being generated (and obviously the diff must
+	 * be against the working directory for this to make sense).
+	 */
+	DiffFindForUntracked DiffFindOptionsFlag = C.GIT_DIFF_FIND_FOR_UNTRACKED
+
+	/** Turn on all finding features. */
+	DiffFindAll DiffFindOptionsFlag = C.GIT_DIFF_FIND_ALL
+
+	/** Measure similarity ignoring leading whitespace (default) */
+	DiffFindIgnoreLeadingWhitespace DiffFindOptionsFlag = C.GIT_DIFF_FIND_IGNORE_LEADING_WHITESPACE
+	/** Measure similarity ignoring all whitespace */
+	DiffFindIgnoreWhitespace DiffFindOptionsFlag = C.GIT_DIFF_FIND_IGNORE_WHITESPACE
+	/** Measure similarity including all data */
+	DiffFindDontIgnoreWhitespace DiffFindOptionsFlag = C.GIT_DIFF_FIND_DONT_IGNORE_WHITESPACE
+	/** Measure similarity only by comparing SHAs (fast and cheap) */
+	DiffFindExactMatchOnly DiffFindOptionsFlag = C.GIT_DIFF_FIND_EXACT_MATCH_ONLY
+
+	/** Do not break rewrites unless they contribute to a rename.
+	 *
+	 * Normally, DiffFind DiffFindOptionsFlag = C.GIT_DIFF_FIND_AND_BREAK_REWRITES
+	 * similarity of modified files and split the ones that have changed a
+	 * lot into a DELETE / ADD pair.  Then the sides of that pair will be
+	 * considered candidates for rename and copy detection.
+	 *
+	 * If you add this flag in and the split pair is *not* used for an
+	 * actual rename or copy, then the modified record will be restored to
+	 * a regular MODIFIED record instead of being split.
+	 */
+	DiffBreakRewritesForRenamesOnly DiffFindOptionsFlag = C.GIT_DIFF_BREAK_REWRITES_FOR_RENAMES_ONLY
+
+	/** Remove any UNMODIFIED deltas after find_similar is done.
+	 *
+	 * Using DiffFind DiffFindOptionsFlag = C.GIT_DIFF_FIND_COPIES_FROM_UNMODIFIED
+	 * --find-copies-harder behavior requires building a diff with the
+	 * DiffFind DiffFindOptionsFlag = C.GIT_DIFF_INCLUDE_UNMODIFIED
+	 * records in the final result, pass this flag to have them removed.
+	 */
+	DiffFindRemoveUnmodified DiffFindOptionsFlag = C.GIT_DIFF_FIND_REMOVE_UNMODIFIED
+)
+
 func DefaultDiffOptions() (DiffOptions, error) {
 	opts := C.git_diff_options{}
 	ecode := C.git_diff_init_options(&opts, C.GIT_DIFF_OPTIONS_VERSION)
@@ -339,6 +436,27 @@ func DefaultDiffOptions() (DiffOptions, error) {
 		IdAbbrev:         uint16(opts.id_abbrev),
 		MaxSize:          int(opts.max_size),
 	}, nil
+}
+
+type DiffFindOptions struct {
+	Flags                      DiffFindOptionsFlag // Combination of DiffFindOptionsFlag values (default git.DiffFindByConfig). NOTE: if you don't explicitly set this, `diff.renames` could be set to false, resulting in `git_diff_find_similar` doing nothing.
+	RenameThreshold            uint16              // Similarity to consider a file renamed (default 50)
+	RenameFromRewriteThreshold uint16              // Similarity of modified to be eligible rename source (default 50)
+	CopyThreshold              uint16              // Similarity to consider a file a copy (default 50)
+	BreakRewriteThreshold      uint16              // Similarity to split modify into delete/add pair (default 60)
+	RenameLimit                int                 // Maximum similarity sources to examine for a file (somewhat like git-diff's `-l` option or `diff.renameLimit` config) (default 200)
+	//GitDiffSimilarityMetric Metric//TODO
+}
+
+func DefaultDiffFindOptions() *DiffFindOptions {
+	return &DiffFindOptions{
+		Flags:                      DiffFindByConfig,
+		RenameThreshold:            50,
+		RenameFromRewriteThreshold: 50,
+		CopyThreshold:              50,
+		BreakRewriteThreshold:      60,
+		RenameLimit:                200,
+	}
 }
 
 var (
