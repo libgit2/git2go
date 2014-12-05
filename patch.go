@@ -6,6 +6,7 @@ package git
 import "C"
 import (
 	"runtime"
+	"unsafe"
 )
 
 type Patch struct {
@@ -45,4 +46,35 @@ func (patch *Patch) String() (string, error) {
 		return "", MakeGitError(ecode)
 	}
 	return C.GoString(buf.ptr), nil
+}
+
+func toPointer(data []byte) (ptr unsafe.Pointer) {
+	if len(data) > 0 {
+		ptr = unsafe.Pointer(&data[0])
+	} else {
+		ptr = unsafe.Pointer(nil)
+	}
+	return
+}
+
+func (v *Repository) PatchFromBuffers(oldPath, newPath string, oldBuf, newBuf []byte, opts *DiffOptions) (*Patch, error) {
+	var patchPtr *C.git_patch
+
+	oldPtr := toPointer(oldBuf)
+	newPtr := (*C.char)(toPointer(newBuf))
+
+	cOldPath := C.CString(oldPath)
+	defer C.free(unsafe.Pointer(cOldPath))
+
+	cNewPath := C.CString(newPath)
+	defer C.free(unsafe.Pointer(cNewPath))
+
+	copts, _ := diffOptionsToC(opts)
+	defer freeDiffOptions(copts)
+
+	ecode := C.git_patch_from_buffers(&patchPtr, oldPtr, C.size_t(len(oldBuf)), cOldPath, newPtr, C.size_t(len(newBuf)), cNewPath, copts)
+	if ecode < 0 {
+		return nil, MakeGitError(ecode)
+	}
+	return newPatchFromC(patchPtr), nil
 }
