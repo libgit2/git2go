@@ -318,7 +318,7 @@ func (repo *Repository) CreateAnonymousRemote(url, fetch string) (*Remote, error
 	return remote, nil
 }
 
-func (repo *Repository) LoadRemote(name string) (*Remote, error) {
+func (repo *Repository) LookupRemote(name string) (*Remote, error) {
 	remote := &Remote{}
 
 	cname := C.CString(name)
@@ -327,7 +327,7 @@ func (repo *Repository) LoadRemote(name string) (*Remote, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_remote_load(&remote.ptr, repo.ptr, cname)
+	ret := C.git_remote_lookup(&remote.ptr, repo.ptr, cname)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}

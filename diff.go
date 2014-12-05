@@ -313,8 +313,8 @@ type DiffOptions struct {
 	Pathspec         []string
 	NotifyCallback   DiffNotifyCallback
 
-	ContextLines   uint16
-	InterhunkLines uint16
+	ContextLines   uint32
+	InterhunkLines uint32
 	IdAbbrev       uint16
 
 	MaxSize int
@@ -334,8 +334,8 @@ func DefaultDiffOptions() (DiffOptions, error) {
 		Flags:            DiffOptionsFlag(opts.flags),
 		IgnoreSubmodules: SubmoduleIgnore(opts.ignore_submodules),
 		Pathspec:         makeStringsFromCStrings(opts.pathspec.strings, int(opts.pathspec.count)),
-		ContextLines:     uint16(opts.context_lines),
-		InterhunkLines:   uint16(opts.interhunk_lines),
+		ContextLines:     uint32(opts.context_lines),
+		InterhunkLines:   uint32(opts.interhunk_lines),
 		IdAbbrev:         uint16(opts.id_abbrev),
 		MaxSize:          int(opts.max_size),
 	}, nil
@@ -404,8 +404,8 @@ func (v *Repository) DiffTreeToTree(oldTree, newTree *Tree, opts *DiffOptions) (
 			flags:             C.uint32_t(opts.Flags),
 			ignore_submodules: C.git_submodule_ignore_t(opts.IgnoreSubmodules),
 			pathspec:          cpathspec,
-			context_lines:     C.uint16_t(opts.ContextLines),
-			interhunk_lines:   C.uint16_t(opts.InterhunkLines),
+			context_lines:     C.uint32_t(opts.ContextLines),
+			interhunk_lines:   C.uint32_t(opts.InterhunkLines),
 			id_abbrev:         C.uint16_t(opts.IdAbbrev),
 			max_size:          C.git_off_t(opts.MaxSize),
 		}
@@ -453,8 +453,8 @@ func (v *Repository) DiffTreeToWorkdir(oldTree *Tree, opts *DiffOptions) (*Diff,
 			flags:             C.uint32_t(opts.Flags),
 			ignore_submodules: C.git_submodule_ignore_t(opts.IgnoreSubmodules),
 			pathspec:          cpathspec,
-			context_lines:     C.uint16_t(opts.ContextLines),
-			interhunk_lines:   C.uint16_t(opts.InterhunkLines),
+			context_lines:     C.uint32_t(opts.ContextLines),
+			interhunk_lines:   C.uint32_t(opts.InterhunkLines),
 			id_abbrev:         C.uint16_t(opts.IdAbbrev),
 			max_size:          C.git_off_t(opts.MaxSize),
 		}
