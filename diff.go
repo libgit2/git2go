@@ -179,6 +179,9 @@ func (diff *Diff) FindSimilar(opts *DiffFindOptions) error {
 		}
 	}
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ecode := C.git_diff_find_similar(diff.ptr, copts)
 	if ecode < 0 {
 		return MakeGitError(ecode)
@@ -404,6 +407,10 @@ type DiffFindOptions struct {
 
 func DefaultDiffFindOptions() (DiffFindOptions, error) {
 	opts := C.git_diff_find_options{}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ecode := C.git_diff_find_init_options(&opts, C.GIT_DIFF_FIND_OPTIONS_VERSION)
 	if ecode < 0 {
 		return DiffFindOptions{}, MakeGitError(ecode)

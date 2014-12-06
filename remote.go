@@ -610,6 +610,9 @@ func (o *Remote) Ls(filterRefs ...string) ([]RemoteHead, error) {
 	var refs **C.git_remote_head
 	var length C.size_t
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	if ret := C.git_remote_ls(&refs, &length, o.ptr); ret != 0 {
 		return nil, MakeGitError(ret)
 	}
