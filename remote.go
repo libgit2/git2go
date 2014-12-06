@@ -278,6 +278,20 @@ func (repo *Repository) CreateRemote(name string, url string) (*Remote, error) {
 	return remote, nil
 }
 
+func (repo *Repository) DeleteRemote(name string) error {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+	
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_remote_delete(repo.ptr, cname)
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+	return nil
+}
+
 func (repo *Repository) CreateRemoteWithFetchspec(name string, url string, fetch string) (*Remote, error) {
 	remote := &Remote{}
 
