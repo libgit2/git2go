@@ -294,6 +294,10 @@ func (v *ReferenceNameIterator) Next() (string, error) {
 // returned error is git.ErrIterOver
 func (v *ReferenceIterator) Next() (*Reference, error) {
 	var ptr *C.git_reference
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_reference_next(&ptr, v.ptr)
 	if ret < 0 {
 		return nil, MakeGitError(ret)

@@ -40,6 +40,10 @@ func (patch *Patch) String() (string, error) {
 		return "", ErrInvalid
 	}
 	var buf C.git_buf
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ecode := C.git_patch_to_buf(&buf, patch.ptr)
 	if ecode < 0 {
 		return "", MakeGitError(ecode)

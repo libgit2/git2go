@@ -249,6 +249,10 @@ func (r *Remote) Free() {
 
 func (repo *Repository) ListRemotes() ([]string, error) {
 	var r C.git_strarray
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ecode := C.git_remote_list(&r, repo.ptr)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
@@ -572,6 +576,9 @@ func (o *Remote) Fetch(refspecs []string, sig *Signature, msg string) error {
 	crefspecs.count = C.size_t(len(refspecs))
 	crefspecs.strings = makeCStringsFromStrings(refspecs)
 	defer freeStrarray(&crefspecs)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	ret := C.git_remote_fetch(o.ptr, &crefspecs, csig, cmsg)
 	if ret < 0 {

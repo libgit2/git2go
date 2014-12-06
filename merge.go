@@ -39,6 +39,9 @@ func (r *Repository) AnnotatedCommitFromFetchHead(branchName string, remoteURL s
 	cremoteURL := C.CString(remoteURL)
 	defer C.free(unsafe.Pointer(cremoteURL))
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_annotated_commit_from_fetchhead(&mh.ptr, r.ptr, cbranchName, cremoteURL, oid.toC())
 	if ret < 0 {
 		return nil, MakeGitError(ret)
@@ -50,6 +53,9 @@ func (r *Repository) AnnotatedCommitFromFetchHead(branchName string, remoteURL s
 func (r *Repository) LookupAnnotatedCommit(oid *Oid) (*AnnotatedCommit, error) {
 	mh := &AnnotatedCommit{}
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_annotated_commit_lookup(&mh.ptr, r.ptr, oid.toC())
 	if ret < 0 {
 		return nil, MakeGitError(ret)
@@ -60,6 +66,9 @@ func (r *Repository) LookupAnnotatedCommit(oid *Oid) (*AnnotatedCommit, error) {
 
 func (r *Repository) AnnotatedCommitFromRef(ref *Reference) (*AnnotatedCommit, error) {
 	mh := &AnnotatedCommit{}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	ret := C.git_annotated_commit_from_ref(&mh.ptr, r.ptr, ref.ptr)
 	if ret < 0 {
@@ -98,6 +107,10 @@ func mergeOptionsFromC(opts *C.git_merge_options) MergeOptions {
 
 func DefaultMergeOptions() (MergeOptions, error) {
 	opts := C.git_merge_options{}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ecode := C.git_merge_init_options(&opts, C.GIT_MERGE_OPTIONS_VERSION)
 	if ecode < 0 {
 		return MergeOptions{}, MakeGitError(ecode)

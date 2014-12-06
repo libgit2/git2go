@@ -287,6 +287,9 @@ func (diff *Diff) Patch(deltaIndex int) (*Patch, error) {
 	}
 	var patchPtr *C.git_patch
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ecode := C.git_patch_from_diff(&patchPtr, diff.ptr, C.size_t(deltaIndex))
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
@@ -348,6 +351,10 @@ type DiffOptions struct {
 
 func DefaultDiffOptions() (DiffOptions, error) {
 	opts := C.git_diff_options{}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ecode := C.git_diff_init_options(&opts, C.GIT_DIFF_OPTIONS_VERSION)
 	if ecode < 0 {
 		return DiffOptions{}, MakeGitError(ecode)
@@ -487,6 +494,9 @@ func (v *Repository) DiffTreeToTree(oldTree, newTree *Tree, opts *DiffOptions) (
 		}
 	}
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ecode := C.git_diff_tree_to_tree(&diffPtr, v.ptr, oldPtr, newPtr, copts)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
@@ -535,6 +545,9 @@ func (v *Repository) DiffTreeToWorkdir(oldTree *Tree, opts *DiffOptions) (*Diff,
 			copts.notify_payload = unsafe.Pointer(notifyData)
 		}
 	}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	ecode := C.git_diff_tree_to_workdir(&diffPtr, v.ptr, oldPtr, copts)
 	if ecode < 0 {

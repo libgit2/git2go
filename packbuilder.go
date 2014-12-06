@@ -132,6 +132,9 @@ func (pb *Packbuilder) ForEach(callback PackbuilderForeachCallback) error {
 		err: nil,
 	}
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	err := C._go_git_packbuilder_foreach(pb.ptr, unsafe.Pointer(&data))
 	if err == C.GIT_EUSER {
 		return data.err

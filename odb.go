@@ -25,6 +25,9 @@ type OdbBackend struct {
 func NewOdb() (odb *Odb, err error) {
 	odb = new(Odb)
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_odb_new(&odb.ptr)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
@@ -40,6 +43,10 @@ func NewOdbBackendFromC(ptr *C.git_odb_backend) (backend *OdbBackend) {
 }
 
 func (v *Odb) AddBackend(backend *OdbBackend, priority int) (err error) {
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_odb_add_backend(v.ptr, backend.ptr, C.int(priority))
 	if ret < 0 {
 		backend.Free()
@@ -110,6 +117,9 @@ func (v *Odb) ForEach(callback OdbForEachCallback) error {
 		err: nil,
 	}
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C._go_git_odb_foreach(v.ptr, unsafe.Pointer(&data))
 	if ret == C.GIT_EUSER {
 		return data.err
@@ -140,6 +150,10 @@ func (v *Odb) Hash(data []byte, otype ObjectType) (oid *Oid, err error) {
 // contents of the object.
 func (v *Odb) NewReadStream(id *Oid) (*OdbReadStream, error) {
 	stream := new(OdbReadStream)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_odb_open_rstream(&stream.ptr, v.ptr, id.toC())
 	if ret < 0 {
 		return nil, MakeGitError(ret)

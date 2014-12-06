@@ -72,6 +72,9 @@ func InitRepository(path string, isbare bool) (*Repository, error) {
 func NewRepositoryWrapOdb(odb *Odb) (repo *Repository, err error) {
 	repo = new(Repository)
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_repository_wrap_odb(&repo.ptr, odb.ptr)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
@@ -385,6 +388,9 @@ func (v *Repository) CreateTag(
 	defer C.git_signature_free(taggerSig)
 
 	ctarget := commit.gitObject.ptr
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	ret := C.git_tag_create(oid.toC(), v.ptr, cname, ctarget, taggerSig, cmessage, 0)
 	if ret < 0 {
