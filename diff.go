@@ -164,6 +164,29 @@ func (diff *Diff) Free() error {
 	return nil
 }
 
+func (diff *Diff) FindSimilar(opts *DiffFindOptions) error {
+
+	var copts *C.git_diff_find_options
+	if opts != nil {
+		copts = &C.git_diff_find_options{
+			version:                       C.GIT_DIFF_FIND_OPTIONS_VERSION,
+			flags:                         C.uint32_t(opts.Flags),
+			rename_threshold:              C.uint16_t(opts.RenameThreshold),
+			copy_threshold:                C.uint16_t(opts.CopyThreshold),
+			rename_from_rewrite_threshold: C.uint16_t(opts.RenameFromRewriteThreshold),
+			break_rewrite_threshold:       C.uint16_t(opts.BreakRewriteThreshold),
+			rename_limit:                  C.size_t(opts.RenameLimit),
+		}
+	}
+
+	ecode := C.git_diff_find_similar(diff.ptr, copts)
+	if ecode < 0 {
+		return MakeGitError(ecode)
+	}
+
+	return nil
+}
+
 type diffForEachData struct {
 	FileCallback DiffForEachFileCallback
 	HunkCallback DiffForEachHunkCallback
@@ -338,6 +361,54 @@ func DefaultDiffOptions() (DiffOptions, error) {
 		InterhunkLines:   uint32(opts.interhunk_lines),
 		IdAbbrev:         uint16(opts.id_abbrev),
 		MaxSize:          int(opts.max_size),
+	}, nil
+}
+
+type DiffFindOptionsFlag int
+
+const (
+	DiffFindByConfig                    DiffFindOptionsFlag = C.GIT_DIFF_FIND_BY_CONFIG
+	DiffFindRenames                     DiffFindOptionsFlag = C.GIT_DIFF_FIND_RENAMES
+	DiffFindRenamesFromRewrites         DiffFindOptionsFlag = C.GIT_DIFF_FIND_RENAMES_FROM_REWRITES
+	DiffFindCopies                      DiffFindOptionsFlag = C.GIT_DIFF_FIND_COPIES
+	DiffFindCopiesFromUnmodified        DiffFindOptionsFlag = C.GIT_DIFF_FIND_COPIES_FROM_UNMODIFIED
+	DiffFindRewrites                    DiffFindOptionsFlag = C.GIT_DIFF_FIND_REWRITES
+	DiffFindBreakRewrites               DiffFindOptionsFlag = C.GIT_DIFF_BREAK_REWRITES
+	DiffFindAndBreakRewrites            DiffFindOptionsFlag = C.GIT_DIFF_FIND_AND_BREAK_REWRITES
+	DiffFindForUntracked                DiffFindOptionsFlag = C.GIT_DIFF_FIND_FOR_UNTRACKED
+	DiffFindAll                         DiffFindOptionsFlag = C.GIT_DIFF_FIND_ALL
+	DiffFindIgnoreLeadingWhitespace     DiffFindOptionsFlag = C.GIT_DIFF_FIND_IGNORE_LEADING_WHITESPACE
+	DiffFindIgnoreWhitespace            DiffFindOptionsFlag = C.GIT_DIFF_FIND_IGNORE_WHITESPACE
+	DiffFindDontIgnoreWhitespace        DiffFindOptionsFlag = C.GIT_DIFF_FIND_DONT_IGNORE_WHITESPACE
+	DiffFindExactMatchOnly              DiffFindOptionsFlag = C.GIT_DIFF_FIND_EXACT_MATCH_ONLY
+	DiffFindBreakRewritesForRenamesOnly DiffFindOptionsFlag = C.GIT_DIFF_BREAK_REWRITES_FOR_RENAMES_ONLY
+	DiffFindRemoveUnmodified            DiffFindOptionsFlag = C.GIT_DIFF_FIND_REMOVE_UNMODIFIED
+)
+
+//TODO implement git_diff_similarity_metric
+type DiffFindOptions struct {
+	Flags                      DiffFindOptionsFlag
+	RenameThreshold            uint16
+	CopyThreshold              uint16
+	RenameFromRewriteThreshold uint16
+	BreakRewriteThreshold      uint16
+	RenameLimit                uint
+}
+
+func DefaultDiffFindOptions() (DiffFindOptions, error) {
+	opts := C.git_diff_find_options{}
+	ecode := C.git_diff_find_init_options(&opts, C.GIT_DIFF_FIND_OPTIONS_VERSION)
+	if ecode < 0 {
+		return DiffFindOptions{}, MakeGitError(ecode)
+	}
+
+	return DiffFindOptions{
+		Flags:                      DiffFindOptionsFlag(opts.flags),
+		RenameThreshold:            uint16(opts.rename_threshold),
+		CopyThreshold:              uint16(opts.copy_threshold),
+		RenameFromRewriteThreshold: uint16(opts.rename_from_rewrite_threshold),
+		BreakRewriteThreshold:      uint16(opts.break_rewrite_threshold),
+		RenameLimit:                uint(opts.rename_limit),
 	}, nil
 }
 
