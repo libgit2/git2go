@@ -9,6 +9,8 @@ import (
 	"go/printer"
 	"go/token"
 	"log"
+	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -24,7 +26,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	pkgs, err := parser.ParseDir(fset, bpkg.Dir, nil, 0)
+	pkgs, err := parser.ParseDir(fset, bpkg.Dir, func(fi os.FileInfo) bool { return filepath.Ext(fi.Name()) == ".go" }, 0)
 	if err != nil {
 		log.Fatal(err)
 	}
