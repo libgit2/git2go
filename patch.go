@@ -76,6 +76,9 @@ func (v *Repository) PatchFromBuffers(oldPath, newPath string, oldBuf, newBuf []
 	copts, _ := diffOptionsToC(opts)
 	defer freeDiffOptions(copts)
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ecode := C.git_patch_from_buffers(&patchPtr, oldPtr, C.size_t(len(oldBuf)), cOldPath, newPtr, C.size_t(len(newBuf)), cNewPath, copts)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
