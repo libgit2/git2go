@@ -2,7 +2,6 @@ package git
 
 /*
 #include <git2.h>
-#include <git2/errors.h>
 #include <string.h>
 
 extern int _go_git_blob_create_fromchunks(git_oid *id,

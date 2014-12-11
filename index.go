@@ -2,7 +2,6 @@ package git
 
 /*
 #include <git2.h>
-#include <git2/errors.h>
 
 extern int _go_git_index_add_all(git_index*, const git_strarray*, unsigned int, void*);
 extern int _go_git_index_update_all(git_index*, const git_strarray*, void*);

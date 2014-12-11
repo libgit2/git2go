@@ -2,7 +2,6 @@ package git
 
 /*
 #include <git2.h>
-#include <git2/errors.h>
 
 extern void _go_git_revspec_free(git_revspec *revspec);
 */

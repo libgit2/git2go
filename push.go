@@ -2,7 +2,6 @@ package git
 
 /*
 #include <git2.h>
-#include <git2/errors.h>
 
 int _go_git_push_status_foreach(git_push *push, void *data);
 int _go_git_push_set_callbacks(git_push *push, void *packbuilder_progress_data, void *transfer_progress_data);
