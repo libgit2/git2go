@@ -650,3 +650,40 @@ func (o *Remote) Ls(filterRefs ...string) ([]RemoteHead, error) {
 
 	return heads, nil
 }
+
+func (o *Remote) Push(refspecs []string, opts *PushOptions, sig *Signature, msg string) error {
+	var csig *C.git_signature = nil
+	if sig != nil {
+		csig = sig.toC()
+		defer C.free(unsafe.Pointer(csig))
+	}
+
+	var cmsg *C.char
+	if msg == "" {
+		cmsg = nil
+	} else {
+		cmsg = C.CString(msg)
+		defer C.free(unsafe.Pointer(cmsg))
+	}
+
+	var copts C.git_push_options
+	C.git_push_init_options(&copts, C.GIT_PUSH_OPTIONS_VERSION)
+	if opts != nil {
+		copts.version        = C.uint(opts.Version)
+		copts.pb_parallelism = C.uint(opts.PbParallelism)
+	}
+
+	crefspecs := C.git_strarray{}
+	crefspecs.count = C.size_t(len(refspecs))
+	crefspecs.strings = makeCStringsFromStrings(refspecs)
+	defer freeStrarray(&crefspecs)
+
+        runtime.LockOSThread()
+        defer runtime.UnlockOSThread()
+
+	ret := C.git_remote_push(o.ptr, &crefspecs, &copts, csig, cmsg)
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+	return nil
+}

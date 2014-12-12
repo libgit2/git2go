@@ -48,10 +48,27 @@ func Test_Push_ToRemote(t *testing.T) {
 	})
 	checkFatal(t, err)
 
-	if !push.UnpackOk() {
-		t.Fatalf("unable to unpack")
-	}
-
 	defer remote.Free()
 	defer repo.Free()
+}
+
+func TestRemotePush(t *testing.T) {
+	repo := createBareTestRepo(t)
+	defer os.RemoveAll(repo.Path())
+	localRepo := createTestRepo(t)
+	defer os.RemoveAll(localRepo.Workdir())
+
+	remote, err := localRepo.CreateRemote("test_push", repo.Path())
+	checkFatal(t, err)
+
+	seedTestRepo(t, localRepo)
+
+	err = remote.Push([]string{"refs/heads/master"}, nil, nil, "")
+	checkFatal(t, err)
+
+	_, err = localRepo.LookupReference("refs/remotes/test_push/master")
+	checkFatal(t, err)
+
+	_, err = repo.LookupReference("refs/heads/master")
+	checkFatal(t, err)
 }

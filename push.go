@@ -31,6 +31,7 @@ func (p *Push) Free() {
 	C.git_push_free(p.ptr)
 }
 
+// This class is deprecated. Please use Remote.Push() instead
 func (remote *Remote) NewPush() (*Push, error) {
 
 	runtime.LockOSThread()
@@ -54,16 +55,6 @@ func (p *Push) Finish() error {
 		return MakeGitError(ret)
 	}
 	return nil
-}
-
-func (p *Push) UnpackOk() bool {
-
-	ret := C.git_push_unpack_ok(p.ptr)
-	if ret == 0 {
-		return false
-	}
-	return true
-
 }
 
 func (p *Push) UpdateTips(sig *Signature, msg string) error {
