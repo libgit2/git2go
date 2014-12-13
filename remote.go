@@ -53,6 +53,9 @@ type CredentialsCallback func(url string, username_from_url string, allowed_type
 type TransferProgressCallback func(stats TransferProgress) ErrorCode
 type UpdateTipsCallback func(refname string, a *Oid, b *Oid) ErrorCode
 type CertificateCheckCallback func(cert *Certificate, valid bool, hostname string) ErrorCode
+type PackbuilderProgressCallback func(stage int32, current, total uint32) ErrorCode
+type PushTransferProgressCallback func(current, total uint32, bytes uint) ErrorCode
+type PushUpdateReferenceCallback func(refname, status string) ErrorCode
 
 type RemoteCallbacks struct {
 	SidebandProgressCallback TransportMessageCallback
@@ -61,7 +64,11 @@ type RemoteCallbacks struct {
 	TransferProgressCallback
 	UpdateTipsCallback
 	CertificateCheckCallback
+	PackProgressCallback PackbuilderProgressCallback
+	PushTransferProgressCallback
+	PushUpdateReferenceCallback
 }
+
 
 type Remote struct {
 	ptr       *C.git_remote
@@ -215,6 +222,40 @@ func certificateCheckCallback(_cert *C.git_cert, _valid C.int, _host *C.char, da
 
 	return int(callbacks.CertificateCheckCallback(&cert, valid, host))
 }
+
+//export packProgressCallback
+func packProgressCallback(stage C.int, current, total C.uint, data unsafe.Pointer) int {
+	callbacks := (*RemoteCallbacks)(data)
+
+	if callbacks.PackProgressCallback == nil {
+		return 0
+	}
+
+	return int(callbacks.PackProgressCallback(int32(stage), uint32(current), uint32(total)))
+}
+
+//export pushTransferProgressCallback
+func pushTransferProgressCallback(current, total C.uint, bytes C.size_t, data unsafe.Pointer) int {
+	callbacks := (*RemoteCallbacks)(data)
+	if callbacks.PushTransferProgressCallback == nil {
+		return 0
+	}
+
+	return int(callbacks.PushTransferProgressCallback(uint32(current), uint32(total), uint(bytes)))
+}
+
+//export pushUpdateReferenceCallback
+func pushUpdateReferenceCallback(refname, status *C.char, data unsafe.Pointer) int {
+	callbacks := (*RemoteCallbacks)(data)
+
+	if callbacks.PushUpdateReferenceCallback == nil {
+		return 0
+	}
+
+	return int(callbacks.PushUpdateReferenceCallback(C.GoString(refname), C.GoString(status)))
+}
+
+
 
 func RemoteIsValidName(name string) bool {
 	cname := C.CString(name)
