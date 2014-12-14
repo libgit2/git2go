@@ -31,6 +31,7 @@ func (p *Push) Free() {
 	C.git_push_free(p.ptr)
 }
 
+// This class is deprecated. Please use Remote.Push() instead
 func (remote *Remote) NewPush() (*Push, error) {
 
 	runtime.LockOSThread()
@@ -54,16 +55,6 @@ func (p *Push) Finish() error {
 		return MakeGitError(ret)
 	}
 	return nil
-}
-
-func (p *Push) UnpackOk() bool {
-
-	ret := C.git_push_unpack_ok(p.ptr)
-	if ret == 0 {
-		return false
-	}
-	return true
-
 }
 
 func (p *Push) UpdateTips(sig *Signature, msg string) error {
@@ -155,17 +146,14 @@ type PushCallbacks struct {
 	TransferProgress    *PushTransferProgressCallback
 }
 
-type PackbuilderProgressCallback func(stage int, current uint, total uint) int
-type PushTransferProgressCallback func(current uint, total uint, bytes uint) int
-
 //export packbuilderProgress
 func packbuilderProgress(stage C.int, current C.uint, total C.uint, data unsafe.Pointer) C.int {
-	return C.int((*(*PackbuilderProgressCallback)(data))(int(stage), uint(current), uint(total)))
+	return C.int((*(*PackbuilderProgressCallback)(data))(int32(stage), uint32(current), uint32(total)))
 }
 
-//export pushTransferProgress
-func pushTransferProgress(current C.uint, total C.uint, bytes C.size_t, data unsafe.Pointer) C.int {
-	return C.int((*(*PushTransferProgressCallback)(data))(uint(current), uint(total), uint(bytes)))
+//export pushStructTransferProgress
+func pushStructTransferProgress(current C.uint, total C.uint, bytes C.size_t, data unsafe.Pointer) C.int {
+	return C.int((*(*PushTransferProgressCallback)(data))(uint32(current), uint32(total), uint(bytes)))
 }
 
 func (p *Push) SetCallbacks(callbacks PushCallbacks) {

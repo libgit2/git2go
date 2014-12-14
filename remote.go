@@ -53,6 +53,9 @@ type CredentialsCallback func(url string, username_from_url string, allowed_type
 type TransferProgressCallback func(stats TransferProgress) ErrorCode
 type UpdateTipsCallback func(refname string, a *Oid, b *Oid) ErrorCode
 type CertificateCheckCallback func(cert *Certificate, valid bool, hostname string) ErrorCode
+type PackbuilderProgressCallback func(stage int32, current, total uint32) ErrorCode
+type PushTransferProgressCallback func(current, total uint32, bytes uint) ErrorCode
+type PushUpdateReferenceCallback func(refname, status string) ErrorCode
 
 type RemoteCallbacks struct {
 	SidebandProgressCallback TransportMessageCallback
@@ -61,7 +64,11 @@ type RemoteCallbacks struct {
 	TransferProgressCallback
 	UpdateTipsCallback
 	CertificateCheckCallback
+	PackProgressCallback PackbuilderProgressCallback
+	PushTransferProgressCallback
+	PushUpdateReferenceCallback
 }
+
 
 type Remote struct {
 	ptr       *C.git_remote
@@ -215,6 +222,40 @@ func certificateCheckCallback(_cert *C.git_cert, _valid C.int, _host *C.char, da
 
 	return int(callbacks.CertificateCheckCallback(&cert, valid, host))
 }
+
+//export packProgressCallback
+func packProgressCallback(stage C.int, current, total C.uint, data unsafe.Pointer) int {
+	callbacks := (*RemoteCallbacks)(data)
+
+	if callbacks.PackProgressCallback == nil {
+		return 0
+	}
+
+	return int(callbacks.PackProgressCallback(int32(stage), uint32(current), uint32(total)))
+}
+
+//export pushTransferProgressCallback
+func pushTransferProgressCallback(current, total C.uint, bytes C.size_t, data unsafe.Pointer) int {
+	callbacks := (*RemoteCallbacks)(data)
+	if callbacks.PushTransferProgressCallback == nil {
+		return 0
+	}
+
+	return int(callbacks.PushTransferProgressCallback(uint32(current), uint32(total), uint(bytes)))
+}
+
+//export pushUpdateReferenceCallback
+func pushUpdateReferenceCallback(refname, status *C.char, data unsafe.Pointer) int {
+	callbacks := (*RemoteCallbacks)(data)
+
+	if callbacks.PushUpdateReferenceCallback == nil {
+		return 0
+	}
+
+	return int(callbacks.PushUpdateReferenceCallback(C.GoString(refname), C.GoString(status)))
+}
+
+
 
 func RemoteIsValidName(name string) bool {
 	cname := C.CString(name)
@@ -649,4 +690,41 @@ func (o *Remote) Ls(filterRefs ...string) ([]RemoteHead, error) {
 	}
 
 	return heads, nil
+}
+
+func (o *Remote) Push(refspecs []string, opts *PushOptions, sig *Signature, msg string) error {
+	var csig *C.git_signature = nil
+	if sig != nil {
+		csig = sig.toC()
+		defer C.free(unsafe.Pointer(csig))
+	}
+
+	var cmsg *C.char
+	if msg == "" {
+		cmsg = nil
+	} else {
+		cmsg = C.CString(msg)
+		defer C.free(unsafe.Pointer(cmsg))
+	}
+
+	var copts C.git_push_options
+	C.git_push_init_options(&copts, C.GIT_PUSH_OPTIONS_VERSION)
+	if opts != nil {
+		copts.version        = C.uint(opts.Version)
+		copts.pb_parallelism = C.uint(opts.PbParallelism)
+	}
+
+	crefspecs := C.git_strarray{}
+	crefspecs.count = C.size_t(len(refspecs))
+	crefspecs.strings = makeCStringsFromStrings(refspecs)
+	defer freeStrarray(&crefspecs)
+
+        runtime.LockOSThread()
+        defer runtime.UnlockOSThread()
+
+	ret := C.git_remote_push(o.ptr, &crefspecs, &copts, csig, cmsg)
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+	return nil
 }
