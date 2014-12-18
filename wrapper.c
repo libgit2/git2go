@@ -71,7 +71,7 @@ void _go_git_setup_diff_notify_callbacks(git_diff_options *opts) {
 void _go_git_setup_callbacks(git_remote_callbacks *callbacks) {
 	typedef int (*completion_cb)(git_remote_completion_type type, void *data);
 	typedef int (*update_tips_cb)(const char *refname, const git_oid *a, const git_oid *b, void *data);
-	typedef (*push_update_reference_cb)(const char *refname, const char *status, void *data);
+	typedef int (*push_update_reference_cb)(const char *refname, const char *status, void *data);
 
 	callbacks->sideband_progress = (git_transport_message_cb)sidebandProgressCallback;
 	callbacks->completion = (completion_cb)completionCallback;
