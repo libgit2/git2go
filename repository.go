@@ -456,7 +456,7 @@ func (v *Repository) TreeBuilder() (*TreeBuilder, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if ret := C.git_treebuilder_create(&bld.ptr, nil); ret < 0 {
+	if ret := C.git_treebuilder_create(&bld.ptr, v.ptr, nil); ret < 0 {
 		return nil, MakeGitError(ret)
 	}
 	runtime.SetFinalizer(bld, (*TreeBuilder).Free)
@@ -471,7 +471,7 @@ func (v *Repository) TreeBuilderFromTree(tree *Tree) (*TreeBuilder, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if ret := C.git_treebuilder_create(&bld.ptr, tree.cast_ptr); ret < 0 {
+	if ret := C.git_treebuilder_create(&bld.ptr, v.ptr, tree.cast_ptr); ret < 0 {
 		return nil, MakeGitError(ret)
 	}
 	runtime.SetFinalizer(bld, (*TreeBuilder).Free)
