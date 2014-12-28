@@ -131,6 +131,19 @@ func TestDiffTreeToTree(t *testing.T) {
 		t.Fatal("Incorrect lines in diff")
 	}
 
+	stats, err := diff.GetStats()
+	checkFatal(t, err)
+
+	if stats.Insertions() != 1 {
+		t.Fatal("Incorrect number of insertions in diff")
+	}
+	if stats.Deletions() != 1 {
+		t.Fatal("Incorrect number of deletions in diff")
+	}
+	if stats.FilesChanged() != 1 {
+		t.Fatal("Incorrect number of changed files in diff")
+	}
+
 	errTest := errors.New("test error")
 
 	err = diff.ForEach(func(file DiffDelta, progress float64) (DiffForEachHunkCallback, error) {
