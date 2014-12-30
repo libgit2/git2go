@@ -371,6 +371,8 @@ func DefaultDiffOptions() (DiffOptions, error) {
 		InterhunkLines:   uint32(opts.interhunk_lines),
 		IdAbbrev:         uint16(opts.id_abbrev),
 		MaxSize:          int(opts.max_size),
+		OldPrefix:        "a",
+		NewPrefix:        "b",
 	}, nil
 }
 
@@ -479,6 +481,8 @@ func diffOptionsToC(opts *DiffOptions) (copts *C.git_diff_options, notifyData *d
 			interhunk_lines:   C.uint32_t(opts.InterhunkLines),
 			id_abbrev:         C.uint16_t(opts.IdAbbrev),
 			max_size:          C.git_off_t(opts.MaxSize),
+			old_prefix:        C.CString(opts.OldPrefix),
+			new_prefix:        C.CString(opts.NewPrefix),
 		}
 
 		if opts.NotifyCallback != nil {
@@ -493,6 +497,8 @@ func freeDiffOptions(copts *C.git_diff_options) {
 	if copts != nil {
 		cpathspec := copts.pathspec
 		freeStrarray(&cpathspec)
+		C.free(unsafe.Pointer(copts.old_prefix))
+		C.free(unsafe.Pointer(copts.new_prefix))
 	}
 }
 

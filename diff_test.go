@@ -3,6 +3,7 @@ package git
 import (
 	"errors"
 	"os"
+	"strings"
 	"testing"
 )
 
@@ -75,6 +76,8 @@ func TestDiffTreeToTree(t *testing.T) {
 			callbackInvoked = true
 			return nil
 		},
+		OldPrefix: "x1/",
+		NewPrefix: "y1/",
 	}
 
 	diff, err := repo.DiffTreeToTree(originalTree, newTree, &opts)
@@ -90,7 +93,19 @@ func TestDiffTreeToTree(t *testing.T) {
 	files := make([]string, 0)
 	hunks := make([]DiffHunk, 0)
 	lines := make([]DiffLine, 0)
+	patches := make([]string, 0)
 	err = diff.ForEach(func(file DiffDelta, progress float64) (DiffForEachHunkCallback, error) {
+		patch, err := diff.Patch(len(patches))
+		if err != nil {
+			return nil, err
+		}
+		defer patch.Free()
+		patchStr, err := patch.String()
+		if err != nil {
+			return nil, err
+		}
+		patches = append(patches, patchStr)
+
 		files = append(files, file.OldFile.Path)
 		return func(hunk DiffHunk) (DiffForEachLineCallback, error) {
 			hunks = append(hunks, hunk)
@@ -129,6 +144,10 @@ func TestDiffTreeToTree(t *testing.T) {
 
 	if lines[1].Content != "file changed\n" {
 		t.Fatal("Incorrect lines in diff")
+	}
+
+	if want1, want2 := "x1/README", "y1/README"; !strings.Contains(patches[0], want1) || !strings.Contains(patches[0], want2) {
+		t.Errorf("Diff patch doesn't contain %q or %q\n\n%s", want1, want2, patches[0])
 	}
 
 	errTest := errors.New("test error")
