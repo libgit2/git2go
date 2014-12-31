@@ -1,8 +1,6 @@
 package git
 
 /*
-#cgo pkg-config: --static --define-variable=libdir=vendor/libgit2/build --define-variable=includedir=vendor/libgit2/include vendor/libgit2/build/libgit2.pc
-#cgo LDFLAGS: -lgit2
 #include <git2.h>
 */
 import "C"
