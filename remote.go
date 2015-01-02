@@ -69,7 +69,6 @@ type RemoteCallbacks struct {
 	PushUpdateReferenceCallback
 }
 
-
 type Remote struct {
 	ptr       *C.git_remote
 	callbacks RemoteCallbacks
@@ -255,8 +254,6 @@ func pushUpdateReferenceCallback(refname, status *C.char, data unsafe.Pointer) i
 	return int(callbacks.PushUpdateReferenceCallback(C.GoString(refname), C.GoString(status)))
 }
 
-
-
 func RemoteIsValidName(name string) bool {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
@@ -326,7 +323,7 @@ func (repo *Repository) CreateRemote(name string, url string) (*Remote, error) {
 func (repo *Repository) DeleteRemote(name string) error {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
-	
+
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -595,6 +592,10 @@ func (o *Remote) UpdateFetchHead() bool {
 	return C.git_remote_update_fetchhead(o.ptr) > 0
 }
 
+func (o *Remote) PruneRefs() bool {
+	return C.git_remote_prune_refs(o.ptr) > 0
+}
+
 // Fetch performs a fetch operation. refspecs specifies which refspecs
 // to use for this fetch, use an empty list to use the refspecs from
 // the configuration; sig and msg specify what to use for the reflog
@@ -710,7 +711,7 @@ func (o *Remote) Push(refspecs []string, opts *PushOptions, sig *Signature, msg 
 	var copts C.git_push_options
 	C.git_push_init_options(&copts, C.GIT_PUSH_OPTIONS_VERSION)
 	if opts != nil {
-		copts.version        = C.uint(opts.Version)
+		copts.version = C.uint(opts.Version)
 		copts.pb_parallelism = C.uint(opts.PbParallelism)
 	}
 
@@ -719,8 +720,8 @@ func (o *Remote) Push(refspecs []string, opts *PushOptions, sig *Signature, msg 
 	crefspecs.strings = makeCStringsFromStrings(refspecs)
 	defer freeStrarray(&crefspecs)
 
-        runtime.LockOSThread()
-        defer runtime.UnlockOSThread()
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	ret := C.git_remote_push(o.ptr, &crefspecs, &copts, csig, cmsg)
 	if ret < 0 {
