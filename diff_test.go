@@ -131,7 +131,7 @@ func TestDiffTreeToTree(t *testing.T) {
 		t.Fatal("Incorrect lines in diff")
 	}
 
-	stats, err := diff.GetStats()
+	stats, err := diff.Stats()
 	checkFatal(t, err)
 
 	if stats.Insertions() != 1 {

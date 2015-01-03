@@ -216,7 +216,7 @@ func (stats *DiffStats) FilesChanged() int {
 	return int(C.git_diff_stats_files_changed(stats.ptr))
 }
 
-func (diff *Diff) GetStats() (*DiffStats, error) {
+func (diff *Diff) Stats() (*DiffStats, error) {
 	stats := new(DiffStats)
 
 	runtime.LockOSThread()
