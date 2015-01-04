@@ -2,6 +2,7 @@ package git
 
 /*
 #include <git2.h>
+#include <git2/sys/openssl.h>
 */
 import "C"
 import (

@@ -1,9 +1,7 @@
 #include "_cgo_export.h"
-#include "git2.h"
-#include "git2/sys/odb_backend.h"
-#include "git2/sys/refdb_backend.h"
-#include "git2/submodule.h"
-#include "git2/pack.h"
+#include <git2.h>
+#include <git2/sys/odb_backend.h>
+#include <git2/sys/refdb_backend.h>
 
 typedef int (*gogit_submodule_cbk)(git_submodule *sm, const char *name, void *payload);
 
@@ -82,18 +80,6 @@ void _go_git_setup_callbacks(git_remote_callbacks *callbacks) {
 	callbacks->pack_progress = (git_packbuilder_progress) packProgressCallback;
 	callbacks->push_transfer_progress = (git_push_transfer_progress) pushTransferProgressCallback;
 	callbacks->push_update_reference = (push_update_reference_cb) pushUpdateReferenceCallback;
-}
-
-typedef int (*status_foreach_cb)(const char *ref, const char *msg, void *data);
-
-int _go_git_push_status_foreach(git_push *push, void *data)
-{
-	return git_push_status_foreach(push, (status_foreach_cb)statusForeach, data);
-}
-
-int _go_git_push_set_callbacks(git_push *push, void *packbuilder_progress_data, void *transfer_progress_data)
-{
-	return git_push_set_callbacks(push, packbuilderProgress, packbuilder_progress_data, pushStructTransferProgress, transfer_progress_data);
 }
 
 int _go_blob_chunk_cb(char *buffer, size_t maxLen, void *payload)
