@@ -17,6 +17,11 @@ int _go_git_treewalk(git_tree *tree, git_treewalk_mode mode, void *ptr)
 	return git_tree_walk(tree, mode, (git_treewalk_cb)&CallbackGitTreeWalk, ptr);
 }
 
+int _go_git_tree_list_walk(git_tree *tree, git_treewalk_mode mode, void *ptr)
+{
+	return git_tree_list_walk(tree, mode, (git_treewalk_cb)&CallbackGitTreeWalk, ptr);
+}
+
 int _go_git_packbuilder_foreach(git_packbuilder *pb, void *payload)
 {
     return git_packbuilder_foreach(pb, (git_packbuilder_foreach_cb)&packbuilderForEachCb, payload);

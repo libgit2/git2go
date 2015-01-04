@@ -115,6 +115,23 @@ func (t Tree) Walk(callback TreeWalkCallback) error {
 	return nil
 }
 
+func (t Tree) ListWalk(callback TreeWalkCallback) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	err := C._go_git_tree_list_walk(
+		t.cast_ptr,
+		C.GIT_TREEWALK_PRE,
+		unsafe.Pointer(&callback),
+	)
+
+	if err < 0 {
+		return MakeGitError(err)
+	}
+
+	return nil
+}
+
 type TreeBuilder struct {
 	ptr  *C.git_treebuilder
 	repo *Repository
