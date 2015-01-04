@@ -190,6 +190,46 @@ func (diff *Diff) FindSimilar(opts *DiffFindOptions) error {
 	return nil
 }
 
+type DiffStats struct {
+	ptr *C.git_diff_stats
+}
+
+func (stats *DiffStats) Free() error {
+	if stats.ptr == nil {
+		return ErrInvalid
+	}
+	runtime.SetFinalizer(stats, nil)
+	C.git_diff_stats_free(stats.ptr)
+	stats.ptr = nil
+	return nil
+}
+
+func (stats *DiffStats) Insertions() int {
+	return int(C.git_diff_stats_insertions(stats.ptr))
+}
+
+func (stats *DiffStats) Deletions() int {
+	return int(C.git_diff_stats_deletions(stats.ptr))
+}
+
+func (stats *DiffStats) FilesChanged() int {
+	return int(C.git_diff_stats_files_changed(stats.ptr))
+}
+
+func (diff *Diff) Stats() (*DiffStats, error) {
+	stats := new(DiffStats)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if ecode := C.git_diff_get_stats(&stats.ptr, diff.ptr); ecode < 0 {
+		return nil, MakeGitError(ecode)
+	}
+	runtime.SetFinalizer(stats, (*DiffStats).Free)
+
+	return stats, nil
+}
+
 type diffForEachData struct {
 	FileCallback DiffForEachFileCallback
 	HunkCallback DiffForEachHunkCallback

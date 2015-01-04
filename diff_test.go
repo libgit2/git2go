@@ -148,6 +148,20 @@ func TestDiffTreeToTree(t *testing.T) {
 
 	if want1, want2 := "x1/README", "y1/README"; !strings.Contains(patches[0], want1) || !strings.Contains(patches[0], want2) {
 		t.Errorf("Diff patch doesn't contain %q or %q\n\n%s", want1, want2, patches[0])
+
+	}
+
+	stats, err := diff.Stats()
+	checkFatal(t, err)
+
+	if stats.Insertions() != 1 {
+		t.Fatal("Incorrect number of insertions in diff")
+	}
+	if stats.Deletions() != 1 {
+		t.Fatal("Incorrect number of deletions in diff")
+	}
+	if stats.FilesChanged() != 1 {
+		t.Fatal("Incorrect number of changed files in diff")
 	}
 
 	errTest := errors.New("test error")
