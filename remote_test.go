@@ -132,3 +132,23 @@ func TestRemoteLsFiltering(t *testing.T) {
 		t.Fatalf("Expected head to have a name, but it's empty")
 	}
 }
+
+func TestRemotePrune(t *testing.T) {
+	repo := createTestRepo(t)
+	defer os.RemoveAll(repo.Workdir())
+	defer repo.Free()
+
+	config, err := repo.Config()
+	checkFatal(t, err)
+	defer config.Free()
+
+	err = config.SetBool("remote.origin.prune", true)
+	checkFatal(t, err)
+
+	remote, err := repo.CreateRemote("origin", "https://github.com/libgit2/TestGitRepository")
+	checkFatal(t, err)
+
+	if !remote.PruneRefs() {
+		t.Fatal("Expected remote to be configured to prune references")
+	}
+}
