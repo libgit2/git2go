@@ -69,7 +69,6 @@ type RemoteCallbacks struct {
 	PushUpdateReferenceCallback
 }
 
-
 type Remote struct {
 	ptr       *C.git_remote
 	callbacks RemoteCallbacks
@@ -259,8 +258,6 @@ func pushUpdateReferenceCallback(refname, status *C.char, data unsafe.Pointer) i
 	return int(callbacks.PushUpdateReferenceCallback(C.GoString(refname), C.GoString(status)))
 }
 
-
-
 func RemoteIsValidName(name string) bool {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
@@ -330,7 +327,7 @@ func (repo *Repository) CreateRemote(name string, url string) (*Remote, error) {
 func (repo *Repository) DeleteRemote(name string) error {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
-	
+
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -722,10 +719,25 @@ func (o *Remote) Push(refspecs []string, opts *PushOptions, sig *Signature, msg 
 	crefspecs.strings = makeCStringsFromStrings(refspecs)
 	defer freeStrarray(&crefspecs)
 
-        runtime.LockOSThread()
-        defer runtime.UnlockOSThread()
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	ret := C.git_remote_push(o.ptr, &crefspecs, &copts, csig, cmsg)
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+	return nil
+}
+
+func (o *Remote) PruneRefs() bool {
+	return C.git_remote_prune_refs(o.ptr) > 0
+}
+
+func (o *Remote) Prune() error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_remote_prune(o.ptr)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
