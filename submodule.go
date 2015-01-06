@@ -11,6 +11,15 @@ import (
 	"unsafe"
 )
 
+// SubmoduleUpdateOptions
+type SubmoduleUpdateOptions struct {
+	*CheckoutOpts
+	*RemoteCallbacks
+	Version               uint64
+	CloneCheckoutStrategy CheckoutStrategy
+	Signature             *Signature
+}
+
 // Submodule
 type Submodule struct {
 	ptr *C.git_submodule
@@ -20,10 +29,10 @@ type SubmoduleUpdate int
 
 const (
 	SubmoduleUpdateReset    SubmoduleUpdate = C.GIT_SUBMODULE_UPDATE_RESET
-	SubmoduleUpdateCheckout SubmoduleUpdate  = C.GIT_SUBMODULE_UPDATE_CHECKOUT
-	SubmoduleUpdateRebase   SubmoduleUpdate  = C.GIT_SUBMODULE_UPDATE_REBASE
-	SubmoduleUpdateMerge    SubmoduleUpdate  = C.GIT_SUBMODULE_UPDATE_MERGE
-	SubmoduleUpdateNone     SubmoduleUpdate  = C.GIT_SUBMODULE_UPDATE_NONE
+	SubmoduleUpdateCheckout SubmoduleUpdate = C.GIT_SUBMODULE_UPDATE_CHECKOUT
+	SubmoduleUpdateRebase   SubmoduleUpdate = C.GIT_SUBMODULE_UPDATE_REBASE
+	SubmoduleUpdateMerge    SubmoduleUpdate = C.GIT_SUBMODULE_UPDATE_MERGE
+	SubmoduleUpdateNone     SubmoduleUpdate = C.GIT_SUBMODULE_UPDATE_NONE
 )
 
 type SubmoduleIgnore int
@@ -226,8 +235,8 @@ func (sub *Submodule) SetIgnore(ignore SubmoduleIgnore) SubmoduleIgnore {
 	return SubmoduleIgnore(o)
 }
 
-func (sub *Submodule) Update() SubmoduleUpdate {
-	o := C.git_submodule_update(sub.ptr)
+func (sub *Submodule) UpdateStrategy() SubmoduleUpdate {
+	o := C.git_submodule_update_strategy(sub.ptr)
 	return SubmoduleUpdate(o)
 }
 
