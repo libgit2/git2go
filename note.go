@@ -27,25 +27,25 @@ func (n *Note) Free() error {
 }
 
 // Author returns the signature of the note author
-func (n Note) Author() *Signature {
+func (n *Note) Author() *Signature {
 	ptr := C.git_note_author(n.ptr)
 	return newSignatureFromC(ptr)
 }
 
 // Id returns the note object's id
-func (n Note) Id() *Oid {
+func (n *Note) Id() *Oid {
 	ptr := C.git_note_id(n.ptr)
 	return newOidFromC(ptr)
 }
 
 // Committer returns the signature of the note committer
-func (n Note) Committer() *Signature {
+func (n *Note) Committer() *Signature {
 	ptr := C.git_note_committer(n.ptr)
 	return newSignatureFromC(ptr)
 }
 
 // Message returns the note message
-func (n Note) Message() string {
+func (n *Note) Message() string {
 	return C.GoString(C.git_note_message(n.ptr))
 }
 
