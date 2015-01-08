@@ -15,7 +15,6 @@ import (
 type SubmoduleUpdateOptions struct {
 	*CheckoutOpts
 	*RemoteCallbacks
-	Version               uint64
 	CloneCheckoutStrategy CheckoutStrategy
 	Signature             *Signature
 }
