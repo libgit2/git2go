@@ -316,3 +316,33 @@ func (repo *Repository) ReloadAllSubmodules(force bool) error {
 	}
 	return nil
 }
+
+func (sub *Submodule) Update(init bool, opts *SubmoduleUpdateOptions) error {
+	var copts C.git_submodule_update_options
+	populateSubmoduleUpdateOptions(&copts, opts)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_submodule_update(sub.ptr, cbool(init), &copts)
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+
+	return nil
+}
+
+func populateSubmoduleUpdateOptions(ptr *C.git_submodule_update_options, opts *SubmoduleUpdateOptions) {
+	C.git_submodule_update_init_options(ptr, C.GIT_SUBMODULE_UPDATE_OPTIONS_VERSION)
+
+	if opts == nil {
+		return
+	}
+
+	populateCheckoutOpts(&ptr.checkout_opts, opts.CheckoutOpts)
+	populateRemoteCallbacks(&ptr.remote_callbacks, opts.RemoteCallbacks)
+	ptr.clone_checkout_strategy = C.uint(opts.CloneCheckoutStrategy)
+	if opts.Signature != nil {
+		ptr.signature = opts.Signature.toC()
+	}
+}
