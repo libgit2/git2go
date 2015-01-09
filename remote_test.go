@@ -1,8 +1,10 @@
 package git
 
 import (
+	"fmt"
 	"os"
 	"testing"
+	"time"
 )
 
 func TestRefspecs(t *testing.T) {
@@ -130,5 +132,86 @@ func TestRemoteLsFiltering(t *testing.T) {
 
 	if heads[0].Name == "" {
 		t.Fatalf("Expected head to have a name, but it's empty")
+	}
+}
+
+func TestRemotePruneRefs(t *testing.T) {
+	repo := createTestRepo(t)
+	defer os.RemoveAll(repo.Workdir())
+	defer repo.Free()
+
+	config, err := repo.Config()
+	checkFatal(t, err)
+	defer config.Free()
+
+	err = config.SetBool("remote.origin.prune", true)
+	checkFatal(t, err)
+
+	_, err = repo.CreateRemote("origin", "https://github.com/libgit2/TestGitRepository")
+	checkFatal(t, err)
+
+	remote, err := repo.LookupRemote("origin")
+	checkFatal(t, err)
+
+	if !remote.PruneRefs() {
+		t.Fatal("Expected remote to be configured to prune references")
+	}
+}
+
+func TestRemotePrune(t *testing.T) {
+	remoteRepo := createTestRepo(t)
+	defer os.RemoveAll(remoteRepo.Workdir())
+	defer remoteRepo.Free()
+
+	head, _ := seedTestRepo(t, remoteRepo)
+	commit, err := remoteRepo.LookupCommit(head)
+	checkFatal(t, err)
+	defer commit.Free()
+
+	sig := &Signature{
+		Name:  "Rand Om Hacker",
+		Email: "random@hacker.com",
+		When:  time.Now(),
+	}
+
+	remoteRef, err := remoteRepo.CreateBranch("test-prune", commit, true, sig, "branch test-prune")
+	checkFatal(t, err)
+
+	repo := createTestRepo(t)
+	defer os.RemoveAll(repo.Workdir())
+	defer repo.Free()
+
+	config, err := repo.Config()
+	checkFatal(t, err)
+	defer config.Free()
+
+	remoteUrl := fmt.Sprintf("file://%s", remoteRepo.Workdir())
+	remote, err := repo.CreateRemote("origin", remoteUrl)
+	checkFatal(t, err)
+
+	err = remote.Fetch([]string{"test-prune"}, sig, "")
+	checkFatal(t, err)
+
+	_, err = repo.CreateReference("refs/remotes/origin/test-prune", head, true, sig, "remote reference")
+	checkFatal(t, err)
+
+	err = remoteRef.Delete()
+	checkFatal(t, err)
+
+	err = config.SetBool("remote.origin.prune", true)
+	checkFatal(t, err)
+
+	rr, err := repo.LookupRemote("origin")
+	checkFatal(t, err)
+
+	err = rr.ConnectFetch()
+	checkFatal(t, err)
+
+	err = rr.Prune()
+	checkFatal(t, err)
+
+	_, err = repo.LookupReference("refs/remotes/origin/test-prune")
+	if err == nil {
+		t.Fatal("Expected error getting a pruned reference")
 	}
 }
