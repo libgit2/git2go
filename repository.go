@@ -530,3 +530,103 @@ func (v *Repository) DwimReference(name string) (*Reference, error) {
 
 	return newReferenceFromC(ptr, v), nil
 }
+
+// CreateNote adds a note for an object
+func (v *Repository) CreateNote(
+	ref string, author, committer *Signature, id *Oid,
+	note string, force bool) (*Oid, error) {
+
+	oid := new(Oid)
+
+	var cref *C.char
+	if ref == "" {
+		cref = nil
+	} else {
+		cref = C.CString(ref)
+		defer C.free(unsafe.Pointer(cref))
+	}
+
+	authorSig := author.toC()
+	defer C.git_signature_free(authorSig)
+
+	committerSig := committer.toC()
+	defer C.git_signature_free(committerSig)
+
+	cnote := C.CString(note)
+	defer C.free(unsafe.Pointer(cnote))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_note_create(
+		oid.toC(), v.ptr, cref, authorSig,
+		committerSig, id.toC(), cnote, cbool(force))
+
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+	return oid, nil
+}
+
+// ReadNote reads the note for an object
+func (v *Repository) ReadNote(ref string, id *Oid) (*Note, error) {
+	var cref *C.char
+	if ref == "" {
+		cref = nil
+	} else {
+		cref = C.CString(ref)
+		defer C.free(unsafe.Pointer(cref))
+	}
+
+	note := new(Note)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if ret := C.git_note_read(&note.ptr, v.ptr, cref, id.toC()); ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	runtime.SetFinalizer(note, (*Note).Free)
+	return note, nil
+}
+
+// RemoveNote removes the note for an object
+func (v *Repository) RemoveNote(ref string, author, committer *Signature, id *Oid) error {
+	var cref *C.char
+	if ref == "" {
+		cref = nil
+	} else {
+		cref = C.CString(ref)
+		defer C.free(unsafe.Pointer(cref))
+	}
+
+	authorSig := author.toC()
+	defer C.git_signature_free(authorSig)
+
+	committerSig := committer.toC()
+	defer C.git_signature_free(committerSig)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_note_remove(v.ptr, cref, authorSig, committerSig, id.toC())
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+	return nil
+}
+
+// DefaultNoteRef returns the default notes reference for a repository
+func (v *Repository) DefaultNoteRef() (string, error) {
+	var ptr *C.char
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if ret := C.git_note_default_ref(&ptr, v.ptr); ret < 0 {
+		return "", MakeGitError(ret)
+	}
+
+	return C.GoString(ptr), nil
+}
