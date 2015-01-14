@@ -3,12 +3,24 @@ git2go
 [![GoDoc](https://godoc.org/github.com/libgit2/git2go?status.svg)](http://godoc.org/github.com/libgit2/git2go) [![Build Status](https://travis-ci.org/libgit2/git2go.svg?branch=master)](https://travis-ci.org/libgit2/git2go)
 
 
-Go bindings for [libgit2](http://libgit2.github.com/). The master branch follows the latest libgit2 release.
+Go bindings for [libgit2](http://libgit2.github.com/). The master branch follows the latest libgit2 release. The versioned branches indicate which libgit2 version they work against.
 
 Installing
 ----------
 
-This project needs libgit2, which is written in C so we need to build that as well. In order to build libgit2, you need `cmake`, `pkg-config` and a C compiler. You will also need the development packages for OpenSSL and LibSSH2 if you want to use HTTPS and SSH respectively.
+This project needs libgit2, which is written in C so we need to build that as well. In order to build libgit2, you need `cmake`, `pkg-config` and a C compiler. You will also need the development packages for OpenSSL and LibSSH2 installed if you want libgit2 to support HTTPS and SSH respectively.
+
+### Stable version
+
+git2go has versioned branches which indicate which version of libgit2 they work against. Install the development package it on your system via your favourite package manager or from source and you can use a service like gopkg.in to use the appropriate version. For the libgit2 v0.22 case, you can use
+
+    import "gopkg.in/libgit2/git2go.v22"
+
+to use a version of git2go which will work against libgit2 v0.22 and dynamically link to the library.
+
+### From master
+
+The master branch follows libgit2's master branch, which means there is no stable API or ABI to link against. git2go can statically link against a vendored version of libgit2.
 
 Run `go get -d github.com/libgit2/git2go` to download the code and go to your `$GOPATH/src/github.com/libgit2/git2go` dir. From there, we need to build the C code and put it into the resulting go binary.
 
@@ -25,7 +37,7 @@ libgit2 uses OpenSSL and LibSSH2 for performing encrypted network connections. F
 Running the tests
 -----------------
 
-Similarly to installing, running the tests requires linking against the local libgit2 library, so the Makefile provides a wrapper
+For the stable version, `go test` will work as usual. For the master branch, similarly to installing, running the tests requires linking against the local libgit2 library, so the Makefile provides a wrapper
 
     make test
 
