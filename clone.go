@@ -30,6 +30,7 @@ func Clone(url string, path string, options *CloneOptions) (*Repository, error) 
 
 	var copts C.git_clone_options
 	populateCloneOptions(&copts, options)
+	defer freeCheckoutOpts(&copts.checkout_opts)
 
 	if len(options.CheckoutBranch) != 0 {
 		copts.checkout_branch = C.CString(options.CheckoutBranch)
