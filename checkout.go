@@ -31,11 +31,12 @@ const (
 )
 
 type CheckoutOpts struct {
-	Strategy       CheckoutStrategy // Default will be a dry run
-	DisableFilters bool             // Don't apply filters like CRLF conversion
-	DirMode        os.FileMode      // Default is 0755
-	FileMode       os.FileMode      // Default is 0644 or 0755 as dictated by blob
-	FileOpenFlags  int              // Default is O_CREAT | O_TRUNC | O_WRONLY
+	Strategy        CheckoutStrategy // Default will be a dry run
+	DisableFilters  bool             // Don't apply filters like CRLF conversion
+	DirMode         os.FileMode      // Default is 0755
+	FileMode        os.FileMode      // Default is 0644 or 0755 as dictated by blob
+	FileOpenFlags   int              // Default is O_CREAT | O_TRUNC | O_WRONLY
+	TargetDirectory string           // Alternative checkout path to workdir
 }
 
 func (opts *CheckoutOpts) toC() *C.git_checkout_options {
@@ -60,7 +61,9 @@ func populateCheckoutOpts(ptr *C.git_checkout_options, opts *CheckoutOpts) *C.gi
 	ptr.disable_filters = cbool(opts.DisableFilters)
 	ptr.dir_mode = C.uint(opts.DirMode.Perm())
 	ptr.file_mode = C.uint(opts.FileMode.Perm())
-
+	if opts.TargetDirectory != "" {
+		ptr.target_directory = C.CString(opts.TargetDirectory)
+	}
 	return ptr
 }
 
