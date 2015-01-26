@@ -7,6 +7,7 @@ import "C"
 import (
 	"os"
 	"runtime"
+	"unsafe"
 )
 
 type CheckoutStrategy uint
@@ -67,13 +68,20 @@ func populateCheckoutOpts(ptr *C.git_checkout_options, opts *CheckoutOpts) *C.gi
 	return ptr
 }
 
+func freeCheckoutOpts(ptr *C.git_checkout_options) {
+	C.free(unsafe.Pointer(ptr.target_directory))
+}
+
 // Updates files in the index and the working tree to match the content of
 // the commit pointed at by HEAD. opts may be nil.
 func (v *Repository) CheckoutHead(opts *CheckoutOpts) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_checkout_head(v.ptr, opts.toC())
+	cOpts := opts.toC()
+	defer freeCheckoutOpts(cOpts)
+
+	ret := C.git_checkout_head(v.ptr, cOpts)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -93,7 +101,10 @@ func (v *Repository) CheckoutIndex(index *Index, opts *CheckoutOpts) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_checkout_index(v.ptr, iptr, opts.toC())
+	cOpts := opts.toC()
+	defer freeCheckoutOpts(cOpts)
+
+	ret := C.git_checkout_index(v.ptr, iptr, cOpts)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -105,7 +116,10 @@ func (v *Repository) CheckoutTree(tree *Tree, opts *CheckoutOpts) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_checkout_tree(v.ptr, tree.ptr, opts.toC())
+	cOpts := opts.toC()
+	defer freeCheckoutOpts(cOpts)
+
+	ret := C.git_checkout_tree(v.ptr, tree.ptr, cOpts)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
