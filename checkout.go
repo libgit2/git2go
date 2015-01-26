@@ -69,6 +69,9 @@ func populateCheckoutOpts(ptr *C.git_checkout_options, opts *CheckoutOpts) *C.gi
 }
 
 func freeCheckoutOpts(ptr *C.git_checkout_options) {
+	if ptr == nil {
+		return
+	}
 	C.free(unsafe.Pointer(ptr.target_directory))
 }
 
