@@ -20,7 +20,11 @@ func TestPatch(t *testing.T) {
 	newTree, err := repo.LookupTree(newTreeId)
 	checkFatal(t, err)
 
-	diff, err := repo.DiffTreeToTree(originalTree, newTree, nil)
+	opts := &DiffOptions{
+		OldPrefix: "a",
+		NewPrefix: "b",
+	}
+	diff, err := repo.DiffTreeToTree(originalTree, newTree, opts)
 	checkFatal(t, err)
 
 	patch, err := diff.Patch(0)
