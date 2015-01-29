@@ -97,10 +97,10 @@ func (repo *Repository) LookupSubmodule(name string) (*Submodule, error) {
 type SubmoduleCbk func(sub *Submodule, name string) int
 
 //export SubmoduleVisitor
-func SubmoduleVisitor(csub unsafe.Pointer, name string, cfct unsafe.Pointer) int {
+func SubmoduleVisitor(csub unsafe.Pointer, name *C.char, cfct unsafe.Pointer) C.int {
 	sub := &Submodule{(*C.git_submodule)(csub)}
 	fct := *(*SubmoduleCbk)(cfct)
-	return fct(sub, name)
+	return (C.int)(fct(sub, C.GoString(name)))
 }
 
 func (repo *Repository) ForeachSubmodule(cbk SubmoduleCbk) error {
