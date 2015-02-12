@@ -8,7 +8,7 @@ import (
 	"runtime"
 )
 
-func (repo *Repository) GraphDescendantOf(commit, ancestor *Oid) (bool, error) {
+func (repo *Repository) DescendantOf(commit, ancestor *Oid) (bool, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -20,7 +20,7 @@ func (repo *Repository) GraphDescendantOf(commit, ancestor *Oid) (bool, error) {
 	return (ret > 0), nil
 }
 
-func (repo *Repository) GraphAheadBehind(local, upstream *Oid) (ahead, behind int, err error) {
+func (repo *Repository) AheadBehind(local, upstream *Oid) (ahead, behind int, err error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
