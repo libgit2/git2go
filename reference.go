@@ -37,7 +37,7 @@ func (v *Reference) SetSymbolicTarget(target string, sig *Signature, msg string)
 	defer runtime.UnlockOSThread()
 
 	csig := sig.toC()
-	defer C.free(unsafe.Pointer(csig))
+	defer C.git_signature_free(csig)
 
 	var cmsg *C.char
 	if msg == "" {
@@ -62,7 +62,7 @@ func (v *Reference) SetTarget(target *Oid, sig *Signature, msg string) (*Referen
 	defer runtime.UnlockOSThread()
 
 	csig := sig.toC()
-	defer C.free(unsafe.Pointer(csig))
+	defer C.git_signature_free(csig)
 
 	var cmsg *C.char
 	if msg == "" {
@@ -100,7 +100,7 @@ func (v *Reference) Rename(name string, force bool, sig *Signature, msg string) 
 	defer C.free(unsafe.Pointer(cname))
 
 	csig := sig.toC()
-	defer C.free(unsafe.Pointer(csig))
+	defer C.git_signature_free(csig)
 
 	var cmsg *C.char
 	if msg == "" {
