@@ -30,10 +30,7 @@ type BranchIterator struct {
 	repo *Repository
 }
 
-type BranchInfo struct {
-	Branch *Branch
-	Type   BranchType
-}
+type BranchIteratorFunc func(*Branch, BranchType) error
 
 func newBranchIteratorFromC(repo *Repository, ptr *C.git_branch_iterator) *BranchIterator {
 	i := &BranchIterator{repo: repo, ptr: ptr}
@@ -65,8 +62,20 @@ func (i *BranchIterator) Free() {
 	C.git_branch_iterator_free(i.ptr)
 }
 
-func (repo *Repository) NewBranchIterator(flags BranchType) (*BranchIterator, error) {
+func (i *BranchIterator) ForEach(f BranchIteratorFunc) error {
+	b, t, err := i.Next()
 
+	for b != nil && err == nil {
+		err = f(b, t)
+		if err == nil {
+			b, t, err = i.Next()
+		}
+	}
+
+	return err
+}
+
+func (repo *Repository) NewBranchIterator(flags BranchType) (*BranchIterator, error) {
 	refType := C.git_branch_t(flags)
 	var ptr *C.git_branch_iterator
 
