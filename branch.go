@@ -65,7 +65,7 @@ func (i *BranchIterator) Free() {
 func (i *BranchIterator) ForEach(f BranchIteratorFunc) error {
 	b, t, err := i.Next()
 
-	for b != nil && err == nil {
+	for err == nil {
 		err = f(b, t)
 		if err == nil {
 			b, t, err = i.Next()
