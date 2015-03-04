@@ -630,3 +630,25 @@ func (v *Repository) DefaultNoteRef() (string, error) {
 
 	return C.GoString(ptr), nil
 }
+
+type RepositoryState int
+
+const (
+	RepositoryStateNone                 RepositoryState = C.GIT_REPOSITORY_STATE_NONE
+	RepositoryStateMerge                RepositoryState = C.GIT_REPOSITORY_STATE_MERGE
+	RepositoryStateRevert               RepositoryState = C.GIT_REPOSITORY_STATE_REVERT
+	RepositoryStateCherrypick           RepositoryState = C.GIT_REPOSITORY_STATE_CHERRYPICK
+	RepositoryStateBisect               RepositoryState = C.GIT_REPOSITORY_STATE_BISECT
+	RepositoryStateRebase               RepositoryState = C.GIT_REPOSITORY_STATE_REBASE
+	RepositoryStateRebaseInteractive    RepositoryState = C.GIT_REPOSITORY_STATE_REBASE_INTERACTIVE
+	RepositoryStateRebaseMerge          RepositoryState = C.GIT_REPOSITORY_STATE_REBASE_MERGE
+	RepositoryStateApplyMailbox         RepositoryState = C.GIT_REPOSITORY_STATE_APPLY_MAILBOX
+	RepositoryStateApplyMailboxOrRebase RepositoryState = C.GIT_REPOSITORY_STATE_APPLY_MAILBOX_OR_REBASE
+)
+
+func (r *Repository) State() RepositoryState {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	return RepositoryState(C.git_repository_state(r.ptr))
+}

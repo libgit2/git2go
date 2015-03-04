@@ -12,6 +12,11 @@ func TestStatusFile(t *testing.T) {
 	defer repo.Free()
 	defer os.RemoveAll(repo.Workdir())
 
+	state := repo.State()
+	if state != RepositoryStateNone {
+		t.Fatal("Incorrect repository state: ", state)
+	}
+
 	err := ioutil.WriteFile(path.Join(path.Dir(repo.Workdir()), "hello.txt"), []byte("Hello, World"), 0644)
 	checkFatal(t, err)
 
