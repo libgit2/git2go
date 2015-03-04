@@ -45,7 +45,7 @@ func statusEntryFromC(statusEntry *C.git_status_entry) StatusEntry {
 		indexToWorkdir = diffDeltaFromC(statusEntry.index_to_workdir)
 	}
 
-	return StatusEntry {
+	return StatusEntry{
 		Status:         Status(statusEntry.status),
 		HeadToIndex:    headToIndex,
 		IndexToWorkdir: indexToWorkdir,
@@ -96,20 +96,20 @@ func (statusList *StatusList) EntryCount() (int, error) {
 type StatusOpt int
 
 const (
-	StatusOptIncludeUntracked           StatusOpt = C.GIT_STATUS_OPT_INCLUDE_UNTRACKED
-	StatusOptIncludeIgnored             StatusOpt = C.GIT_STATUS_OPT_INCLUDE_IGNORED
-	StatusOptIncludeUnmodified          StatusOpt = C.GIT_STATUS_OPT_INCLUDE_UNMODIFIED
-	StatusOptExcludeSubmodules          StatusOpt = C.GIT_STATUS_OPT_EXCLUDE_SUBMODULES
-	StatusOptRecurseUntrackedDirs       StatusOpt = C.GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS
-	StatusOptDisablePathspecMatch       StatusOpt = C.GIT_STATUS_OPT_DISABLE_PATHSPEC_MATCH
-	StatusOptRecurseIgnoredDirs         StatusOpt = C.GIT_STATUS_OPT_RECURSE_IGNORED_DIRS
-	StatusOptRenamesHeadToIndex         StatusOpt = C.GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX
-	StatusOptRenamesIndexToWorkdir      StatusOpt = C.GIT_STATUS_OPT_RENAMES_INDEX_TO_WORKDIR
-	StatusOptSortCaseSensitively        StatusOpt = C.GIT_STATUS_OPT_SORT_CASE_SENSITIVELY
-	StatusOptSortCaseInsensitively      StatusOpt = C.GIT_STATUS_OPT_SORT_CASE_INSENSITIVELY
-	StatusOptRenamesFromRewrites        StatusOpt = C.GIT_STATUS_OPT_RENAMES_FROM_REWRITES
-	StatusOptNoRefresh                  StatusOpt = C.GIT_STATUS_OPT_NO_REFRESH
-	StatusOptUpdateIndex                StatusOpt = C.GIT_STATUS_OPT_UPDATE_INDEX
+	StatusOptIncludeUntracked      StatusOpt = C.GIT_STATUS_OPT_INCLUDE_UNTRACKED
+	StatusOptIncludeIgnored        StatusOpt = C.GIT_STATUS_OPT_INCLUDE_IGNORED
+	StatusOptIncludeUnmodified     StatusOpt = C.GIT_STATUS_OPT_INCLUDE_UNMODIFIED
+	StatusOptExcludeSubmodules     StatusOpt = C.GIT_STATUS_OPT_EXCLUDE_SUBMODULES
+	StatusOptRecurseUntrackedDirs  StatusOpt = C.GIT_STATUS_OPT_RECURSE_UNTRACKED_DIRS
+	StatusOptDisablePathspecMatch  StatusOpt = C.GIT_STATUS_OPT_DISABLE_PATHSPEC_MATCH
+	StatusOptRecurseIgnoredDirs    StatusOpt = C.GIT_STATUS_OPT_RECURSE_IGNORED_DIRS
+	StatusOptRenamesHeadToIndex    StatusOpt = C.GIT_STATUS_OPT_RENAMES_HEAD_TO_INDEX
+	StatusOptRenamesIndexToWorkdir StatusOpt = C.GIT_STATUS_OPT_RENAMES_INDEX_TO_WORKDIR
+	StatusOptSortCaseSensitively   StatusOpt = C.GIT_STATUS_OPT_SORT_CASE_SENSITIVELY
+	StatusOptSortCaseInsensitively StatusOpt = C.GIT_STATUS_OPT_SORT_CASE_INSENSITIVELY
+	StatusOptRenamesFromRewrites   StatusOpt = C.GIT_STATUS_OPT_RENAMES_FROM_REWRITES
+	StatusOptNoRefresh             StatusOpt = C.GIT_STATUS_OPT_NO_REFRESH
+	StatusOptUpdateIndex           StatusOpt = C.GIT_STATUS_OPT_UPDATE_INDEX
 )
 
 type StatusShow int
@@ -172,7 +172,6 @@ func (v *Repository) StatusList(opts *StatusOptions) (*StatusList, error) {
 
 	return newStatusListFromC(ptr), nil
 }
-
 
 func (v *Repository) StatusFile(path string) (Status, error) {
 	var statusFlags C.uint

@@ -94,7 +94,7 @@ type OdbForEachCallback func(id *Oid) error
 
 type foreachData struct {
 	callback OdbForEachCallback
-	err error
+	err      error
 }
 
 //export odbForEachCb
@@ -111,9 +111,9 @@ func odbForEachCb(id *C.git_oid, payload unsafe.Pointer) int {
 }
 
 func (v *Odb) ForEach(callback OdbForEachCallback) error {
-	data := foreachData {
+	data := foreachData{
 		callback: callback,
-		err: nil,
+		err:      nil,
 	}
 
 	runtime.LockOSThread()
@@ -138,7 +138,7 @@ func (v *Odb) Hash(data []byte, otype ObjectType) (oid *Oid, err error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_odb_hash(oid.toC(), ptr, C.size_t(header.Len), C.git_otype(otype));
+	ret := C.git_odb_hash(oid.toC(), ptr, C.size_t(header.Len), C.git_otype(otype))
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}

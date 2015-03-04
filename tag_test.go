@@ -2,8 +2,8 @@ package git
 
 import (
 	"os"
-	"time"
 	"testing"
+	"time"
 )
 
 func TestCreateTag(t *testing.T) {
