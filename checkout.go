@@ -40,6 +40,19 @@ type CheckoutOpts struct {
 	TargetDirectory string           // Alternative checkout path to workdir
 }
 
+func checkoutOptionsFromC(c *C.git_checkout_options) CheckoutOpts {
+	opts := CheckoutOpts{}
+	opts.Strategy = CheckoutStrategy(c.checkout_strategy)
+	opts.DisableFilters = c.disable_filters != 0
+	opts.DirMode = os.FileMode(c.dir_mode)
+	opts.FileMode = os.FileMode(c.file_mode)
+	opts.FileOpenFlags = int(c.file_open_flags)
+	if c.target_directory != nil {
+		opts.TargetDirectory = C.GoString(c.target_directory)
+	}
+	return opts
+}
+
 func (opts *CheckoutOpts) toC() *C.git_checkout_options {
 	if opts == nil {
 		return nil

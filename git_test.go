@@ -57,6 +57,10 @@ func seedTestRepo(t *testing.T, repo *Repository) (*Oid, *Oid) {
 	return commitId, treeId
 }
 
+func pathInRepo(repo *Repository, name string) string {
+	return path.Join(path.Dir(path.Dir(repo.Path())), name)
+}
+
 func updateReadme(t *testing.T, repo *Repository, content string) (*Oid, *Oid) {
 	loc, err := time.LoadLocation("Europe/Berlin")
 	checkFatal(t, err)
@@ -67,7 +71,7 @@ func updateReadme(t *testing.T, repo *Repository, content string) (*Oid, *Oid) {
 	}
 
 	tmpfile := "README"
-	err = ioutil.WriteFile(path.Join(path.Dir(path.Dir(repo.Path())), tmpfile), []byte(content), 0644)
+	err = ioutil.WriteFile(pathInRepo(repo, tmpfile), []byte(content), 0644)
 	checkFatal(t, err)
 
 	idx, err := repo.Index()
