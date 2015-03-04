@@ -652,3 +652,14 @@ func (r *Repository) State() RepositoryState {
 
 	return RepositoryState(C.git_repository_state(r.ptr))
 }
+
+func (r *Repository) StateCleanup() error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	cErr := C.git_repository_state_cleanup(r.ptr)
+	if cErr < 0 {
+		return MakeGitError(cErr)
+	}
+	return nil
+}

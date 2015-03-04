@@ -70,4 +70,14 @@ func TestCherrypick(t *testing.T) {
 	if state != RepositoryStateCherrypick {
 		t.Fatal("Incorrect repository state: ", state)
 	}
+
+	err = repo.StateCleanup()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	state = repo.State()
+	if state != RepositoryStateNone {
+		t.Fatal("Incorrect repository state: ", state)
+	}
 }
