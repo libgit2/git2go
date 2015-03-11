@@ -96,7 +96,10 @@ func (repo *Repository) CreateBranch(branchName string, target *Commit, force bo
 	cBranchName := C.CString(branchName)
 	cForce := cbool(force)
 
-	cSignature := signature.toC()
+	cSignature, err := signature.toC()
+	if err != nil {
+		return nil, err
+	}
 	defer C.git_signature_free(cSignature)
 
 	var cmsg *C.char
@@ -133,7 +136,10 @@ func (b *Branch) Move(newBranchName string, force bool, signature *Signature, ms
 	cNewBranchName := C.CString(newBranchName)
 	cForce := cbool(force)
 
-	cSignature := signature.toC()
+	cSignature, err := signature.toC()
+	if err != nil {
+		return nil, err
+	}
 	defer C.git_signature_free(cSignature)
 
 	var cmsg *C.char

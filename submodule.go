@@ -318,7 +318,10 @@ func (repo *Repository) ReloadAllSubmodules(force bool) error {
 
 func (sub *Submodule) Update(init bool, opts *SubmoduleUpdateOptions) error {
 	var copts C.git_submodule_update_options
-	populateSubmoduleUpdateOptions(&copts, opts)
+	err := populateSubmoduleUpdateOptions(&copts, opts)
+	if err != nil {
+		return err
+	}
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -331,15 +334,22 @@ func (sub *Submodule) Update(init bool, opts *SubmoduleUpdateOptions) error {
 	return nil
 }
 
-func populateSubmoduleUpdateOptions(ptr *C.git_submodule_update_options, opts *SubmoduleUpdateOptions) {
+func populateSubmoduleUpdateOptions(ptr *C.git_submodule_update_options, opts *SubmoduleUpdateOptions) error {
 	C.git_submodule_update_init_options(ptr, C.GIT_SUBMODULE_UPDATE_OPTIONS_VERSION)
 
 	if opts == nil {
-		return
+		return nil
 	}
 
 	populateCheckoutOpts(&ptr.checkout_opts, opts.CheckoutOpts)
 	populateRemoteCallbacks(&ptr.remote_callbacks, opts.RemoteCallbacks)
 	ptr.clone_checkout_strategy = C.uint(opts.CloneCheckoutStrategy)
-	ptr.signature = opts.Signature.toC()
+
+	sig, err := opts.Signature.toC()
+	if err != nil {
+		return err
+	}
+	ptr.signature = sig
+
+	return nil
 }

@@ -128,7 +128,7 @@ func packbuilderForEachCb(buf unsafe.Pointer, size C.size_t, payload unsafe.Poin
 func (pb *Packbuilder) ForEach(callback PackbuilderForeachCallback) error {
 	data := packbuilderCbData{
 		callback: callback,
-		err: nil,
+		err:      nil,
 	}
 
 	runtime.LockOSThread()

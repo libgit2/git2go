@@ -604,7 +604,10 @@ func (o *Remote) Fetch(refspecs []string, sig *Signature, msg string) error {
 
 	var csig *C.git_signature = nil
 	if sig != nil {
-		csig = sig.toC()
+		csig, err := sig.toC()
+		if err != nil {
+			return err
+		}
 		defer C.free(unsafe.Pointer(csig))
 	}
 
@@ -696,7 +699,10 @@ func (o *Remote) Ls(filterRefs ...string) ([]RemoteHead, error) {
 func (o *Remote) Push(refspecs []string, opts *PushOptions, sig *Signature, msg string) error {
 	var csig *C.git_signature = nil
 	if sig != nil {
-		csig = sig.toC()
+		csig, err := sig.toC()
+		if err != nil {
+			return err
+		}
 		defer C.free(unsafe.Pointer(csig))
 	}
 

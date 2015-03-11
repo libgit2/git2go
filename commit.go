@@ -9,8 +9,6 @@ import "C"
 
 import (
 	"runtime"
-	"time"
-	"unsafe"
 )
 
 // Commit
@@ -21,6 +19,10 @@ type Commit struct {
 
 func (c Commit) Message() string {
 	return C.GoString(C.git_commit_message(c.cast_ptr))
+}
+
+func (c Commit) Summary() string {
+	return C.GoString(C.git_commit_summary(c.cast_ptr))
 }
 
 func (c Commit) Tree() (*Tree, error) {
@@ -67,50 +69,4 @@ func (c *Commit) ParentId(n uint) *Oid {
 
 func (c *Commit) ParentCount() uint {
 	return uint(C.git_commit_parentcount(c.cast_ptr))
-}
-
-// Signature
-
-type Signature struct {
-	Name  string
-	Email string
-	When  time.Time
-}
-
-func newSignatureFromC(sig *C.git_signature) *Signature {
-	// git stores minutes, go wants seconds
-	loc := time.FixedZone("", int(sig.when.offset)*60)
-	return &Signature{
-		C.GoString(sig.name),
-		C.GoString(sig.email),
-		time.Unix(int64(sig.when.time), 0).In(loc),
-	}
-}
-
-// the offset in mintes, which is what git wants
-func (v *Signature) Offset() int {
-	_, offset := v.When.Zone()
-	return offset / 60
-}
-
-func (sig *Signature) toC() *C.git_signature {
-
-	if sig == nil {
-		return nil
-	}
-
-	var out *C.git_signature
-
-	name := C.CString(sig.Name)
-	defer C.free(unsafe.Pointer(name))
-
-	email := C.CString(sig.Email)
-	defer C.free(unsafe.Pointer(email))
-
-	ret := C.git_signature_new(&out, name, email, C.git_time_t(sig.When.Unix()), C.int(sig.Offset()))
-	if ret < 0 {
-		return nil
-	}
-
-	return out
 }
