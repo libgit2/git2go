@@ -3,7 +3,7 @@ git2go
 [![GoDoc](https://godoc.org/github.com/libgit2/git2go?status.svg)](http://godoc.org/github.com/libgit2/git2go) [![Build Status](https://travis-ci.org/libgit2/git2go.svg?branch=master)](https://travis-ci.org/libgit2/git2go)
 
 
-Go bindings for [libgit2](http://libgit2.github.com/). The master branch follows the latest libgit2 release. The versioned branches indicate which libgit2 version they work against.
+Go bindings for [libgit2](http://libgit2.github.com/). The `master` branch follows the latest libgit2 release. The versioned branches indicate which libgit2 version they work against.
 
 Installing
 ----------
@@ -20,10 +20,11 @@ to use a version of git2go which will work against libgit2 v0.22 and dynamically
 
 ### From master
 
-The master branch follows libgit2's master branch, which means there is no stable API or ABI to link against. git2go can statically link against a vendored version of libgit2.
+The `next` branch follows libgit2's master branch, which means there is no stable API or ABI to link against. git2go can statically link against a vendored version of libgit2.
 
 Run `go get -d github.com/libgit2/git2go` to download the code and go to your `$GOPATH/src/github.com/libgit2/git2go` dir. From there, we need to build the C code and put it into the resulting go binary.
 
+    git checkout next
     git submodule update --init # get libgit2
     make install
 
@@ -37,7 +38,7 @@ libgit2 uses OpenSSL and LibSSH2 for performing encrypted network connections. F
 Running the tests
 -----------------
 
-For the stable version, `go test` will work as usual. For the master branch, similarly to installing, running the tests requires linking against the local libgit2 library, so the Makefile provides a wrapper
+For the stable version, `go test` will work as usual. For the `next` branch, similarly to installing, running the tests requires linking against the local libgit2 library, so the Makefile provides a wrapper
 
     make test
 
