@@ -8,17 +8,23 @@ Go bindings for [libgit2](http://libgit2.github.com/). The `master` branch follo
 Installing
 ----------
 
-This project needs libgit2, which is written in C so we need to build that as well. In order to build libgit2, you need `cmake`, `pkg-config` and a C compiler. You will also need the development packages for OpenSSL and LibSSH2 installed if you want libgit2 to support HTTPS and SSH respectively.
+This project wraps the functionality provided by libgit2. If you're using a stable version, install it to your system via your system's package manger and then install git2go as usual.
+
+Otherwise (`next` which tracks an unstable version), we need to build libgit2 as well. In order to build it, you need `cmake`, `pkg-config` and a C compiler. You will also need the development packages for OpenSSL and LibSSH2 installed if you want libgit2 to support HTTPS and SSH respectively.
 
 ### Stable version
 
-git2go has versioned branches which indicate which version of libgit2 they work against. Install the development package it on your system via your favourite package manager or from source and you can use a service like gopkg.in to use the appropriate version. For the libgit2 v0.22 case, you can use
+git2go has `master` which tracks the latest release of libgit2, and versioned branches which indicate which version of libgit2 they work against. Install the development package it on your system via your favourite package manager or from source and you can use a service like gopkg.in to use the appropriate version. For the libgit2 v0.22 case, you can use
 
     import "gopkg.in/libgit2/git2go.v22"
 
-to use a version of git2go which will work against libgit2 v0.22 and dynamically link to the library.
+to use a version of git2go which will work against libgit2 v0.22 and dynamically link to the library. You can use
 
-### From master
+    import "github.com/libgit2/git2go"
+
+to use the version which works against the latest release.
+
+### From `next`
 
 The `next` branch follows libgit2's master branch, which means there is no stable API or ABI to link against. git2go can statically link against a vendored version of libgit2.
 
