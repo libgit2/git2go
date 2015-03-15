@@ -650,6 +650,13 @@ func (o *Remote) Connect(direction ConnectDirection) error {
 	return nil
 }
 
+func (o *Remote) Disconnect() {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	C.git_remote_disconnect(o.ptr)
+}
+
 func (o *Remote) Ls(filterRefs ...string) ([]RemoteHead, error) {
 
 	var refs **C.git_remote_head
