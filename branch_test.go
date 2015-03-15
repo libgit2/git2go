@@ -1,11 +1,8 @@
 package git
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestBranchIterator(t *testing.T) {
-
 	repo := createTestRepo(t)
 	seedTestRepo(t, repo)
 
@@ -22,5 +19,37 @@ func TestBranchIterator(t *testing.T) {
 	b, bt, err = i.Next()
 	if !IsErrorCode(err, ErrIterOver) {
 		t.Fatal("expected iterover")
+	}
+}
+
+func TestBranchIteratorEach(t *testing.T) {
+	repo := createTestRepo(t)
+	seedTestRepo(t, repo)
+
+	i, err := repo.NewBranchIterator(BranchLocal)
+	checkFatal(t, err)
+
+	var names []string
+	f := func(b *Branch, t BranchType) error {
+		name, err := b.Name()
+		if err != nil {
+			return err
+		}
+
+		names = append(names, name)
+		return nil
+	}
+
+	err = i.ForEach(f)
+	if err != nil && !IsErrorCode(err, ErrIterOver) {
+		t.Fatal(err)
+	}
+
+	if len(names) != 1 {
+		t.Fatalf("expect 1 branch, but it was %d\n", len(names))
+	}
+
+	if names[0] != "master" {
+		t.Fatalf("expect branch master, but it was %s\n", names[0])
 	}
 }

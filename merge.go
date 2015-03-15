@@ -145,6 +145,7 @@ func (r *Repository) Merge(theirHeads []*AnnotatedCommit, mergeOptions *MergeOpt
 
 	cMergeOpts := mergeOptions.toC()
 	cCheckoutOpts := checkoutOptions.toC()
+	defer freeCheckoutOpts(cCheckoutOpts)
 
 	gmerge_head_array := make([]*C.git_annotated_commit, len(theirHeads))
 	for i := 0; i < len(theirHeads); i++ {

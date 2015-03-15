@@ -36,7 +36,10 @@ func (v *Reference) SetSymbolicTarget(target string, sig *Signature, msg string)
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	csig := sig.toC()
+	csig, err := sig.toC()
+	if err != nil {
+		return nil, err
+	}
 	defer C.free(unsafe.Pointer(csig))
 
 	var cmsg *C.char
@@ -61,7 +64,10 @@ func (v *Reference) SetTarget(target *Oid, sig *Signature, msg string) (*Referen
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	csig := sig.toC()
+	csig, err := sig.toC()
+	if err != nil {
+		return nil, err
+	}
 	defer C.free(unsafe.Pointer(csig))
 
 	var cmsg *C.char
@@ -99,7 +105,10 @@ func (v *Reference) Rename(name string, force bool, sig *Signature, msg string) 
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 
-	csig := sig.toC()
+	csig, err := sig.toC()
+	if err != nil {
+		return nil, err
+	}
 	defer C.free(unsafe.Pointer(csig))
 
 	var cmsg *C.char
