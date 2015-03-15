@@ -632,6 +632,22 @@ func (o *Remote) Fetch(refspecs []string, sig *Signature, msg string) error {
 	return nil
 }
 
+func (o *Remote) Download(refspecs []string) error {
+	crefspecs := C.git_strarray{}
+	crefspecs.count = C.size_t(len(refspecs))
+	crefspecs.strings = makeCStringsFromStrings(refspecs)
+	defer freeStrarray(&crefspecs)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_remote_download(o.ptr, &crefspecs)
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+	return nil
+}
+
 func (o *Remote) ConnectFetch() error {
 	return o.Connect(ConnectDirectionFetch)
 }
