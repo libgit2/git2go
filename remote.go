@@ -267,6 +267,15 @@ func RemoteIsValidName(name string) bool {
 	return false
 }
 
+func ReferenceIsValidName(name string) bool {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+	if C.git_reference_is_valid_name(cname) == 1 {
+		return true
+	}
+	return false
+}
+
 func (r *Remote) SetCallbacks(callbacks *RemoteCallbacks) error {
 	r.callbacks = *callbacks
 
