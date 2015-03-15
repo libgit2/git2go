@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"testing"
-	"time"
 )
 
 func TestRefspecs(t *testing.T) {
@@ -73,7 +72,7 @@ func TestCertificateCheck(t *testing.T) {
 
 	err = remote.SetCallbacks(&callbacks)
 	checkFatal(t, err)
-	err = remote.Fetch([]string{}, nil, "")
+	err = remote.Fetch([]string{}, "")
 	checkFatal(t, err)
 }
 
@@ -168,13 +167,7 @@ func TestRemotePrune(t *testing.T) {
 	checkFatal(t, err)
 	defer commit.Free()
 
-	sig := &Signature{
-		Name:  "Rand Om Hacker",
-		Email: "random@hacker.com",
-		When:  time.Now(),
-	}
-
-	remoteRef, err := remoteRepo.CreateBranch("test-prune", commit, true, sig, "branch test-prune")
+	remoteRef, err := remoteRepo.CreateBranch("test-prune", commit, true)
 	checkFatal(t, err)
 
 	repo := createTestRepo(t)
@@ -189,10 +182,10 @@ func TestRemotePrune(t *testing.T) {
 	remote, err := repo.CreateRemote("origin", remoteUrl)
 	checkFatal(t, err)
 
-	err = remote.Fetch([]string{"test-prune"}, sig, "")
+	err = remote.Fetch([]string{"test-prune"}, "")
 	checkFatal(t, err)
 
-	_, err = repo.CreateReference("refs/remotes/origin/test-prune", head, true, sig, "remote reference")
+	_, err = repo.CreateReference("refs/remotes/origin/test-prune", head, true, "remote reference")
 	checkFatal(t, err)
 
 	err = remoteRef.Delete()

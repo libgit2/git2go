@@ -90,30 +90,16 @@ func (repo *Repository) NewBranchIterator(flags BranchType) (*BranchIterator, er
 	return newBranchIteratorFromC(repo, ptr), nil
 }
 
-func (repo *Repository) CreateBranch(branchName string, target *Commit, force bool, signature *Signature, msg string) (*Branch, error) {
+func (repo *Repository) CreateBranch(branchName string, target *Commit, force bool) (*Branch, error) {
 
 	ref := new(Reference)
 	cBranchName := C.CString(branchName)
 	cForce := cbool(force)
 
-	cSignature, err := signature.toC()
-	if err != nil {
-		return nil, err
-	}
-	defer C.git_signature_free(cSignature)
-
-	var cmsg *C.char
-	if msg == "" {
-		cmsg = nil
-	} else {
-		cmsg = C.CString(msg)
-		defer C.free(unsafe.Pointer(cmsg))
-	}
-
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_branch_create(&ref.ptr, repo.ptr, cBranchName, target.cast_ptr, cForce, cSignature, cmsg)
+	ret := C.git_branch_create(&ref.ptr, repo.ptr, cBranchName, target.cast_ptr, cForce)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -131,29 +117,15 @@ func (b *Branch) Delete() error {
 	return nil
 }
 
-func (b *Branch) Move(newBranchName string, force bool, signature *Signature, msg string) (*Branch, error) {
+func (b *Branch) Move(newBranchName string, force bool) (*Branch, error) {
 	var ptr *C.git_reference
 	cNewBranchName := C.CString(newBranchName)
 	cForce := cbool(force)
 
-	cSignature, err := signature.toC()
-	if err != nil {
-		return nil, err
-	}
-	defer C.git_signature_free(cSignature)
-
-	var cmsg *C.char
-	if msg == "" {
-		cmsg = nil
-	} else {
-		cmsg = C.CString(msg)
-		defer C.free(unsafe.Pointer(cmsg))
-	}
-
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_branch_move(&ptr, b.Reference.ptr, cNewBranchName, cForce, cSignature, cmsg)
+	ret := C.git_branch_move(&ptr, b.Reference.ptr, cNewBranchName, cForce)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}

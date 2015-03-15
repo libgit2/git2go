@@ -16,7 +16,6 @@ type SubmoduleUpdateOptions struct {
 	*CheckoutOpts
 	*RemoteCallbacks
 	CloneCheckoutStrategy CheckoutStrategy
-	Signature             *Signature
 }
 
 // Submodule
@@ -344,12 +343,6 @@ func populateSubmoduleUpdateOptions(ptr *C.git_submodule_update_options, opts *S
 	populateCheckoutOpts(&ptr.checkout_opts, opts.CheckoutOpts)
 	populateRemoteCallbacks(&ptr.remote_callbacks, opts.RemoteCallbacks)
 	ptr.clone_checkout_strategy = C.uint(opts.CloneCheckoutStrategy)
-
-	sig, err := opts.Signature.toC()
-	if err != nil {
-		return err
-	}
-	ptr.signature = sig
 
 	return nil
 }

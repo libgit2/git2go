@@ -16,7 +16,7 @@ func TestRemotePush(t *testing.T) {
 
 	seedTestRepo(t, localRepo)
 
-	err = remote.Push([]string{"refs/heads/master"}, nil, nil, "")
+	err = remote.Push([]string{"refs/heads/master"}, nil)
 	checkFatal(t, err)
 
 	_, err = localRepo.LookupReference("refs/remotes/test_push/master")

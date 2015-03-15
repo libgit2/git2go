@@ -14,14 +14,7 @@ func TestRefModification(t *testing.T) {
 
 	commitId, treeId := seedTestRepo(t, repo)
 
-	loc, err := time.LoadLocation("Europe/Berlin")
-	checkFatal(t, err)
-	sig := &Signature{
-		Name:  "Rand Om Hacker",
-		Email: "random@hacker.com",
-		When:  time.Date(2013, 03, 06, 14, 30, 0, 0, loc),
-	}
-	_, err = repo.CreateReference("refs/tags/tree", treeId, true, sig, "testTreeTag")
+	_, err := repo.CreateReference("refs/tags/tree", treeId, true, "testTreeTag")
 	checkFatal(t, err)
 
 	tag, err := repo.LookupReference("refs/tags/tree")
@@ -52,7 +45,7 @@ func TestRefModification(t *testing.T) {
 		t.Fatalf("Wrong ref target")
 	}
 
-	_, err = tag.Rename("refs/tags/renamed", false, nil, "")
+	_, err = tag.Rename("refs/tags/renamed", false, "")
 	checkFatal(t, err)
 	tag, err = repo.LookupReference("refs/tags/renamed")
 	checkFatal(t, err)
@@ -85,13 +78,13 @@ func TestReferenceIterator(t *testing.T) {
 	commitId, err := repo.CreateCommit("HEAD", sig, sig, message, tree)
 	checkFatal(t, err)
 
-	_, err = repo.CreateReference("refs/heads/one", commitId, true, sig, "headOne")
+	_, err = repo.CreateReference("refs/heads/one", commitId, true, "headOne")
 	checkFatal(t, err)
 
-	_, err = repo.CreateReference("refs/heads/two", commitId, true, sig, "headTwo")
+	_, err = repo.CreateReference("refs/heads/two", commitId, true, "headTwo")
 	checkFatal(t, err)
 
-	_, err = repo.CreateReference("refs/heads/three", commitId, true, sig, "headThree")
+	_, err = repo.CreateReference("refs/heads/three", commitId, true, "headThree")
 	checkFatal(t, err)
 
 	iter, err := repo.NewReferenceIterator()
@@ -143,7 +136,7 @@ func TestReferenceOwner(t *testing.T) {
 	defer os.RemoveAll(repo.Workdir())
 	commitId, _ := seedTestRepo(t, repo)
 
-	ref, err := repo.CreateReference("refs/heads/foo", commitId, true, nil, "")
+	ref, err := repo.CreateReference("refs/heads/foo", commitId, true, "")
 	checkFatal(t, err)
 
 	owner := ref.Owner()
@@ -162,7 +155,7 @@ func TestUtil(t *testing.T) {
 
 	commitId, _ := seedTestRepo(t, repo)
 
-	ref, err := repo.CreateReference("refs/heads/foo", commitId, true, nil, "")
+	ref, err := repo.CreateReference("refs/heads/foo", commitId, true, "")
 	checkFatal(t, err)
 
 	ref2, err := repo.DwimReference("foo")
