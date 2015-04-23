@@ -16,6 +16,7 @@ type HandleList struct {
 func NewHandleList() *HandleList {
 	return &HandleList{
 		handles: make([]interface{}, 5),
+		set:     make(map[uintptr]bool),
 	}
 }
 
