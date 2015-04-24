@@ -2,14 +2,13 @@ package git
 
 import (
 	"io/ioutil"
-	"os"
 	"runtime"
 	"testing"
 )
 
 func TestCreateRepoAndStage(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	idx, err := repo.Index()
 	checkFatal(t, err)
@@ -25,10 +24,10 @@ func TestCreateRepoAndStage(t *testing.T) {
 
 func TestIndexWriteTreeTo(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	repo2 := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo2)
 
 	idx, err := repo.Index()
 	checkFatal(t, err)
@@ -44,7 +43,7 @@ func TestIndexWriteTreeTo(t *testing.T) {
 
 func TestIndexAddAndWriteTreeTo(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	odb, err := repo.Odb()
 	checkFatal(t, err)
@@ -74,7 +73,7 @@ func TestIndexAddAndWriteTreeTo(t *testing.T) {
 
 func TestIndexAddAllNoCallback(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	err := ioutil.WriteFile(repo.Workdir()+"/README", []byte("foo\n"), 0644)
 	checkFatal(t, err)
@@ -95,7 +94,7 @@ func TestIndexAddAllNoCallback(t *testing.T) {
 
 func TestIndexAddAllCallback(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	err := ioutil.WriteFile(repo.Workdir()+"/README", []byte("foo\n"), 0644)
 	checkFatal(t, err)

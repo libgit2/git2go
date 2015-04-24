@@ -34,6 +34,8 @@ func readReadme(t *testing.T, repo *Repository) string {
 
 func TestCherrypick(t *testing.T) {
 	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
 	c1, _ := seedTestRepo(t, repo)
 	c2, _ := updateReadme(t, repo, content)
 

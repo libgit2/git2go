@@ -6,6 +6,8 @@ import (
 
 func TestSubmoduleForeach(t *testing.T) {
 	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
 	seedTestRepo(t, repo)
 
 	_, err := repo.AddSubmodule("http://example.org/submodule", "submodule", true)

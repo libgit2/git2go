@@ -2,15 +2,13 @@ package git
 
 import (
 	"fmt"
-	"os"
 	"testing"
 	"time"
 )
 
 func TestRefspecs(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
-	defer repo.Free()
+	defer cleanupTestRepo(t, repo)
 
 	remote, err := repo.CreateAnonymousRemote("git://foo/bar", "refs/heads/*:refs/heads/*")
 	checkFatal(t, err)
@@ -31,8 +29,7 @@ func TestRefspecs(t *testing.T) {
 
 func TestListRemotes(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
-	defer repo.Free()
+	defer cleanupTestRepo(t, repo)
 
 	_, err := repo.CreateRemote("test", "git://foo/bar")
 
@@ -59,8 +56,7 @@ func assertHostname(cert *Certificate, valid bool, hostname string, t *testing.T
 
 func TestCertificateCheck(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
-	defer repo.Free()
+	defer cleanupTestRepo(t, repo)
 
 	remote, err := repo.CreateRemote("origin", "https://github.com/libgit2/TestGitRepository")
 	checkFatal(t, err)
@@ -79,8 +75,7 @@ func TestCertificateCheck(t *testing.T) {
 
 func TestRemoteConnect(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
-	defer repo.Free()
+	defer cleanupTestRepo(t, repo)
 
 	remote, err := repo.CreateRemote("origin", "https://github.com/libgit2/TestGitRepository")
 	checkFatal(t, err)
@@ -91,8 +86,7 @@ func TestRemoteConnect(t *testing.T) {
 
 func TestRemoteLs(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
-	defer repo.Free()
+	defer cleanupTestRepo(t, repo)
 
 	remote, err := repo.CreateRemote("origin", "https://github.com/libgit2/TestGitRepository")
 	checkFatal(t, err)
@@ -110,8 +104,7 @@ func TestRemoteLs(t *testing.T) {
 
 func TestRemoteLsFiltering(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
-	defer repo.Free()
+	defer cleanupTestRepo(t, repo)
 
 	remote, err := repo.CreateRemote("origin", "https://github.com/libgit2/TestGitRepository")
 	checkFatal(t, err)
@@ -137,8 +130,7 @@ func TestRemoteLsFiltering(t *testing.T) {
 
 func TestRemotePruneRefs(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
-	defer repo.Free()
+	defer cleanupTestRepo(t, repo)
 
 	config, err := repo.Config()
 	checkFatal(t, err)
@@ -160,8 +152,7 @@ func TestRemotePruneRefs(t *testing.T) {
 
 func TestRemotePrune(t *testing.T) {
 	remoteRepo := createTestRepo(t)
-	defer os.RemoveAll(remoteRepo.Workdir())
-	defer remoteRepo.Free()
+	defer cleanupTestRepo(t, remoteRepo)
 
 	head, _ := seedTestRepo(t, remoteRepo)
 	commit, err := remoteRepo.LookupCommit(head)
@@ -178,8 +169,7 @@ func TestRemotePrune(t *testing.T) {
 	checkFatal(t, err)
 
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
-	defer repo.Free()
+	defer cleanupTestRepo(t, repo)
 
 	config, err := repo.Config()
 	checkFatal(t, err)

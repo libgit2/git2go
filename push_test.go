@@ -1,15 +1,15 @@
 package git
 
 import (
-	"os"
 	"testing"
 )
 
 func TestRemotePush(t *testing.T) {
 	repo := createBareTestRepo(t)
-	defer os.RemoveAll(repo.Path())
+	defer cleanupTestRepo(t, repo)
+
 	localRepo := createTestRepo(t)
-	defer os.RemoveAll(localRepo.Workdir())
+	defer cleanupTestRepo(t, localRepo)
 
 	remote, err := localRepo.CreateRemote("test_push", repo.Path())
 	checkFatal(t, err)
