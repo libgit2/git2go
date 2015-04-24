@@ -110,8 +110,13 @@ type packbuilderCbData struct {
 }
 
 //export packbuilderForEachCb
-func packbuilderForEachCb(buf unsafe.Pointer, size C.size_t, payload unsafe.Pointer) int {
-	data := (*packbuilderCbData)(payload)
+func packbuilderForEachCb(buf unsafe.Pointer, size C.size_t, handle unsafe.Pointer) int {
+	payload := pointerHandles.Get(handle)
+	data, ok := payload.(*packbuilderCbData)
+	if !ok {
+		panic("could not get packbuilder CB data")
+	}
+
 	slice := C.GoBytes(buf, C.int(size))
 
 	err := data.callback(slice)
@@ -130,11 +135,13 @@ func (pb *Packbuilder) ForEach(callback PackbuilderForeachCallback) error {
 		callback: callback,
 		err:      nil,
 	}
+	handle := pointerHandles.Track(&data)
+	defer pointerHandles.Untrack(handle)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	err := C._go_git_packbuilder_foreach(pb.ptr, unsafe.Pointer(&data))
+	err := C._go_git_packbuilder_foreach(pb.ptr, handle)
 	if err == C.GIT_EUSER {
 		return data.err
 	}
