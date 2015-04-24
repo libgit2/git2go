@@ -81,7 +81,7 @@ func TestOdbForeach(t *testing.T) {
 
 	checkFatal(t, err)
 	if count != expect {
-		t.Fatalf("Expected %v objects, got %v")
+		t.Fatalf("Expected %v objects, got %v", expect, count)
 	}
 
 	expect = 1
