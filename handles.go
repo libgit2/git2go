@@ -23,7 +23,7 @@ func NewHandleList() *HandleList {
 // findUnusedSlot finds the smallest-index empty space in our
 // list. You must only run this function while holding a write lock.
 func (v *HandleList) findUnusedSlot() uintptr {
-	for i := 0; i < len(v.handles); i++ {
+	for i := 1; i < len(v.handles); i++ {
 		isUsed := v.set[uintptr(i)]
 		if !isUsed {
 			return uintptr(i)
