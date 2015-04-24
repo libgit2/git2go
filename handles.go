@@ -1,6 +1,7 @@
 package git
 
 import (
+	"fmt"
 	"sync"
 	"unsafe"
 )
@@ -72,7 +73,7 @@ func (v *HandleList) Get(handle unsafe.Pointer) interface{} {
 	v.RLock()
 
 	if _, ok := v.set[slot]; !ok {
-		panic("invalid pointer handle")
+		panic(fmt.Sprintf("invalid pointer handle: %p", handle))
 	}
 
 	ptr := v.handles[slot]
