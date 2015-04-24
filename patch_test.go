@@ -7,8 +7,7 @@ import (
 
 func TestPatch(t *testing.T) {
 	repo := createTestRepo(t)
-	defer repo.Free()
-	//defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	_, originalTreeId := seedTestRepo(t, repo)
 	originalTree, err := repo.LookupTree(originalTreeId)

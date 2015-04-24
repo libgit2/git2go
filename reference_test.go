@@ -1,7 +1,6 @@
 package git
 
 import (
-	"os"
 	"runtime"
 	"sort"
 	"testing"
@@ -10,7 +9,7 @@ import (
 
 func TestRefModification(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	commitId, treeId := seedTestRepo(t, repo)
 
@@ -62,7 +61,7 @@ func TestRefModification(t *testing.T) {
 
 func TestReferenceIterator(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	loc, err := time.LoadLocation("Europe/Berlin")
 	checkFatal(t, err)
@@ -140,7 +139,8 @@ func TestReferenceIterator(t *testing.T) {
 
 func TestReferenceOwner(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
+
 	commitId, _ := seedTestRepo(t, repo)
 
 	ref, err := repo.CreateReference("refs/heads/foo", commitId, true, nil, "")
@@ -158,7 +158,7 @@ func TestReferenceOwner(t *testing.T) {
 
 func TestUtil(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	commitId, _ := seedTestRepo(t, repo)
 

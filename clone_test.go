@@ -2,22 +2,21 @@ package git
 
 import (
 	"io/ioutil"
-	"os"
 	"testing"
 )
 
 func TestClone(t *testing.T) {
 
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	seedTestRepo(t, repo)
 
 	path, err := ioutil.TempDir("", "git2go")
 	checkFatal(t, err)
 
-	_, err = Clone(repo.Path(), path, &CloneOptions{Bare: true})
-	defer os.RemoveAll(path)
+	repo2, err := Clone(repo.Path(), path, &CloneOptions{Bare: true})
+	defer cleanupTestRepo(t, repo2)
 
 	checkFatal(t, err)
 }

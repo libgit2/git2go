@@ -1,9 +1,13 @@
 package git
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestBranchIterator(t *testing.T) {
 	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
 	seedTestRepo(t, repo)
 
 	i, err := repo.NewBranchIterator(BranchLocal)
@@ -24,6 +28,8 @@ func TestBranchIterator(t *testing.T) {
 
 func TestBranchIteratorEach(t *testing.T) {
 	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
 	seedTestRepo(t, repo)
 
 	i, err := repo.NewBranchIterator(BranchLocal)

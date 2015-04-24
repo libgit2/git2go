@@ -2,15 +2,13 @@ package git
 
 import (
 	"errors"
-	"os"
 	"strings"
 	"testing"
 )
 
 func TestFindSimilar(t *testing.T) {
 	repo := createTestRepo(t)
-	defer repo.Free()
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	originalTree, newTree := createTestTrees(t, repo)
 
@@ -65,8 +63,7 @@ func TestFindSimilar(t *testing.T) {
 func TestDiffTreeToTree(t *testing.T) {
 
 	repo := createTestRepo(t)
-	defer repo.Free()
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	originalTree, newTree := createTestTrees(t, repo)
 

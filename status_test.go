@@ -2,15 +2,13 @@ package git
 
 import (
 	"io/ioutil"
-	"os"
 	"path"
 	"testing"
 )
 
 func TestStatusFile(t *testing.T) {
 	repo := createTestRepo(t)
-	defer repo.Free()
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	state := repo.State()
 	if state != RepositoryStateNone {
@@ -30,10 +28,10 @@ func TestStatusFile(t *testing.T) {
 
 func TestStatusList(t *testing.T) {
 	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
 	// This commits the test repo README, so it doesn't show up in the status list and there's a head to compare to
 	seedTestRepo(t, repo)
-	defer repo.Free()
-	defer os.RemoveAll(repo.Workdir())
 
 	err := ioutil.WriteFile(path.Join(path.Dir(repo.Workdir()), "hello.txt"), []byte("Hello, World"), 0644)
 	checkFatal(t, err)

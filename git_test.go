@@ -2,10 +2,23 @@ package git
 
 import (
 	"io/ioutil"
+	"os"
 	"path"
 	"testing"
 	"time"
 )
+
+func cleanupTestRepo(t *testing.T, r *Repository) {
+	var err error
+	if r.IsBare() {
+		err = os.RemoveAll(r.Path())
+	} else {
+		err = os.RemoveAll(r.Workdir())
+	}
+	checkFatal(t, err)
+
+	r.Free()
+}
 
 func createTestRepo(t *testing.T) *Repository {
 	// figure out where we can create the test repo
