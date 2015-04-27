@@ -287,6 +287,7 @@ func (v *Index) HasConflicts() bool {
 	return C.git_index_has_conflicts(v.ptr) != 0
 }
 
+// FIXME: this might return an error
 func (v *Index) CleanupConflicts() {
 	C.git_index_conflict_cleanup(v.ptr)
 }
