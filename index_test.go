@@ -22,6 +22,34 @@ func TestCreateRepoAndStage(t *testing.T) {
 	}
 }
 
+func TestIndexReadTree(t *testing.T) {
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	_, _ = seedTestRepo(t, repo)
+
+	ref, err := repo.Head()
+	checkFatal(t, err)
+
+	obj, err := ref.Peel(ObjectTree);
+	checkFatal(t, err)
+
+	tree := obj.(*Tree)
+
+	idx, err := NewIndex()
+	checkFatal(t, err)
+
+	err = idx.ReadTree(tree)
+	checkFatal(t, err)
+
+	id, err := idx.WriteTreeTo(repo)
+	checkFatal(t, err)
+
+	if tree.Id().Cmp(id) != 0 {
+		t.Fatalf("Read and written trees are not the same")
+	}
+}
+
 func TestIndexWriteTreeTo(t *testing.T) {
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)

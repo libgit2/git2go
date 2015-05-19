@@ -240,6 +240,20 @@ func (v *Index) WriteTreeTo(repo *Repository) (*Oid, error) {
 	return oid, nil
 }
 
+// ReadTree replaces the contents of the index with those of the given
+// tree
+func (v *Index) ReadTree(tree *Tree) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_index_read_tree(v.ptr, tree.cast_ptr);
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+
+	return nil
+}
+
 func (v *Index) WriteTree() (*Oid, error) {
 	oid := new(Oid)
 
