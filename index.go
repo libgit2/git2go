@@ -96,6 +96,24 @@ func NewIndex() (*Index, error) {
 	return &Index{ptr: ptr}, nil
 }
 
+// OpenIndex creates a new index at the given path. If the file does
+// not exist it will be created when Write() is called.
+func OpenIndex(path string) (*Index, error) {
+	var ptr *C.git_index
+
+	var cpath = C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if err := C.git_index_open(&ptr, cpath); err < 0 {
+		return nil, MakeGitError(err)
+	}
+
+	return &Index{ptr: ptr}, nil
+}
+
 // Add adds or replaces the given entry to the index, making a copy of
 // the data
 func (v *Index) Add(entry *IndexEntry) error {

@@ -2,6 +2,7 @@ package git
 
 import (
 	"io/ioutil"
+	"os"
 	"runtime"
 	"testing"
 )
@@ -145,6 +146,29 @@ func TestIndexAddAllCallback(t *testing.T) {
 
 	if treeId.String() != "b7119b11e8ef7a1a5a34d3ac87f5b075228ac81e" {
 		t.Fatalf("%v", treeId.String())
+	}
+}
+
+func TestIndexOpen(t *testing.T) {
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	path := repo.Workdir() + "/heyindex"
+
+	_, err := os.Stat(path)
+	if !os.IsNotExist(err) {
+		t.Fatal("new index file already exists")
+	}
+
+	idx, err := OpenIndex(path)
+	checkFatal(t, err)
+
+	err = idx.Write()
+	checkFatal(t, err)
+
+	_, err = os.Stat(path)
+	if os.IsNotExist(err) {
+		t.Fatal("new index file did not get written")
 	}
 }
 
