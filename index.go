@@ -114,6 +114,12 @@ func OpenIndex(path string) (*Index, error) {
 	return &Index{ptr: ptr}, nil
 }
 
+// Path returns the index' path on disk or an empty string if it
+// exists only in memory.
+func (v *Index) Path() string {
+	return C.GoString(C.git_index_path(v.ptr))
+}
+
 // Add adds or replaces the given entry to the index, making a copy of
 // the data
 func (v *Index) Add(entry *IndexEntry) error {

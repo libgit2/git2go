@@ -83,6 +83,10 @@ func TestIndexAddAndWriteTreeTo(t *testing.T) {
 	idx, err := NewIndex()
 	checkFatal(t, err)
 
+	if idx.Path() != "" {
+		t.Fatal("in-memory repo has a path")
+	}
+
 	entry := IndexEntry{
 		Path: "README",
 		Id:   blobID,
@@ -162,6 +166,10 @@ func TestIndexOpen(t *testing.T) {
 
 	idx, err := OpenIndex(path)
 	checkFatal(t, err)
+
+	if path != idx.Path() {
+		t.Fatalf("mismatched index paths, expected %v, got %v", path, idx.Path())
+	}
 
 	err = idx.Write()
 	checkFatal(t, err)
