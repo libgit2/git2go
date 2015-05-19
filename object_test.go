@@ -1,13 +1,13 @@
 package git
 
 import (
-	"os"
 	"testing"
 )
 
 func TestObjectPoymorphism(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
+
 	commitId, treeId := seedTestRepo(t, repo)
 
 	var obj Object
@@ -89,7 +89,8 @@ func checkOwner(t *testing.T, repo *Repository, obj Object) {
 
 func TestObjectOwner(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
+
 	commitId, treeId := seedTestRepo(t, repo)
 
 	commit, err := repo.LookupCommit(commitId)

@@ -9,7 +9,7 @@ import (
 
 func TestCreateRepoAndStage(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	idx, err := repo.Index()
 	checkFatal(t, err)
@@ -23,12 +23,40 @@ func TestCreateRepoAndStage(t *testing.T) {
 	}
 }
 
+func TestIndexReadTree(t *testing.T) {
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	_, _ = seedTestRepo(t, repo)
+
+	ref, err := repo.Head()
+	checkFatal(t, err)
+
+	obj, err := ref.Peel(ObjectTree);
+	checkFatal(t, err)
+
+	tree := obj.(*Tree)
+
+	idx, err := NewIndex()
+	checkFatal(t, err)
+
+	err = idx.ReadTree(tree)
+	checkFatal(t, err)
+
+	id, err := idx.WriteTreeTo(repo)
+	checkFatal(t, err)
+
+	if tree.Id().Cmp(id) != 0 {
+		t.Fatalf("Read and written trees are not the same")
+	}
+}
+
 func TestIndexWriteTreeTo(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	repo2 := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo2)
 
 	idx, err := repo.Index()
 	checkFatal(t, err)
@@ -44,7 +72,7 @@ func TestIndexWriteTreeTo(t *testing.T) {
 
 func TestIndexAddAndWriteTreeTo(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	odb, err := repo.Odb()
 	checkFatal(t, err)
@@ -54,6 +82,10 @@ func TestIndexAddAndWriteTreeTo(t *testing.T) {
 
 	idx, err := NewIndex()
 	checkFatal(t, err)
+
+	if idx.Path() != "" {
+		t.Fatal("in-memory repo has a path")
+	}
 
 	entry := IndexEntry{
 		Path: "README",
@@ -74,7 +106,7 @@ func TestIndexAddAndWriteTreeTo(t *testing.T) {
 
 func TestIndexAddAllNoCallback(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	err := ioutil.WriteFile(repo.Workdir()+"/README", []byte("foo\n"), 0644)
 	checkFatal(t, err)
@@ -95,7 +127,7 @@ func TestIndexAddAllNoCallback(t *testing.T) {
 
 func TestIndexAddAllCallback(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	err := ioutil.WriteFile(repo.Workdir()+"/README", []byte("foo\n"), 0644)
 	checkFatal(t, err)
@@ -118,6 +150,33 @@ func TestIndexAddAllCallback(t *testing.T) {
 
 	if treeId.String() != "b7119b11e8ef7a1a5a34d3ac87f5b075228ac81e" {
 		t.Fatalf("%v", treeId.String())
+	}
+}
+
+func TestIndexOpen(t *testing.T) {
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	path := repo.Workdir() + "/heyindex"
+
+	_, err := os.Stat(path)
+	if !os.IsNotExist(err) {
+		t.Fatal("new index file already exists")
+	}
+
+	idx, err := OpenIndex(path)
+	checkFatal(t, err)
+
+	if path != idx.Path() {
+		t.Fatalf("mismatched index paths, expected %v, got %v", path, idx.Path())
+	}
+
+	err = idx.Write()
+	checkFatal(t, err)
+
+	_, err = os.Stat(path)
+	if os.IsNotExist(err) {
+		t.Fatal("new index file did not get written")
 	}
 }
 

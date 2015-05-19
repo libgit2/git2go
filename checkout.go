@@ -38,6 +38,7 @@ type CheckoutOpts struct {
 	FileMode        os.FileMode      // Default is 0644 or 0755 as dictated by blob
 	FileOpenFlags   int              // Default is O_CREAT | O_TRUNC | O_WRONLY
 	TargetDirectory string           // Alternative checkout path to workdir
+	Paths			[]string
 }
 
 func checkoutOptionsFromC(c *C.git_checkout_options) CheckoutOpts {
@@ -78,6 +79,11 @@ func populateCheckoutOpts(ptr *C.git_checkout_options, opts *CheckoutOpts) *C.gi
 	if opts.TargetDirectory != "" {
 		ptr.target_directory = C.CString(opts.TargetDirectory)
 	}
+	if len(opts.Paths) > 0 {
+		ptr.paths.strings = makeCStringsFromStrings(opts.Paths)
+		ptr.paths.count = C.size_t(len(opts.Paths))
+	}
+
 	return ptr
 }
 
@@ -86,6 +92,9 @@ func freeCheckoutOpts(ptr *C.git_checkout_options) {
 		return
 	}
 	C.free(unsafe.Pointer(ptr.target_directory))
+	if ptr.paths.count > 0 {
+		freeStrarray(&ptr.paths)
+	}
 }
 
 // Updates files in the index and the working tree to match the content of

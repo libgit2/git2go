@@ -1,14 +1,14 @@
 package git
 
 import (
-	"os"
 	"testing"
 	"time"
 )
 
 func TestCreateTag(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
+
 	commitId, _ := seedTestRepo(t, repo)
 
 	commit, err := repo.LookupCommit(commitId)

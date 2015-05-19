@@ -3,13 +3,13 @@ package git
 import (
 	"errors"
 	"io"
-	"os"
 	"testing"
 )
 
 func TestOdbStream(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
+
 	_, _ = seedTestRepo(t, repo)
 
 	odb, error := repo.Odb()
@@ -38,7 +38,8 @@ func TestOdbStream(t *testing.T) {
 func TestOdbHash(t *testing.T) {
 
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
+
 	_, _ = seedTestRepo(t, repo)
 
 	odb, error := repo.Odb()
@@ -64,7 +65,8 @@ Initial commit.`
 
 func TestOdbForeach(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
+
 	_, _ = seedTestRepo(t, repo)
 
 	odb, err := repo.Odb()
