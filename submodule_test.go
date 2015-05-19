@@ -21,6 +21,6 @@ func TestSubmoduleForeach(t *testing.T) {
 	checkFatal(t, err)
 
 	if i != 1 {
-		t.Fatalf("expected one submodule found but got %i", i)
+		t.Fatalf("expected one submodule found but got %d", i)
 	}
 }
