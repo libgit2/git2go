@@ -28,9 +28,9 @@ func TestOdbStream(t *testing.T) {
 	error = stream.Close()
 	checkFatal(t, error)
 
-	expectedId, error := NewOid("30f51a3fba5274d53522d0f19748456974647b4f")
+	expectedID, error := NewOid("30f51a3fba5274d53522d0f19748456974647b4f")
 	checkFatal(t, error)
-	if stream.Id.Cmp(expectedId) != 0 {
+	if stream.Id.Cmp(expectedID) != 0 {
 		t.Fatal("Wrong data written")
 	}
 }
@@ -86,13 +86,13 @@ func TestOdbForeach(t *testing.T) {
 
 	expect = 1
 	count = 0
-	to_return := errors.New("not really an error")
+	fakeError := errors.New("not really an error")
 	err = odb.ForEach(func(id *Oid) error {
 		count++
-		return to_return
+		return fakeError
 	})
 
-	if err != to_return {
+	if err != fakeError {
 		t.Fatalf("Odb.ForEach() did not return the expected error, got %v", err)
 	}
 }

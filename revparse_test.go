@@ -8,39 +8,39 @@ func TestRevparse(t *testing.T) {
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
-	commitId, _ := seedTestRepo(t, repo)
+	commitID, _ := seedTestRepo(t, repo)
 
 	revSpec, err := repo.Revparse("HEAD")
 	checkFatal(t, err)
 
-	checkObject(t, revSpec.From(), commitId)
+	checkObject(t, revSpec.From(), commitID)
 }
 
 func TestRevparseSingle(t *testing.T) {
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
-	commitId, _ := seedTestRepo(t, repo)
+	commitID, _ := seedTestRepo(t, repo)
 
 	obj, err := repo.RevparseSingle("HEAD")
 	checkFatal(t, err)
 
-	checkObject(t, obj, commitId)
+	checkObject(t, obj, commitID)
 }
 
 func TestRevparseExt(t *testing.T) {
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
-	_, treeId := seedTestRepo(t, repo)
+	_, treeID := seedTestRepo(t, repo)
 
-	ref, err := repo.CreateReference("refs/heads/master", treeId, true, nil, "")
+	ref, err := repo.CreateReference("refs/heads/master", treeID, true, nil, "")
 	checkFatal(t, err)
 
 	obj, ref, err := repo.RevparseExt("master")
 	checkFatal(t, err)
 
-	checkObject(t, obj, treeId)
+	checkObject(t, obj, treeID)
 	if ref == nil {
 		t.Fatalf("bad reference")
 	}

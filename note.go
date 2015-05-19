@@ -86,13 +86,13 @@ func (v *NoteIterator) Free() {
 
 // Next returns the current item (note id & annotated id) and advances the
 // iterator internally to the next item
-func (it *NoteIterator) Next() (noteId, annotatedId *Oid, err error) {
-	noteId, annotatedId = new(Oid), new(Oid)
+func (it *NoteIterator) Next() (noteID, annotatedId *Oid, err error) {
+	noteID, annotatedId = new(Oid), new(Oid)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if ret := C.git_note_next(noteId.toC(), annotatedId.toC(), it.ptr); ret < 0 {
+	if ret := C.git_note_next(noteID.toC(), annotatedId.toC(), it.ptr); ret < 0 {
 		err = MakeGitError(ret)
 	}
 	return

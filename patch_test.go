@@ -9,14 +9,14 @@ func TestPatch(t *testing.T) {
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
-	_, originalTreeId := seedTestRepo(t, repo)
-	originalTree, err := repo.LookupTree(originalTreeId)
+	_, originalTreeID := seedTestRepo(t, repo)
+	originalTree, err := repo.LookupTree(originalTreeID)
 
 	checkFatal(t, err)
 
-	_, newTreeId := updateReadme(t, repo, "file changed\n")
+	_, newTreeID := updateReadme(t, repo, "file changed\n")
 
-	newTree, err := repo.LookupTree(newTreeId)
+	newTree, err := repo.LookupTree(newTreeID)
 	checkFatal(t, err)
 
 	opts := &DiffOptions{

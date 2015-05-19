@@ -38,7 +38,7 @@ type CheckoutOpts struct {
 	FileMode        os.FileMode      // Default is 0644 or 0755 as dictated by blob
 	FileOpenFlags   int              // Default is O_CREAT | O_TRUNC | O_WRONLY
 	TargetDirectory string           // Alternative checkout path to workdir
-	Paths			[]string
+	Paths           []string
 }
 
 func checkoutOptionsFromC(c *C.git_checkout_options) CheckoutOpts {

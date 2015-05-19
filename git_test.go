@@ -58,16 +58,16 @@ func seedTestRepo(t *testing.T, repo *Repository) (*Oid, *Oid) {
 	checkFatal(t, err)
 	err = idx.AddByPath("README")
 	checkFatal(t, err)
-	treeId, err := idx.WriteTree()
+	treeID, err := idx.WriteTree()
 	checkFatal(t, err)
 
 	message := "This is a commit\n"
-	tree, err := repo.LookupTree(treeId)
+	tree, err := repo.LookupTree(treeID)
 	checkFatal(t, err)
-	commitId, err := repo.CreateCommit("HEAD", sig, sig, message, tree)
+	commitID, err := repo.CreateCommit("HEAD", sig, sig, message, tree)
 	checkFatal(t, err)
 
-	return commitId, treeId
+	return commitID, treeID
 }
 
 func pathInRepo(repo *Repository, name string) string {
@@ -91,7 +91,7 @@ func updateReadme(t *testing.T, repo *Repository, content string) (*Oid, *Oid) {
 	checkFatal(t, err)
 	err = idx.AddByPath("README")
 	checkFatal(t, err)
-	treeId, err := idx.WriteTree()
+	treeID, err := idx.WriteTree()
 	checkFatal(t, err)
 
 	currentBranch, err := repo.Head()
@@ -100,18 +100,18 @@ func updateReadme(t *testing.T, repo *Repository, content string) (*Oid, *Oid) {
 	checkFatal(t, err)
 
 	message := "This is a commit\n"
-	tree, err := repo.LookupTree(treeId)
+	tree, err := repo.LookupTree(treeID)
 	checkFatal(t, err)
-	commitId, err := repo.CreateCommit("HEAD", sig, sig, message, tree, currentTip)
+	commitID, err := repo.CreateCommit("HEAD", sig, sig, message, tree, currentTip)
 	checkFatal(t, err)
 
-	return commitId, treeId
+	return commitID, treeID
 }
 
 func TestOidZero(t *testing.T) {
-	var zeroId Oid
+	var zeroID Oid
 
-	if !zeroId.IsZero() {
+	if !zeroID.IsZero() {
 		t.Error("Zero Oid is not zero")
 	}
 }

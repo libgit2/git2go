@@ -175,8 +175,8 @@ func TestRemotePrune(t *testing.T) {
 	checkFatal(t, err)
 	defer config.Free()
 
-	remoteUrl := fmt.Sprintf("file://%s", remoteRepo.Workdir())
-	remote, err := repo.CreateRemote("origin", remoteUrl)
+	remoteURL := fmt.Sprintf("file://%s", remoteRepo.Workdir())
+	remote, err := repo.CreateRemote("origin", remoteURL)
 	checkFatal(t, err)
 
 	err = remote.Fetch([]string{"test-prune"}, sig, "")

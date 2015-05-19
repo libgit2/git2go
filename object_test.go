@@ -8,11 +8,11 @@ func TestObjectPoymorphism(t *testing.T) {
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
-	commitId, treeId := seedTestRepo(t, repo)
+	commitID, treeID := seedTestRepo(t, repo)
 
 	var obj Object
 
-	commit, err := repo.LookupCommit(commitId)
+	commit, err := repo.LookupCommit(commitID)
 	checkFatal(t, err)
 
 	obj = commit
@@ -24,7 +24,7 @@ func TestObjectPoymorphism(t *testing.T) {
 	checkFatal(t, err)
 	commitTree.EntryCount()
 
-	tree, err := repo.LookupTree(treeId)
+	tree, err := repo.LookupTree(treeID)
 	checkFatal(t, err)
 
 	obj = tree
@@ -91,12 +91,12 @@ func TestObjectOwner(t *testing.T) {
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
-	commitId, treeId := seedTestRepo(t, repo)
+	commitID, treeID := seedTestRepo(t, repo)
 
-	commit, err := repo.LookupCommit(commitId)
+	commit, err := repo.LookupCommit(commitID)
 	checkFatal(t, err)
 
-	tree, err := repo.LookupTree(treeId)
+	tree, err := repo.LookupTree(treeID)
 	checkFatal(t, err)
 
 	checkOwner(t, repo, commit)
