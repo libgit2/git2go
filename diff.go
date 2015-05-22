@@ -561,7 +561,9 @@ func freeDiffOptions(copts *C.git_diff_options) {
 		freeStrarray(&cpathspec)
 		C.free(unsafe.Pointer(copts.old_prefix))
 		C.free(unsafe.Pointer(copts.new_prefix))
-		pointerHandles.Untrack(copts.notify_payload)
+		if copts.notify_payload != nil {
+			pointerHandles.Untrack(copts.notify_payload)
+		}
 	}
 }
 
