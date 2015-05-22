@@ -11,23 +11,23 @@ type HandleList struct {
 	// stores the Go pointers
 	handles []interface{}
 	// indicates which indices are in use
-	set map[uintptr]bool
+	set map[int]bool
 }
 
 func NewHandleList() *HandleList {
 	return &HandleList{
 		handles: make([]interface{}, 5),
-		set:     make(map[uintptr]bool),
+		set:     make(map[int]bool),
 	}
 }
 
 // findUnusedSlot finds the smallest-index empty space in our
 // list. You must only run this function while holding a write lock.
-func (v *HandleList) findUnusedSlot() uintptr {
+func (v *HandleList) findUnusedSlot() int {
 	for i := 1; i < len(v.handles); i++ {
-		isUsed := v.set[uintptr(i)]
+		isUsed := v.set[i]
 		if !isUsed {
-			return uintptr(i)
+			return i
 		}
 	}
 
@@ -36,7 +36,7 @@ func (v *HandleList) findUnusedSlot() uintptr {
 	slot := len(v.handles)
 	v.handles = append(v.handles, nil)
 
-	return uintptr(slot)
+	return slot
 }
 
 // Track adds the given pointer to the list of pointers to track and
@@ -51,12 +51,12 @@ func (v *HandleList) Track(pointer interface{}) unsafe.Pointer {
 
 	v.Unlock()
 
-	return unsafe.Pointer(slot)
+	return unsafe.Pointer(&slot)
 }
 
 // Untrack stops tracking the pointer given by the handle
 func (v *HandleList) Untrack(handle unsafe.Pointer) {
-	slot := uintptr(handle)
+	slot := *(*int)(handle)
 
 	v.Lock()
 
@@ -68,7 +68,7 @@ func (v *HandleList) Untrack(handle unsafe.Pointer) {
 
 // Get retrieves the pointer from the given handle
 func (v *HandleList) Get(handle unsafe.Pointer) interface{} {
-	slot := uintptr(handle)
+	slot := *(*int)(handle)
 
 	v.RLock()
 
