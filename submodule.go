@@ -103,7 +103,7 @@ func SubmoduleVisitor(csub unsafe.Pointer, name *C.char, handle unsafe.Pointer) 
 	if callback, ok := pointerHandles.Get(handle).(SubmoduleCbk); ok {
 		return (C.int)(callback(sub, C.GoString(name)))
 	} else {
-		return -1
+		panic("invalid submodule visitor callback")
 	}
 }
 

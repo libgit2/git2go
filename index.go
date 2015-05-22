@@ -234,12 +234,10 @@ func (v *Index) RemoveAll(pathspecs []string, callback IndexMatchedPathCallback)
 
 //export indexMatchedPathCallback
 func indexMatchedPathCallback(cPath, cMatchedPathspec *C.char, payload unsafe.Pointer) int {
-	if payload == nil {
-		return 0
-	} else if callback, ok := pointerHandles.Get(payload).(IndexMatchedPathCallback); ok {
+	if callback, ok := pointerHandles.Get(payload).(IndexMatchedPathCallback); ok {
 		return callback(C.GoString(cPath), C.GoString(cMatchedPathspec))
 	} else {
-		return -1
+		panic("invalid matched path callback")
 	}
 }
 

@@ -97,7 +97,7 @@ func CallbackGitTreeWalk(_root unsafe.Pointer, _entry unsafe.Pointer, ptr unsafe
 	if callback, ok := pointerHandles.Get(ptr).(TreeWalkCallback); ok {
 		return C.int(callback(root, newTreeEntry(entry)))
 	} else {
-		return C.int(-1)
+		panic("invalid treewalk callback")
 	}
 }
 
