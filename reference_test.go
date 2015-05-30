@@ -199,8 +199,7 @@ func checkRefType(t *testing.T, ref *Reference, kind ReferenceType) {
 	// The failure happens at wherever we were called, not here
 	_, file, line, ok := runtime.Caller(1)
 	if !ok {
-		t.Fatal()
+		t.Fatalf("Unable to get caller")
 	}
-
 	t.Fatalf("Wrong ref type at %v:%v; have %v, expected %v", file, line, ref.Type(), kind)
 }

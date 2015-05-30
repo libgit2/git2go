@@ -265,7 +265,11 @@ func (diff *Diff) ForEach(cbFile DiffForEachFileCallback, detail DiffDetail) err
 	data := &diffForEachData{
 		FileCallback: cbFile,
 	}
-	ecode := C._go_git_diff_foreach(diff.ptr, 1, intHunks, intLines, unsafe.Pointer(data))
+
+	handle := pointerHandles.Track(data)
+	defer pointerHandles.Untrack(handle)
+
+	ecode := C._go_git_diff_foreach(diff.ptr, 1, intHunks, intLines, handle)
 	if ecode < 0 {
 		return data.Error
 	}
@@ -273,8 +277,12 @@ func (diff *Diff) ForEach(cbFile DiffForEachFileCallback, detail DiffDetail) err
 }
 
 //export diffForEachFileCb
-func diffForEachFileCb(delta *C.git_diff_delta, progress C.float, payload unsafe.Pointer) int {
-	data := (*diffForEachData)(payload)
+func diffForEachFileCb(delta *C.git_diff_delta, progress C.float, handle unsafe.Pointer) int {
+	payload := pointerHandles.Get(handle)
+	data, ok := payload.(*diffForEachData)
+	if !ok {
+		panic("could not retrieve data for handle")
+	}
 
 	data.HunkCallback = nil
 	if data.FileCallback != nil {
@@ -292,8 +300,12 @@ func diffForEachFileCb(delta *C.git_diff_delta, progress C.float, payload unsafe
 type DiffForEachHunkCallback func(DiffHunk) (DiffForEachLineCallback, error)
 
 //export diffForEachHunkCb
-func diffForEachHunkCb(delta *C.git_diff_delta, hunk *C.git_diff_hunk, payload unsafe.Pointer) int {
-	data := (*diffForEachData)(payload)
+func diffForEachHunkCb(delta *C.git_diff_delta, hunk *C.git_diff_hunk, handle unsafe.Pointer) int {
+	payload := pointerHandles.Get(handle)
+	data, ok := payload.(*diffForEachData)
+	if !ok {
+		panic("could not retrieve data for handle")
+	}
 
 	data.LineCallback = nil
 	if data.HunkCallback != nil {
@@ -311,9 +323,12 @@ func diffForEachHunkCb(delta *C.git_diff_delta, hunk *C.git_diff_hunk, payload u
 type DiffForEachLineCallback func(DiffLine) error
 
 //export diffForEachLineCb
-func diffForEachLineCb(delta *C.git_diff_delta, hunk *C.git_diff_hunk, line *C.git_diff_line, payload unsafe.Pointer) int {
-
-	data := (*diffForEachData)(payload)
+func diffForEachLineCb(delta *C.git_diff_delta, hunk *C.git_diff_hunk, line *C.git_diff_line, handle unsafe.Pointer) int {
+	payload := pointerHandles.Get(handle)
+	data, ok := payload.(*diffForEachData)
+	if !ok {
+		panic("could not retrieve data for handle")
+	}
 
 	err := data.LineCallback(diffLineFromC(delta, hunk, line))
 	if err != nil {
@@ -479,9 +494,15 @@ type diffNotifyData struct {
 }
 
 //export diffNotifyCb
-func diffNotifyCb(_diff_so_far unsafe.Pointer, delta_to_add *C.git_diff_delta, matched_pathspec *C.char, payload unsafe.Pointer) int {
+func diffNotifyCb(_diff_so_far unsafe.Pointer, delta_to_add *C.git_diff_delta, matched_pathspec *C.char, handle unsafe.Pointer) int {
 	diff_so_far := (*C.git_diff)(_diff_so_far)
-	data := (*diffNotifyData)(payload)
+
+	payload := pointerHandles.Get(handle)
+	data, ok := payload.(*diffNotifyData)
+	if !ok {
+		panic("could not retrieve data for handle")
+	}
+
 	if data != nil {
 		if data.Diff == nil {
 			data.Diff = newDiffFromC(diff_so_far)
@@ -507,6 +528,7 @@ func diffOptionsToC(opts *DiffOptions) (copts *C.git_diff_options, notifyData *d
 		notifyData = &diffNotifyData{
 			Callback: opts.NotifyCallback,
 		}
+
 		if opts.Pathspec != nil {
 			cpathspec.count = C.size_t(len(opts.Pathspec))
 			cpathspec.strings = makeCStringsFromStrings(opts.Pathspec)
@@ -527,7 +549,7 @@ func diffOptionsToC(opts *DiffOptions) (copts *C.git_diff_options, notifyData *d
 
 		if opts.NotifyCallback != nil {
 			C._go_git_setup_diff_notify_callbacks(copts)
-			copts.notify_payload = unsafe.Pointer(notifyData)
+			copts.notify_payload = pointerHandles.Track(notifyData)
 		}
 	}
 	return
@@ -539,6 +561,9 @@ func freeDiffOptions(copts *C.git_diff_options) {
 		freeStrarray(&cpathspec)
 		C.free(unsafe.Pointer(copts.old_prefix))
 		C.free(unsafe.Pointer(copts.new_prefix))
+		if copts.notify_payload != nil {
+			pointerHandles.Untrack(copts.notify_payload)
+		}
 	}
 }
 

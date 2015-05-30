@@ -93,7 +93,11 @@ var (
 	ErrInvalid = errors.New("Invalid state for operation")
 )
 
+var pointerHandles *HandleList
+
 func init() {
+	pointerHandles = NewHandleList()
+
 	C.git_libgit2_init()
 
 	// This is not something we should be doing, as we may be
