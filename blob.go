@@ -60,8 +60,13 @@ type BlobCallbackData struct {
 }
 
 //export blobChunkCb
-func blobChunkCb(buffer *C.char, maxLen C.size_t, payload unsafe.Pointer) int {
-	data := (*BlobCallbackData)(payload)
+func blobChunkCb(buffer *C.char, maxLen C.size_t, handle unsafe.Pointer) int {
+	payload := pointerHandles.Get(handle)
+	data, ok := payload.(*BlobCallbackData)
+	if !ok {
+		panic("could not retrieve blob callback data")
+	}
+
 	goBuf, err := data.Callback(int(maxLen))
 	if err == io.EOF {
 		return 0
@@ -83,8 +88,12 @@ func (repo *Repository) CreateBlobFromChunks(hintPath string, callback BlobChunk
 		defer C.free(unsafe.Pointer(chintPath))
 	}
 	oid := C.git_oid{}
+
 	payload := &BlobCallbackData{Callback: callback}
-	ecode := C._go_git_blob_create_fromchunks(&oid, repo.ptr, chintPath, unsafe.Pointer(payload))
+	handle := pointerHandles.Track(payload)
+	defer pointerHandles.Untrack(handle)
+
+	ecode := C._go_git_blob_create_fromchunks(&oid, repo.ptr, chintPath, handle)
 	if payload.Error != nil {
 		return nil, payload.Error
 	}

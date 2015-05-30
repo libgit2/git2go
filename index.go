@@ -162,16 +162,17 @@ func (v *Index) AddAll(pathspecs []string, flags IndexAddOpts, callback IndexMat
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	var cb *IndexMatchedPathCallback
+	var handle unsafe.Pointer
 	if callback != nil {
-		cb = &callback
+		handle = pointerHandles.Track(callback)
+		defer pointerHandles.Untrack(handle)
 	}
 
 	ret := C._go_git_index_add_all(
 		v.ptr,
 		&cpathspecs,
 		C.uint(flags),
-		unsafe.Pointer(cb),
+		handle,
 	)
 	if ret < 0 {
 		return MakeGitError(ret)
@@ -188,15 +189,16 @@ func (v *Index) UpdateAll(pathspecs []string, callback IndexMatchedPathCallback)
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	var cb *IndexMatchedPathCallback
+	var handle unsafe.Pointer
 	if callback != nil {
-		cb = &callback
+		handle = pointerHandles.Track(callback)
+		defer pointerHandles.Untrack(handle)
 	}
 
 	ret := C._go_git_index_update_all(
 		v.ptr,
 		&cpathspecs,
-		unsafe.Pointer(cb),
+		handle,
 	)
 	if ret < 0 {
 		return MakeGitError(ret)
@@ -213,15 +215,16 @@ func (v *Index) RemoveAll(pathspecs []string, callback IndexMatchedPathCallback)
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	var cb *IndexMatchedPathCallback
+	var handle unsafe.Pointer
 	if callback != nil {
-		cb = &callback
+		handle = pointerHandles.Track(callback)
+		defer pointerHandles.Untrack(handle)
 	}
 
 	ret := C._go_git_index_remove_all(
 		v.ptr,
 		&cpathspecs,
-		unsafe.Pointer(cb),
+		handle,
 	)
 	if ret < 0 {
 		return MakeGitError(ret)
@@ -231,8 +234,11 @@ func (v *Index) RemoveAll(pathspecs []string, callback IndexMatchedPathCallback)
 
 //export indexMatchedPathCallback
 func indexMatchedPathCallback(cPath, cMatchedPathspec *C.char, payload unsafe.Pointer) int {
-	callback := (*IndexMatchedPathCallback)(payload)
-	return (*callback)(C.GoString(cPath), C.GoString(cMatchedPathspec))
+	if callback, ok := pointerHandles.Get(payload).(IndexMatchedPathCallback); ok {
+		return callback(C.GoString(cPath), C.GoString(cMatchedPathspec))
+	} else {
+		panic("invalid matched path callback")
+	}
 }
 
 func (v *Index) RemoveByPath(path string) error {

@@ -97,17 +97,24 @@ func (repo *Repository) LookupSubmodule(name string) (*Submodule, error) {
 type SubmoduleCbk func(sub *Submodule, name string) int
 
 //export SubmoduleVisitor
-func SubmoduleVisitor(csub unsafe.Pointer, name *C.char, cfct unsafe.Pointer) C.int {
+func SubmoduleVisitor(csub unsafe.Pointer, name *C.char, handle unsafe.Pointer) C.int {
 	sub := &Submodule{(*C.git_submodule)(csub)}
-	fct := *(*SubmoduleCbk)(cfct)
-	return (C.int)(fct(sub, C.GoString(name)))
+
+	if callback, ok := pointerHandles.Get(handle).(SubmoduleCbk); ok {
+		return (C.int)(callback(sub, C.GoString(name)))
+	} else {
+		panic("invalid submodule visitor callback")
+	}
 }
 
 func (repo *Repository) ForeachSubmodule(cbk SubmoduleCbk) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C._go_git_visit_submodule(repo.ptr, unsafe.Pointer(&cbk))
+	handle := pointerHandles.Track(cbk)
+	defer pointerHandles.Untrack(handle)
+
+	ret := C._go_git_visit_submodule(repo.ptr, handle)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
