@@ -188,8 +188,7 @@ func checkFatal(t *testing.T, err error) {
 	// The failure happens at wherever we were called, not here
 	_, file, line, ok := runtime.Caller(1)
 	if !ok {
-		t.Fatal()
+		t.Fatalf("Unable to get caller")
 	}
-
 	t.Fatalf("Fail at %v:%v; %v", file, line, err)
 }
