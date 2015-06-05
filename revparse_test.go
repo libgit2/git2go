@@ -1,13 +1,12 @@
 package git
 
 import (
-	"os"
 	"testing"
 )
 
 func TestRevparse(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	commitId, _ := seedTestRepo(t, repo)
 
@@ -19,7 +18,7 @@ func TestRevparse(t *testing.T) {
 
 func TestRevparseSingle(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	commitId, _ := seedTestRepo(t, repo)
 
@@ -31,7 +30,7 @@ func TestRevparseSingle(t *testing.T) {
 
 func TestRevparseExt(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	_, treeId := seedTestRepo(t, repo)
 

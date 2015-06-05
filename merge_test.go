@@ -1,13 +1,13 @@
 package git
 
 import (
-	"os"
 	"testing"
 )
 
 func TestMergeWithSelf(t *testing.T) {
-
 	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
 	seedTestRepo(t, repo)
 
 	master, err := repo.LookupReference("refs/heads/master")
@@ -23,8 +23,9 @@ func TestMergeWithSelf(t *testing.T) {
 }
 
 func TestMergeAnalysisWithSelf(t *testing.T) {
-
 	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
 	seedTestRepo(t, repo)
 
 	master, err := repo.LookupReference("refs/heads/master")
@@ -44,7 +45,6 @@ func TestMergeAnalysisWithSelf(t *testing.T) {
 }
 
 func TestMergeSameFile(t *testing.T) {
-
 	file := MergeFileInput{
 		Path:     "test",
 		Mode:     33188,
@@ -68,8 +68,7 @@ func TestMergeSameFile(t *testing.T) {
 }
 func TestMergeTreesWithoutAncestor(t *testing.T) {
 	repo := createTestRepo(t)
-	defer repo.Free()
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	_, originalTreeId := seedTestRepo(t, repo)
 	originalTree, err := repo.LookupTree(originalTreeId)

@@ -1,13 +1,12 @@
 package git
 
 import (
-	"os"
 	"testing"
 )
 
 func TestCreateBlobFromBuffer(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	id, err := repo.CreateBlobFromBuffer(make([]byte, 0))
 	checkFatal(t, err)

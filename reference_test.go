@@ -1,7 +1,6 @@
 package git
 
 import (
-	"os"
 	"runtime"
 	"sort"
 	"testing"
@@ -10,7 +9,7 @@ import (
 
 func TestRefModification(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	commitId, treeId := seedTestRepo(t, repo)
 
@@ -55,7 +54,7 @@ func TestRefModification(t *testing.T) {
 
 func TestReferenceIterator(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	loc, err := time.LoadLocation("Europe/Berlin")
 	checkFatal(t, err)
@@ -133,7 +132,8 @@ func TestReferenceIterator(t *testing.T) {
 
 func TestReferenceOwner(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
+
 	commitId, _ := seedTestRepo(t, repo)
 
 	ref, err := repo.CreateReference("refs/heads/foo", commitId, true, "")
@@ -151,7 +151,7 @@ func TestReferenceOwner(t *testing.T) {
 
 func TestUtil(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	commitId, _ := seedTestRepo(t, repo)
 
@@ -192,8 +192,7 @@ func checkRefType(t *testing.T, ref *Reference, kind ReferenceType) {
 	// The failure happens at wherever we were called, not here
 	_, file, line, ok := runtime.Caller(1)
 	if !ok {
-		t.Fatal()
+		t.Fatalf("Unable to get caller")
 	}
-
 	t.Fatalf("Wrong ref type at %v:%v; have %v, expected %v", file, line, ref.Type(), kind)
 }

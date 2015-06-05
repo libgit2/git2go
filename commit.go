@@ -9,6 +9,7 @@ import "C"
 
 import (
 	"runtime"
+	"unsafe"
 )
 
 // Commit
@@ -69,4 +70,41 @@ func (c *Commit) ParentId(n uint) *Oid {
 
 func (c *Commit) ParentCount() uint {
 	return uint(C.git_commit_parentcount(c.cast_ptr))
+}
+
+func (c *Commit) Amend(refname string, author, committer *Signature, message string, tree *Tree) (*Oid, error) {
+	var cref *C.char
+	if refname == "" {
+		cref = nil
+	} else {
+		cref = C.CString(refname)
+		defer C.free(unsafe.Pointer(cref))
+	}
+
+	cmsg := C.CString(message)
+	defer C.free(unsafe.Pointer(cmsg))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	authorSig, err := author.toC()
+	if err != nil {
+		return nil, err
+	}
+	defer C.git_signature_free(authorSig)
+
+	committerSig, err := committer.toC()
+	if err != nil {
+		return nil, err
+	}
+	defer C.git_signature_free(committerSig)
+
+	oid := new(Oid)
+
+	cerr := C.git_commit_amend(oid.toC(), c.cast_ptr, cref, authorSig, committerSig, nil, cmsg, tree.cast_ptr)
+	if cerr < 0 {
+		return nil, MakeGitError(cerr)
+	}
+
+	return oid, nil
 }

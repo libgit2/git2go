@@ -96,6 +96,30 @@ func NewIndex() (*Index, error) {
 	return &Index{ptr: ptr}, nil
 }
 
+// OpenIndex creates a new index at the given path. If the file does
+// not exist it will be created when Write() is called.
+func OpenIndex(path string) (*Index, error) {
+	var ptr *C.git_index
+
+	var cpath = C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if err := C.git_index_open(&ptr, cpath); err < 0 {
+		return nil, MakeGitError(err)
+	}
+
+	return &Index{ptr: ptr}, nil
+}
+
+// Path returns the index' path on disk or an empty string if it
+// exists only in memory.
+func (v *Index) Path() string {
+	return C.GoString(C.git_index_path(v.ptr))
+}
+
 // Add adds or replaces the given entry to the index, making a copy of
 // the data
 func (v *Index) Add(entry *IndexEntry) error {
@@ -138,16 +162,17 @@ func (v *Index) AddAll(pathspecs []string, flags IndexAddOpts, callback IndexMat
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	var cb *IndexMatchedPathCallback
+	var handle unsafe.Pointer
 	if callback != nil {
-		cb = &callback
+		handle = pointerHandles.Track(callback)
+		defer pointerHandles.Untrack(handle)
 	}
 
 	ret := C._go_git_index_add_all(
 		v.ptr,
 		&cpathspecs,
 		C.uint(flags),
-		unsafe.Pointer(cb),
+		handle,
 	)
 	if ret < 0 {
 		return MakeGitError(ret)
@@ -164,15 +189,16 @@ func (v *Index) UpdateAll(pathspecs []string, callback IndexMatchedPathCallback)
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	var cb *IndexMatchedPathCallback
+	var handle unsafe.Pointer
 	if callback != nil {
-		cb = &callback
+		handle = pointerHandles.Track(callback)
+		defer pointerHandles.Untrack(handle)
 	}
 
 	ret := C._go_git_index_update_all(
 		v.ptr,
 		&cpathspecs,
-		unsafe.Pointer(cb),
+		handle,
 	)
 	if ret < 0 {
 		return MakeGitError(ret)
@@ -189,15 +215,16 @@ func (v *Index) RemoveAll(pathspecs []string, callback IndexMatchedPathCallback)
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	var cb *IndexMatchedPathCallback
+	var handle unsafe.Pointer
 	if callback != nil {
-		cb = &callback
+		handle = pointerHandles.Track(callback)
+		defer pointerHandles.Untrack(handle)
 	}
 
 	ret := C._go_git_index_remove_all(
 		v.ptr,
 		&cpathspecs,
-		unsafe.Pointer(cb),
+		handle,
 	)
 	if ret < 0 {
 		return MakeGitError(ret)
@@ -207,8 +234,11 @@ func (v *Index) RemoveAll(pathspecs []string, callback IndexMatchedPathCallback)
 
 //export indexMatchedPathCallback
 func indexMatchedPathCallback(cPath, cMatchedPathspec *C.char, payload unsafe.Pointer) int {
-	callback := (*IndexMatchedPathCallback)(payload)
-	return (*callback)(C.GoString(cPath), C.GoString(cMatchedPathspec))
+	if callback, ok := pointerHandles.Get(payload).(IndexMatchedPathCallback); ok {
+		return callback(C.GoString(cPath), C.GoString(cMatchedPathspec))
+	} else {
+		panic("invalid matched path callback")
+	}
 }
 
 func (v *Index) RemoveByPath(path string) error {
@@ -238,6 +268,20 @@ func (v *Index) WriteTreeTo(repo *Repository) (*Oid, error) {
 	}
 
 	return oid, nil
+}
+
+// ReadTree replaces the contents of the index with those of the given
+// tree
+func (v *Index) ReadTree(tree *Tree) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_index_read_tree(v.ptr, tree.cast_ptr);
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+
+	return nil
 }
 
 func (v *Index) WriteTree() (*Oid, error) {
@@ -287,6 +331,7 @@ func (v *Index) HasConflicts() bool {
 	return C.git_index_has_conflicts(v.ptr) != 0
 }
 
+// FIXME: this might return an error
 func (v *Index) CleanupConflicts() {
 	C.git_index_conflict_cleanup(v.ptr)
 }

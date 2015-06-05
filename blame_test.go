@@ -1,15 +1,13 @@
 package git
 
 import (
-	"os"
 	"reflect"
 	"testing"
 )
 
 func TestBlame(t *testing.T) {
 	repo := createTestRepo(t)
-	defer repo.Free()
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	commitId1, _ := seedTestRepo(t, repo)
 	commitId2, _ := updateReadme(t, repo, "foo\nbar\nbaz\n")

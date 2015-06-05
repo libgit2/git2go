@@ -98,8 +98,12 @@ type foreachData struct {
 }
 
 //export odbForEachCb
-func odbForEachCb(id *C.git_oid, payload unsafe.Pointer) int {
-	data := (*foreachData)(payload)
+func odbForEachCb(id *C.git_oid, handle unsafe.Pointer) int {
+	data, ok := pointerHandles.Get(handle).(*foreachData)
+
+	if !ok {
+		panic("could not retrieve handle")
+	}
 
 	err := data.callback(newOidFromC(id))
 	if err != nil {
@@ -119,7 +123,10 @@ func (v *Odb) ForEach(callback OdbForEachCallback) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C._go_git_odb_foreach(v.ptr, unsafe.Pointer(&data))
+	handle := pointerHandles.Track(&data)
+	defer pointerHandles.Untrack(handle)
+
+	ret := C._go_git_odb_foreach(v.ptr, handle)
 	if ret == C.GIT_EUSER {
 		return data.err
 	} else if ret < 0 {

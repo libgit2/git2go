@@ -6,6 +6,8 @@ import (
 
 func TestSubmoduleForeach(t *testing.T) {
 	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
 	seedTestRepo(t, repo)
 
 	_, err := repo.AddSubmodule("http://example.org/submodule", "submodule", true)
@@ -19,6 +21,6 @@ func TestSubmoduleForeach(t *testing.T) {
 	checkFatal(t, err)
 
 	if i != 1 {
-		t.Fatalf("expected one submodule found but got %i", i)
+		t.Fatalf("expected one submodule found but got %d", i)
 	}
 }

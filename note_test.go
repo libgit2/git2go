@@ -2,7 +2,6 @@ package git
 
 import (
 	"fmt"
-	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -10,7 +9,7 @@ import (
 
 func TestCreateNote(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	commitId, _ := seedTestRepo(t, repo)
 
@@ -29,7 +28,8 @@ func TestCreateNote(t *testing.T) {
 
 func TestNoteIterator(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
+
 	seedTestRepo(t, repo)
 
 	notes := make([]*Note, 5)
@@ -64,7 +64,7 @@ func TestNoteIterator(t *testing.T) {
 
 func TestRemoveNote(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	commitId, _ := seedTestRepo(t, repo)
 
@@ -87,7 +87,7 @@ func TestRemoveNote(t *testing.T) {
 
 func TestDefaultNoteRef(t *testing.T) {
 	repo := createTestRepo(t)
-	defer os.RemoveAll(repo.Workdir())
+	defer cleanupTestRepo(t, repo)
 
 	ref, err := repo.DefaultNoteRef()
 	checkFatal(t, err)
