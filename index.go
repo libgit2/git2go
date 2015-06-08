@@ -12,7 +12,6 @@ import "C"
 import (
 	"fmt"
 	"runtime"
-	"time"
 	"unsafe"
 )
 
@@ -31,13 +30,18 @@ type Index struct {
 	ptr *C.git_index
 }
 
+type IndexTime struct {
+	seconds     int32
+	nanoseconds uint32
+}
+
 type IndexEntry struct {
-	Ctime time.Time
-	Mtime time.Time
+	Ctime IndexTime
+	Mtime IndexTime
 	Mode  Filemode
-	Uid   uint
-	Gid   uint
-	Size  uint
+	Uid   uint32
+	Gid   uint32
+	Size  uint32
 	Id    *Oid
 	Path  string
 }
@@ -47,26 +51,26 @@ func newIndexEntryFromC(entry *C.git_index_entry) *IndexEntry {
 		return nil
 	}
 	return &IndexEntry{
-		time.Unix(int64(entry.ctime.seconds), int64(entry.ctime.nanoseconds)),
-		time.Unix(int64(entry.mtime.seconds), int64(entry.mtime.nanoseconds)),
+		IndexTime { int32(entry.ctime.seconds), uint32(entry.ctime.nanoseconds) },
+		IndexTime { int32(entry.mtime.seconds), uint32(entry.mtime.nanoseconds) },
 		Filemode(entry.mode),
-		uint(entry.uid),
-		uint(entry.gid),
-		uint(entry.file_size),
+		uint32(entry.uid),
+		uint32(entry.gid),
+		uint32(entry.file_size),
 		newOidFromC(&entry.id),
 		C.GoString(entry.path),
 	}
 }
 
 func populateCIndexEntry(source *IndexEntry, dest *C.git_index_entry) {
-	dest.ctime.seconds = C.git_time_t(source.Ctime.Unix())
-	dest.ctime.nanoseconds = C.uint(source.Ctime.UnixNano())
-	dest.mtime.seconds = C.git_time_t(source.Mtime.Unix())
-	dest.mtime.nanoseconds = C.uint(source.Mtime.UnixNano())
-	dest.mode = C.uint(source.Mode)
-	dest.uid = C.uint(source.Uid)
-	dest.gid = C.uint(source.Gid)
-	dest.file_size = C.git_off_t(source.Size)
+	dest.ctime.seconds = C.int32_t(source.Ctime.seconds)
+	dest.ctime.nanoseconds = C.uint32_t(source.Ctime.nanoseconds)
+	dest.mtime.seconds = C.int32_t(source.Mtime.seconds)
+	dest.mtime.nanoseconds = C.uint32_t(source.Mtime.nanoseconds)
+	dest.mode = C.uint32_t(source.Mode)
+	dest.uid = C.uint32_t(source.Uid)
+	dest.gid = C.uint32_t(source.Gid)
+	dest.file_size = C.uint32_t(source.Size)
 	dest.id = *source.Id.toC()
 	dest.path = C.CString(source.Path)
 }

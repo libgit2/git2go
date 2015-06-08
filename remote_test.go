@@ -5,27 +5,6 @@ import (
 	"testing"
 )
 
-func TestRefspecs(t *testing.T) {
-	repo := createTestRepo(t)
-	defer cleanupTestRepo(t, repo)
-
-	remote, err := repo.CreateAnonymousRemote("git://foo/bar", "refs/heads/*:refs/heads/*")
-	checkFatal(t, err)
-
-	expected := []string{
-		"refs/heads/*:refs/remotes/origin/*",
-		"refs/pull/*/head:refs/remotes/origin/*",
-	}
-
-	err = remote.SetFetchRefspecs(expected)
-	checkFatal(t, err)
-
-	actual, err := remote.FetchRefspecs()
-	checkFatal(t, err)
-
-	compareStringList(t, expected, actual)
-}
-
 func TestListRemotes(t *testing.T) {
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
@@ -60,15 +39,15 @@ func TestCertificateCheck(t *testing.T) {
 	remote, err := repo.CreateRemote("origin", "https://github.com/libgit2/TestGitRepository")
 	checkFatal(t, err)
 
-	callbacks := RemoteCallbacks{
-		CertificateCheckCallback: func(cert *Certificate, valid bool, hostname string) ErrorCode {
-			return assertHostname(cert, valid, hostname, t)
+	options := FetchOptions {
+		RemoteCallbacks: RemoteCallbacks{
+			CertificateCheckCallback: func(cert *Certificate, valid bool, hostname string) ErrorCode {
+				return assertHostname(cert, valid, hostname, t)
+			},
 		},
 	}
 
-	err = remote.SetCallbacks(&callbacks)
-	checkFatal(t, err)
-	err = remote.Fetch([]string{}, "")
+	err = remote.Fetch([]string{}, &options, "")
 	checkFatal(t, err)
 }
 
@@ -79,7 +58,7 @@ func TestRemoteConnect(t *testing.T) {
 	remote, err := repo.CreateRemote("origin", "https://github.com/libgit2/TestGitRepository")
 	checkFatal(t, err)
 
-	err = remote.ConnectFetch()
+	err = remote.ConnectFetch(nil)
 	checkFatal(t, err)
 }
 
@@ -90,7 +69,7 @@ func TestRemoteLs(t *testing.T) {
 	remote, err := repo.CreateRemote("origin", "https://github.com/libgit2/TestGitRepository")
 	checkFatal(t, err)
 
-	err = remote.ConnectFetch()
+	err = remote.ConnectFetch(nil)
 	checkFatal(t, err)
 
 	heads, err := remote.Ls()
@@ -108,7 +87,7 @@ func TestRemoteLsFiltering(t *testing.T) {
 	remote, err := repo.CreateRemote("origin", "https://github.com/libgit2/TestGitRepository")
 	checkFatal(t, err)
 
-	err = remote.ConnectFetch()
+	err = remote.ConnectFetch(nil)
 	checkFatal(t, err)
 
 	heads, err := remote.Ls("master")
@@ -172,7 +151,7 @@ func TestRemotePrune(t *testing.T) {
 	remote, err := repo.CreateRemote("origin", remoteUrl)
 	checkFatal(t, err)
 
-	err = remote.Fetch([]string{"test-prune"}, "")
+	err = remote.Fetch([]string{"test-prune"}, nil, "")
 	checkFatal(t, err)
 
 	_, err = repo.CreateReference("refs/remotes/origin/test-prune", head, true, "remote reference")
@@ -187,10 +166,10 @@ func TestRemotePrune(t *testing.T) {
 	rr, err := repo.LookupRemote("origin")
 	checkFatal(t, err)
 
-	err = rr.ConnectFetch()
+	err = rr.ConnectFetch(nil)
 	checkFatal(t, err)
 
-	err = rr.Prune()
+	err = rr.Prune(nil)
 	checkFatal(t, err)
 
 	_, err = repo.LookupReference("refs/remotes/origin/test-prune")
