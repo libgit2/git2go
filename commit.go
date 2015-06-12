@@ -40,7 +40,7 @@ func (c Commit) Tree() (*Tree, error) {
 	return allocObject((*C.git_object)(ptr), c.repo).(*Tree), nil
 }
 
-func (c Commit) TreeId() *Oid {
+func (c Commit) TreeID() *Oid {
 	return newOidFromC(C.git_commit_tree_id(c.cast_ptr))
 }
 

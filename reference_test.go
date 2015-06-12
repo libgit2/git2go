@@ -11,7 +11,7 @@ func TestRefModification(t *testing.T) {
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
-	commitId, treeId := seedTestRepo(t, repo)
+	commitID, treeID := seedTestRepo(t, repo)
 
 	loc, err := time.LoadLocation("Europe/Berlin")
 	checkFatal(t, err)
@@ -20,7 +20,7 @@ func TestRefModification(t *testing.T) {
 		Email: "random@hacker.com",
 		When:  time.Date(2013, 03, 06, 14, 30, 0, 0, loc),
 	}
-	_, err = repo.CreateReference("refs/tags/tree", treeId, true, sig, "testTreeTag")
+	_, err = repo.CreateReference("refs/tags/tree", treeID, true, sig, "testTreeTag")
 	checkFatal(t, err)
 
 	tag, err := repo.LookupReference("refs/tags/tree")
@@ -47,7 +47,7 @@ func TestRefModification(t *testing.T) {
 		t.Fatalf("Expected empty string, got %v", target)
 	}
 
-	if commitId.String() != ref.Target().String() {
+	if commitID.String() != ref.Target().String() {
 		t.Fatalf("Wrong ref target")
 	}
 
@@ -75,22 +75,22 @@ func TestReferenceIterator(t *testing.T) {
 	checkFatal(t, err)
 	err = idx.AddByPath("README")
 	checkFatal(t, err)
-	treeId, err := idx.WriteTree()
+	treeID, err := idx.WriteTree()
 	checkFatal(t, err)
 
 	message := "This is a commit\n"
-	tree, err := repo.LookupTree(treeId)
+	tree, err := repo.LookupTree(treeID)
 	checkFatal(t, err)
-	commitId, err := repo.CreateCommit("HEAD", sig, sig, message, tree)
-	checkFatal(t, err)
-
-	_, err = repo.CreateReference("refs/heads/one", commitId, true, sig, "headOne")
+	commitID, err := repo.CreateCommit("HEAD", sig, sig, message, tree)
 	checkFatal(t, err)
 
-	_, err = repo.CreateReference("refs/heads/two", commitId, true, sig, "headTwo")
+	_, err = repo.CreateReference("refs/heads/one", commitID, true, sig, "headOne")
 	checkFatal(t, err)
 
-	_, err = repo.CreateReference("refs/heads/three", commitId, true, sig, "headThree")
+	_, err = repo.CreateReference("refs/heads/two", commitID, true, sig, "headTwo")
+	checkFatal(t, err)
+
+	_, err = repo.CreateReference("refs/heads/three", commitID, true, sig, "headThree")
 	checkFatal(t, err)
 
 	iter, err := repo.NewReferenceIterator()
@@ -141,9 +141,9 @@ func TestReferenceOwner(t *testing.T) {
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
-	commitId, _ := seedTestRepo(t, repo)
+	commitID, _ := seedTestRepo(t, repo)
 
-	ref, err := repo.CreateReference("refs/heads/foo", commitId, true, nil, "")
+	ref, err := repo.CreateReference("refs/heads/foo", commitID, true, nil, "")
 	checkFatal(t, err)
 
 	owner := ref.Owner()
@@ -160,9 +160,9 @@ func TestUtil(t *testing.T) {
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
-	commitId, _ := seedTestRepo(t, repo)
+	commitID, _ := seedTestRepo(t, repo)
 
-	ref, err := repo.CreateReference("refs/heads/foo", commitId, true, nil, "")
+	ref, err := repo.CreateReference("refs/heads/foo", commitID, true, nil, "")
 	checkFatal(t, err)
 
 	ref2, err := repo.DwimReference("foo")

@@ -87,10 +87,10 @@ func TestDiffTreeToTree(t *testing.T) {
 		t.Fatal("no diff returned")
 	}
 
-	files := make([]string, 0)
-	hunks := make([]DiffHunk, 0)
-	lines := make([]DiffLine, 0)
-	patches := make([]string, 0)
+	var files []string
+	var hunks []DiffHunk
+	var lines []DiffLine
+	var patches []string
 	err = diff.ForEach(func(file DiffDelta, progress float64) (DiffForEachHunkCallback, error) {
 		patch, err := diff.Patch(len(patches))
 		if err != nil {
@@ -175,14 +175,14 @@ func TestDiffTreeToTree(t *testing.T) {
 
 func createTestTrees(t *testing.T, repo *Repository) (originalTree *Tree, newTree *Tree) {
 	var err error
-	_, originalTreeId := seedTestRepo(t, repo)
-	originalTree, err = repo.LookupTree(originalTreeId)
+	_, originalTreeID := seedTestRepo(t, repo)
+	originalTree, err = repo.LookupTree(originalTreeID)
 
 	checkFatal(t, err)
 
-	_, newTreeId := updateReadme(t, repo, "file changed\n")
+	_, newTreeID := updateReadme(t, repo, "file changed\n")
 
-	newTree, err = repo.LookupTree(newTreeId)
+	newTree, err = repo.LookupTree(newTreeID)
 	checkFatal(t, err)
 
 	return originalTree, newTree

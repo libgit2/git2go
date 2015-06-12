@@ -9,11 +9,11 @@ func TestBlame(t *testing.T) {
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
-	commitId1, _ := seedTestRepo(t, repo)
-	commitId2, _ := updateReadme(t, repo, "foo\nbar\nbaz\n")
+	commitID1, _ := seedTestRepo(t, repo)
+	commitID2, _ := updateReadme(t, repo, "foo\nbar\nbaz\n")
 
 	opts := BlameOptions{
-		NewestCommit: commitId2,
+		NewestCommit: commitID2,
 		OldestCommit: nil,
 		MinLine:      1,
 		MaxLine:      3,
@@ -27,18 +27,18 @@ func TestBlame(t *testing.T) {
 
 	wantHunk1 := BlameHunk{
 		LinesInHunk:          1,
-		FinalCommitId:        commitId1,
+		FinalCommitId:        commitID1,
 		FinalStartLineNumber: 1,
-		OrigCommitId:         commitId1,
+		OrigCommitId:         commitID1,
 		OrigPath:             "README",
 		OrigStartLineNumber:  1,
 		Boundary:             true,
 	}
 	wantHunk2 := BlameHunk{
 		LinesInHunk:          2,
-		FinalCommitId:        commitId2,
+		FinalCommitId:        commitID2,
 		FinalStartLineNumber: 2,
-		OrigCommitId:         commitId2,
+		OrigCommitId:         commitID2,
 		OrigPath:             "README",
 		OrigStartLineNumber:  2,
 		Boundary:             false,

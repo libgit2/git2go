@@ -9,19 +9,19 @@ func TestCreateTag(t *testing.T) {
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
-	commitId, _ := seedTestRepo(t, repo)
+	commitID, _ := seedTestRepo(t, repo)
 
-	commit, err := repo.LookupCommit(commitId)
+	commit, err := repo.LookupCommit(commitID)
 	checkFatal(t, err)
 
-	tagId := createTestTag(t, repo, commit)
+	tagID := createTestTag(t, repo, commit)
 
-	tag, err := repo.LookupTag(tagId)
+	tag, err := repo.LookupTag(tagID)
 	checkFatal(t, err)
 
 	compareStrings(t, "v0.0.0", tag.Name())
 	compareStrings(t, "This is a tag", tag.Message())
-	compareStrings(t, commitId.String(), tag.TargetId().String())
+	compareStrings(t, commitID.String(), tag.TargetId().String())
 }
 
 func compareStrings(t *testing.T, expected, value string) {
@@ -39,7 +39,7 @@ func createTestTag(t *testing.T, repo *Repository, commit *Commit) *Oid {
 		When:  time.Date(2013, 03, 06, 14, 30, 0, 0, loc),
 	}
 
-	tagId, err := repo.CreateTag("v0.0.0", commit, sig, "This is a tag")
+	tagID, err := repo.CreateTag("v0.0.0", commit, sig, "This is a tag")
 	checkFatal(t, err)
-	return tagId
+	return tagID
 }

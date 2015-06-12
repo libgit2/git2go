@@ -15,11 +15,11 @@ func TestCreateRepoAndStage(t *testing.T) {
 	checkFatal(t, err)
 	err = idx.AddByPath("README")
 	checkFatal(t, err)
-	treeId, err := idx.WriteTree()
+	treeID, err := idx.WriteTree()
 	checkFatal(t, err)
 
-	if treeId.String() != "b7119b11e8ef7a1a5a34d3ac87f5b075228ac81e" {
-		t.Fatalf("%v", treeId.String())
+	if treeID.String() != "b7119b11e8ef7a1a5a34d3ac87f5b075228ac81e" {
+		t.Fatalf("%v", treeID.String())
 	}
 }
 
@@ -62,11 +62,11 @@ func TestIndexWriteTreeTo(t *testing.T) {
 	checkFatal(t, err)
 	err = idx.AddByPath("README")
 	checkFatal(t, err)
-	treeId, err := idx.WriteTreeTo(repo2)
+	treeID, err := idx.WriteTreeTo(repo2)
 	checkFatal(t, err)
 
-	if treeId.String() != "b7119b11e8ef7a1a5a34d3ac87f5b075228ac81e" {
-		t.Fatalf("%v", treeId.String())
+	if treeID.String() != "b7119b11e8ef7a1a5a34d3ac87f5b075228ac81e" {
+		t.Fatalf("%v", treeID.String())
 	}
 }
 
@@ -96,11 +96,11 @@ func TestIndexAddAndWriteTreeTo(t *testing.T) {
 	err = idx.Add(&entry)
 	checkFatal(t, err)
 
-	treeId, err := idx.WriteTreeTo(repo)
+	treeID, err := idx.WriteTreeTo(repo)
 	checkFatal(t, err)
 
-	if treeId.String() != "b7119b11e8ef7a1a5a34d3ac87f5b075228ac81e" {
-		t.Fatalf("%v", treeId.String())
+	if treeID.String() != "b7119b11e8ef7a1a5a34d3ac87f5b075228ac81e" {
+		t.Fatalf("%v", treeID.String())
 	}
 }
 
@@ -117,11 +117,11 @@ func TestIndexAddAllNoCallback(t *testing.T) {
 	err = idx.AddAll([]string{}, IndexAddDefault, nil)
 	checkFatal(t, err)
 
-	treeId, err := idx.WriteTreeTo(repo)
+	treeID, err := idx.WriteTreeTo(repo)
 	checkFatal(t, err)
 
-	if treeId.String() != "b7119b11e8ef7a1a5a34d3ac87f5b075228ac81e" {
-		t.Fatalf("%v", treeId.String())
+	if treeID.String() != "b7119b11e8ef7a1a5a34d3ac87f5b075228ac81e" {
+		t.Fatalf("%v", treeID.String())
 	}
 }
 
@@ -145,11 +145,11 @@ func TestIndexAddAllCallback(t *testing.T) {
 		t.Fatalf("%v", cbPath)
 	}
 
-	treeId, err := idx.WriteTreeTo(repo)
+	treeID, err := idx.WriteTreeTo(repo)
 	checkFatal(t, err)
 
-	if treeId.String() != "b7119b11e8ef7a1a5a34d3ac87f5b075228ac81e" {
-		t.Fatalf("%v", treeId.String())
+	if treeID.String() != "b7119b11e8ef7a1a5a34d3ac87f5b075228ac81e" {
+		t.Fatalf("%v", treeID.String())
 	}
 }
 
