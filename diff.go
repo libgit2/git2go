@@ -94,7 +94,7 @@ type DiffHunk struct {
 	Header   string
 }
 
-func diffHunkFromC(delta *C.git_diff_delta, hunk *C.git_diff_hunk) DiffHunk {
+func diffHunkFromC(hunk *C.git_diff_hunk) DiffHunk {
 	return DiffHunk{
 		OldStart: int(hunk.old_start),
 		OldLines: int(hunk.old_lines),
@@ -112,7 +112,7 @@ type DiffLine struct {
 	Content   string
 }
 
-func diffLineFromC(delta *C.git_diff_delta, hunk *C.git_diff_hunk, line *C.git_diff_line) DiffLine {
+func diffLineFromC(line *C.git_diff_line) DiffLine {
 	return DiffLine{
 		Origin:    DiffLineType(line.origin),
 		OldLineno: int(line.old_lineno),
@@ -309,7 +309,7 @@ func diffForEachHunkCb(delta *C.git_diff_delta, hunk *C.git_diff_hunk, handle un
 
 	data.LineCallback = nil
 	if data.HunkCallback != nil {
-		cb, err := data.HunkCallback(diffHunkFromC(delta, hunk))
+		cb, err := data.HunkCallback(diffHunkFromC(hunk))
 		if err != nil {
 			data.Error = err
 			return -1
@@ -330,7 +330,7 @@ func diffForEachLineCb(delta *C.git_diff_delta, hunk *C.git_diff_hunk, line *C.g
 		panic("could not retrieve data for handle")
 	}
 
-	err := data.LineCallback(diffLineFromC(delta, hunk, line))
+	err := data.LineCallback(diffLineFromC(line))
 	if err != nil {
 		data.Error = err
 		return -1
