@@ -24,12 +24,16 @@ type Repository struct {
 	// References represents the collection of references and can
 	// be used to create, remove or update refernces for this repository.
 	References ReferenceCollection
+	// Notes represents the collection of notes and can be used to
+	// read, write and delete notes from this repository.
+	Notes      NoteCollection
 }
 
 func initRepositoryObject(repo *Repository) {
 	repo.Remotes.repo    = repo
 	repo.Submodules.repo = repo
 	repo.References.repo = repo
+	repo.Notes.repo      = repo
 	runtime.SetFinalizer(repo, (*Repository).Free)
 }
 
@@ -412,121 +416,6 @@ func (v *Repository) TreeBuilderFromTree(tree *Tree) (*TreeBuilder, error) {
 
 	bld.repo = v
 	return bld, nil
-}
-
-// CreateNote adds a note for an object
-func (v *Repository) CreateNote(
-	ref string, author, committer *Signature, id *Oid,
-	note string, force bool) (*Oid, error) {
-
-	oid := new(Oid)
-
-	var cref *C.char
-	if ref == "" {
-		cref = nil
-	} else {
-		cref = C.CString(ref)
-		defer C.free(unsafe.Pointer(cref))
-	}
-
-	authorSig, err := author.toC()
-	if err != nil {
-		return nil, err
-	}
-	defer C.git_signature_free(authorSig)
-
-	committerSig, err := committer.toC()
-	if err != nil {
-		return nil, err
-	}
-	defer C.git_signature_free(committerSig)
-
-	cnote := C.CString(note)
-	defer C.free(unsafe.Pointer(cnote))
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ret := C.git_note_create(
-		oid.toC(), v.ptr, cref, authorSig,
-		committerSig, id.toC(), cnote, cbool(force))
-
-	if ret < 0 {
-		return nil, MakeGitError(ret)
-	}
-	return oid, nil
-}
-
-// ReadNote reads the note for an object
-func (v *Repository) ReadNote(ref string, id *Oid) (*Note, error) {
-	var cref *C.char
-	if ref == "" {
-		cref = nil
-	} else {
-		cref = C.CString(ref)
-		defer C.free(unsafe.Pointer(cref))
-	}
-
-	note := new(Note)
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	if ret := C.git_note_read(&note.ptr, v.ptr, cref, id.toC()); ret < 0 {
-		return nil, MakeGitError(ret)
-	}
-
-	runtime.SetFinalizer(note, (*Note).Free)
-	return note, nil
-}
-
-// RemoveNote removes the note for an object
-func (v *Repository) RemoveNote(ref string, author, committer *Signature, id *Oid) error {
-	var cref *C.char
-	if ref == "" {
-		cref = nil
-	} else {
-		cref = C.CString(ref)
-		defer C.free(unsafe.Pointer(cref))
-	}
-
-	authorSig, err := author.toC()
-	if err != nil {
-		return err
-	}
-	defer C.git_signature_free(authorSig)
-
-	committerSig, err := committer.toC()
-	if err != nil {
-		return err
-	}
-	defer C.git_signature_free(committerSig)
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ret := C.git_note_remove(v.ptr, cref, authorSig, committerSig, id.toC())
-	if ret < 0 {
-		return MakeGitError(ret)
-	}
-	return nil
-}
-
-// DefaultNoteRef returns the default notes reference for a repository
-func (v *Repository) DefaultNoteRef() (string, error) {
-	buf := C.git_buf{}
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	if ret := C.git_note_default_ref(&buf, v.ptr); ret < 0 {
-		return "", MakeGitError(ret)
-	}
-
-	ret := C.GoString(buf.ptr)
-	C.git_buf_free(&buf)
-
-	return ret, nil
 }
 
 type RepositoryState int
