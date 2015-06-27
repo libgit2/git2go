@@ -11,7 +11,7 @@ func TestRemotePush(t *testing.T) {
 	localRepo := createTestRepo(t)
 	defer cleanupTestRepo(t, localRepo)
 
-	remote, err := localRepo.CreateRemote("test_push", repo.Path())
+	remote, err := localRepo.Remotes.Create("test_push", repo.Path())
 	checkFatal(t, err)
 
 	seedTestRepo(t, localRepo)

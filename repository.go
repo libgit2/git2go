@@ -12,7 +12,16 @@ import (
 
 // Repository
 type Repository struct {
-	ptr *C.git_repository
+	ptr     *C.git_repository
+	// Remotes represents the collection of remotes and can be
+	// used to add, remove and configure remotes for this
+	// repository.
+	Remotes  RemoteCollection
+}
+
+func initRepositoryObject(repo *Repository) {
+	repo.Remotes.repo = repo
+	runtime.SetFinalizer(repo, (*Repository).Free)
 }
 
 func OpenRepository(path string) (*Repository, error) {
@@ -29,7 +38,7 @@ func OpenRepository(path string) (*Repository, error) {
 		return nil, MakeGitError(ret)
 	}
 
-	runtime.SetFinalizer(repo, (*Repository).Free)
+	initRepositoryObject(repo)
 	return repo, nil
 }
 
@@ -47,7 +56,7 @@ func OpenRepositoryExtended(path string) (*Repository, error) {
 		return nil, MakeGitError(ret)
 	}
 
-	runtime.SetFinalizer(repo, (*Repository).Free)
+	initRepositoryObject(repo)
 	return repo, nil
 }
 
@@ -65,7 +74,7 @@ func InitRepository(path string, isbare bool) (*Repository, error) {
 		return nil, MakeGitError(ret)
 	}
 
-	runtime.SetFinalizer(repo, (*Repository).Free)
+	initRepositoryObject(repo)
 	return repo, nil
 }
 
@@ -80,7 +89,7 @@ func NewRepositoryWrapOdb(odb *Odb) (repo *Repository, err error) {
 		return nil, MakeGitError(ret)
 	}
 
-	runtime.SetFinalizer(repo, (*Repository).Free)
+	initRepositoryObject(repo)
 	return repo, nil
 }
 
