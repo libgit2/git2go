@@ -73,7 +73,7 @@ type FetchPrune uint
 
 const (
 	 // Use the setting from the configuration
-	FetchPruneFallback FetchPrune = C.GIT_FETCH_PRUNE_FALLBACK
+	FetchPruneUnspecified FetchPrune = C.GIT_FETCH_PRUNE_UNSPECIFIED
 	// Force pruning on
 	FetchPruneOn       FetchPrune = C.GIT_FETCH_PRUNE
 	// Force pruning off
@@ -85,7 +85,7 @@ type DownloadTags uint
 const (
 
 	// Use the setting from the configuration.
-	DownloadTagsFallback DownloadTags = C.GIT_REMOTE_DOWNLOAD_TAGS_FALLBACK
+	DownloadTagsUnspecified DownloadTags = C.GIT_REMOTE_DOWNLOAD_TAGS_UNSPECIFIED
 	// Ask the server for tags pointing to objects we're already
 	// downloading.
 	DownloadTagsAuto     DownloadTags = C.GIT_REMOTE_DOWNLOAD_TAGS_AUTO

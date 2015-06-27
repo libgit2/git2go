@@ -59,7 +59,7 @@ int _go_git_diff_foreach(git_diff *diff, int eachFile, int eachHunk, int eachLin
 		lcb = (git_diff_line_cb)&diffForEachLineCb;
 	}
 
-	return git_diff_foreach(diff, fcb, hcb, lcb, payload);
+	return git_diff_foreach(diff, fcb, NULL, hcb, lcb, payload);
 }
 
 void _go_git_setup_diff_notify_callbacks(git_diff_options *opts) {
