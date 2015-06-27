@@ -10,11 +10,11 @@ func TestSubmoduleForeach(t *testing.T) {
 
 	seedTestRepo(t, repo)
 
-	_, err := repo.AddSubmodule("http://example.org/submodule", "submodule", true)
+	_, err := repo.Submodules.Add("http://example.org/submodule", "submodule", true)
 	checkFatal(t, err)
 
 	i := 0
-	err = repo.ForeachSubmodule(func(sub *Submodule, name string) int {
+	err = repo.Submodules.Foreach(func(sub *Submodule, name string) int {
 		i++
 		return 0
 	})

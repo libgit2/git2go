@@ -17,10 +17,15 @@ type Repository struct {
 	// used to add, remove and configure remotes for this
 	// repository.
 	Remotes  RemoteCollection
+	// Submodules represents the collectin of submodules and can
+	// be used to add, remove and configure submodules in this
+	// repostiory.
+	Submodules SubmoduleCollection
 }
 
 func initRepositoryObject(repo *Repository) {
-	repo.Remotes.repo = repo
+	repo.Remotes.repo    = repo
+	repo.Submodules.repo = repo
 	runtime.SetFinalizer(repo, (*Repository).Free)
 }
 
