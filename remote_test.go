@@ -154,7 +154,7 @@ func TestRemotePrune(t *testing.T) {
 	err = remote.Fetch([]string{"test-prune"}, nil, "")
 	checkFatal(t, err)
 
-	_, err = repo.CreateReference("refs/remotes/origin/test-prune", head, true, "remote reference")
+	_, err = repo.References.Create("refs/remotes/origin/test-prune", head, true, "remote reference")
 	checkFatal(t, err)
 
 	err = remoteRef.Delete()
@@ -172,7 +172,7 @@ func TestRemotePrune(t *testing.T) {
 	err = rr.Prune(nil)
 	checkFatal(t, err)
 
-	_, err = repo.LookupReference("refs/remotes/origin/test-prune")
+	_, err = repo.References.Lookup("refs/remotes/origin/test-prune")
 	if err == nil {
 		t.Fatal("Expected error getting a pruned reference")
 	}

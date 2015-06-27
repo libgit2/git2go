@@ -13,14 +13,14 @@ func TestRefModification(t *testing.T) {
 
 	commitId, treeId := seedTestRepo(t, repo)
 
-	_, err := repo.CreateReference("refs/tags/tree", treeId, true, "testTreeTag")
+	_, err := repo.References.Create("refs/tags/tree", treeId, true, "testTreeTag")
 	checkFatal(t, err)
 
-	tag, err := repo.LookupReference("refs/tags/tree")
+	tag, err := repo.References.Lookup("refs/tags/tree")
 	checkFatal(t, err)
 	checkRefType(t, tag, ReferenceOid)
 
-	ref, err := repo.LookupReference("HEAD")
+	ref, err := repo.References.Lookup("HEAD")
 	checkFatal(t, err)
 	checkRefType(t, ref, ReferenceSymbolic)
 
@@ -46,7 +46,7 @@ func TestRefModification(t *testing.T) {
 
 	_, err = tag.Rename("refs/tags/renamed", false, "")
 	checkFatal(t, err)
-	tag, err = repo.LookupReference("refs/tags/renamed")
+	tag, err = repo.References.Lookup("refs/tags/renamed")
 	checkFatal(t, err)
 	checkRefType(t, ref, ReferenceOid)
 
@@ -77,13 +77,13 @@ func TestReferenceIterator(t *testing.T) {
 	commitId, err := repo.CreateCommit("HEAD", sig, sig, message, tree)
 	checkFatal(t, err)
 
-	_, err = repo.CreateReference("refs/heads/one", commitId, true, "headOne")
+	_, err = repo.References.Create("refs/heads/one", commitId, true, "headOne")
 	checkFatal(t, err)
 
-	_, err = repo.CreateReference("refs/heads/two", commitId, true, "headTwo")
+	_, err = repo.References.Create("refs/heads/two", commitId, true, "headTwo")
 	checkFatal(t, err)
 
-	_, err = repo.CreateReference("refs/heads/three", commitId, true, "headThree")
+	_, err = repo.References.Create("refs/heads/three", commitId, true, "headThree")
 	checkFatal(t, err)
 
 	iter, err := repo.NewReferenceIterator()
@@ -136,7 +136,7 @@ func TestReferenceOwner(t *testing.T) {
 
 	commitId, _ := seedTestRepo(t, repo)
 
-	ref, err := repo.CreateReference("refs/heads/foo", commitId, true, "")
+	ref, err := repo.References.Create("refs/heads/foo", commitId, true, "")
 	checkFatal(t, err)
 
 	owner := ref.Owner()
@@ -155,10 +155,10 @@ func TestUtil(t *testing.T) {
 
 	commitId, _ := seedTestRepo(t, repo)
 
-	ref, err := repo.CreateReference("refs/heads/foo", commitId, true, "")
+	ref, err := repo.References.Create("refs/heads/foo", commitId, true, "")
 	checkFatal(t, err)
 
-	ref2, err := repo.DwimReference("foo")
+	ref2, err := repo.References.Dwim("foo")
 	checkFatal(t, err)
 
 	if ref.Cmp(ref2) != 0 {
@@ -169,7 +169,7 @@ func TestUtil(t *testing.T) {
 		t.Fatalf("refs/heads/foo has no foo shorthand")
 	}
 
-	hasLog, err := repo.HasLog("refs/heads/foo")
+	hasLog, err := repo.References.HasLog("refs/heads/foo")
 	checkFatal(t, err)
 	if !hasLog {
 		t.Fatalf("branches have logs by default")

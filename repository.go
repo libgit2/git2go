@@ -17,15 +17,19 @@ type Repository struct {
 	// used to add, remove and configure remotes for this
 	// repository.
 	Remotes  RemoteCollection
-	// Submodules represents the collectin of submodules and can
+	// Submodules represents the collection of submodules and can
 	// be used to add, remove and configure submodules in this
 	// repostiory.
 	Submodules SubmoduleCollection
+	// References represents the collection of references and can
+	// be used to create, remove or update refernces for this repository.
+	References ReferenceCollection
 }
 
 func initRepositoryObject(repo *Repository) {
 	repo.Remotes.repo    = repo
 	repo.Submodules.repo = repo
+	repo.References.repo = repo
 	runtime.SetFinalizer(repo, (*Repository).Free)
 }
 
@@ -190,22 +194,6 @@ func (v *Repository) LookupTag(id *Oid) (*Tag, error) {
 	return obj.(*Tag), nil
 }
 
-func (v *Repository) LookupReference(name string) (*Reference, error) {
-	cname := C.CString(name)
-	defer C.free(unsafe.Pointer(cname))
-	var ptr *C.git_reference
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ecode := C.git_reference_lookup(&ptr, v.ptr, cname)
-	if ecode < 0 {
-		return nil, MakeGitError(ecode)
-	}
-
-	return newReferenceFromC(ptr, v), nil
-}
-
 func (v *Repository) Head() (*Reference, error) {
 	var ptr *C.git_reference
 
@@ -243,59 +231,6 @@ func (v *Repository) SetHeadDetached(id *Oid) error {
 		return MakeGitError(ecode)
 	}
 	return nil
-}
-
-func (v *Repository) CreateReference(name string, id *Oid, force bool, msg string) (*Reference, error) {
-	cname := C.CString(name)
-	defer C.free(unsafe.Pointer(cname))
-
-	var cmsg *C.char
-	if msg == "" {
-		cmsg = nil
-	} else {
-		cmsg = C.CString(msg)
-		defer C.free(unsafe.Pointer(cmsg))
-	}
-
-	var ptr *C.git_reference
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ecode := C.git_reference_create(&ptr, v.ptr, cname, id.toC(), cbool(force), cmsg)
-	if ecode < 0 {
-		return nil, MakeGitError(ecode)
-	}
-
-	return newReferenceFromC(ptr, v), nil
-}
-
-func (v *Repository) CreateSymbolicReference(name, target string, force bool, msg string) (*Reference, error) {
-	cname := C.CString(name)
-	defer C.free(unsafe.Pointer(cname))
-
-	ctarget := C.CString(target)
-	defer C.free(unsafe.Pointer(ctarget))
-
-	var cmsg *C.char
-	if msg == "" {
-		cmsg = nil
-	} else {
-		cmsg = C.CString(msg)
-		defer C.free(unsafe.Pointer(cmsg))
-	}
-
-	var ptr *C.git_reference
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ecode := C.git_reference_symbolic_create(&ptr, v.ptr, cname, ctarget, cbool(force), cmsg)
-	if ecode < 0 {
-		return nil, MakeGitError(ecode)
-	}
-
-	return newReferenceFromC(ptr, v), nil
 }
 
 func (v *Repository) Walk() (*RevWalk, error) {
@@ -477,57 +412,6 @@ func (v *Repository) TreeBuilderFromTree(tree *Tree) (*TreeBuilder, error) {
 
 	bld.repo = v
 	return bld, nil
-}
-
-// EnsureLog ensures that there is a reflog for the given reference
-// name and creates an empty one if necessary.
-func (v *Repository) EnsureLog(name string) error {
-	cname := C.CString(name)
-	defer C.free(unsafe.Pointer(cname))
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ret := C.git_reference_ensure_log(v.ptr, cname)
-	if ret < 0 {
-		return MakeGitError(ret)
-	}
-
-	return nil
-}
-
-// HasLog returns whether there is a reflog for the given reference
-// name
-func (v *Repository) HasLog(name string) (bool, error) {
-	cname := C.CString(name)
-	defer C.free(unsafe.Pointer(cname))
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ret := C.git_reference_has_log(v.ptr, cname)
-	if ret < 0 {
-		return false, MakeGitError(ret)
-	}
-
-	return ret == 1, nil
-}
-
-// DwimReference looks up a reference by DWIMing its short name
-func (v *Repository) DwimReference(name string) (*Reference, error) {
-	cname := C.CString(name)
-	defer C.free(unsafe.Pointer(cname))
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	var ptr *C.git_reference
-	ret := C.git_reference_dwim(&ptr, v.ptr, cname)
-	if ret < 0 {
-		return nil, MakeGitError(ret)
-	}
-
-	return newReferenceFromC(ptr, v), nil
 }
 
 // CreateNote adds a note for an object
