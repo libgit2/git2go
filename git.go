@@ -86,6 +86,8 @@ const (
 	ErrPassthrough ErrorCode = C.GIT_PASSTHROUGH
 	// Signals end of iteration with iterator
 	ErrIterOver ErrorCode = C.GIT_ITEROVER
+	// Authentication failed
+	ErrAuth ErrorCode = C.GIT_EAUTH
 )
 
 var (

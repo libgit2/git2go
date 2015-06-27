@@ -92,18 +92,18 @@ func (repo *Repository) NewBranchIterator(flags BranchType) (*BranchIterator, er
 
 func (repo *Repository) CreateBranch(branchName string, target *Commit, force bool) (*Branch, error) {
 
-	ref := new(Reference)
+	var ptr *C.git_reference
 	cBranchName := C.CString(branchName)
 	cForce := cbool(force)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_branch_create(&ref.ptr, repo.ptr, cBranchName, target.cast_ptr, cForce)
+	ret := C.git_branch_create(&ptr, repo.ptr, cBranchName, target.cast_ptr, cForce)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	return ref.Branch(), nil
+	return newReferenceFromC(ptr, repo).Branch(), nil
 }
 
 func (b *Branch) Delete() error {
