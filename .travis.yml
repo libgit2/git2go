@@ -1,5 +1,7 @@
 language: go
 
+sudo: false
+
 install:
   - cd "${HOME}"
   - wget -O libgit2-0.22.1.tar.gz https://github.com/libgit2/libgit2/archive/v0.22.1.tar.gz
