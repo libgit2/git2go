@@ -421,10 +421,6 @@ func (repo *Repository) LookupRemote(name string) (*Remote, error) {
 	return remote, nil
 }
 
-func (o *Remote) Owner() Repository {
-	return Repository{C.git_remote_owner(o.ptr)}
-}
-
 func (o *Remote) Name() string {
 	return C.GoString(C.git_remote_name(o.ptr))
 }

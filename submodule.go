@@ -158,12 +158,6 @@ func (sub *Submodule) AddToIndex(write_index bool) error {
 	return nil
 }
 
-func (sub *Submodule) Owner() *Repository {
-	repo := C.git_submodule_owner(sub.ptr)
-	//FIXME: how to handle dangling references ?
-	return &Repository{repo}
-}
-
 func (sub *Submodule) Name() string {
 	n := C.git_submodule_name(sub.ptr)
 	return C.GoString(n)
