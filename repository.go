@@ -29,81 +29,78 @@ type Repository struct {
 	Notes      NoteCollection
 }
 
-func initRepositoryObject(repo *Repository) {
+func newRepositoryFromC(ptr *C.git_repository) *Repository {
+	repo := &Repository{ptr: ptr}
+
 	repo.Remotes.repo    = repo
 	repo.Submodules.repo = repo
 	repo.References.repo = repo
 	repo.Notes.repo      = repo
+
 	runtime.SetFinalizer(repo, (*Repository).Free)
+
+	return repo
 }
 
 func OpenRepository(path string) (*Repository, error) {
-	repo := new(Repository)
-
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_repository_open(&repo.ptr, cpath)
+	var ptr *C.git_repository
+	ret := C.git_repository_open(&ptr, cpath)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
 
-	initRepositoryObject(repo)
-	return repo, nil
+	return newRepositoryFromC(ptr), nil
 }
 
 func OpenRepositoryExtended(path string) (*Repository, error) {
-	repo := new(Repository)
-
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_repository_open_ext(&repo.ptr, cpath, 0, nil)
+	var ptr *C.git_repository
+	ret := C.git_repository_open_ext(&ptr, cpath, 0, nil)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
 
-	initRepositoryObject(repo)
-	return repo, nil
+	return newRepositoryFromC(ptr), nil
 }
 
 func InitRepository(path string, isbare bool) (*Repository, error) {
-	repo := new(Repository)
-
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_repository_init(&repo.ptr, cpath, ucbool(isbare))
+	var ptr *C.git_repository
+	ret := C.git_repository_init(&ptr, cpath, ucbool(isbare))
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
 
-	initRepositoryObject(repo)
-	return repo, nil
+	return newRepositoryFromC(ptr), nil
 }
 
 func NewRepositoryWrapOdb(odb *Odb) (repo *Repository, err error) {
-	repo = new(Repository)
-
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_repository_wrap_odb(&repo.ptr, odb.ptr)
+	var ptr *C.git_repository
+	ret := C.git_repository_wrap_odb(&ptr, odb.ptr)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
 
-	initRepositoryObject(repo)
-	return repo, nil
+	return newRepositoryFromC(ptr), nil
 }
 
 func (v *Repository) SetRefdb(refdb *Refdb) {
