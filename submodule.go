@@ -298,16 +298,15 @@ func (sub *Submodule) Sync() error {
 }
 
 func (sub *Submodule) Open() (*Repository, error) {
-	repo := new(Repository)
-
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_submodule_open(&repo.ptr, sub.ptr)
+	var ptr *C.git_repository
+	ret := C.git_submodule_open(&ptr, sub.ptr)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	return repo, nil
+	return newRepositoryFromC(ptr), nil
 }
 
 func (sub *Submodule) Update(init bool, opts *SubmoduleUpdateOptions) error {
