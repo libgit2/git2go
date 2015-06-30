@@ -20,8 +20,6 @@ type CloneOptions struct {
 }
 
 func Clone(url string, path string, options *CloneOptions) (*Repository, error) {
-	repo := new(Repository)
-
 	curl := C.CString(url)
 	defer C.free(unsafe.Pointer(curl))
 
@@ -37,7 +35,8 @@ func Clone(url string, path string, options *CloneOptions) (*Repository, error) 
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-	ret := C.git_clone(&repo.ptr, curl, cpath, copts)
+	var ptr *C.git_repository
+	ret := C.git_clone(&ptr, curl, cpath, copts)
 	freeCheckoutOpts(&copts.checkout_opts)
 	C.free(unsafe.Pointer(copts.checkout_branch))
 	C.free(unsafe.Pointer(copts))
@@ -46,8 +45,7 @@ func Clone(url string, path string, options *CloneOptions) (*Repository, error) 
 		return nil, MakeGitError(ret)
 	}
 
-	runtime.SetFinalizer(repo, (*Repository).Free)
-	return repo, nil
+	return newRepositoryFromC(ptr), nil
 }
 
 func populateCloneOptions(ptr *C.git_clone_options, opts *CloneOptions) {
