@@ -28,18 +28,20 @@ func Clone(url string, path string, options *CloneOptions) (*Repository, error) 
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
 
-	var copts C.git_clone_options
-	populateCloneOptions(&copts, options)
-	defer freeCheckoutOpts(&copts.checkout_opts)
+	copts := (*C.git_clone_options)(C.calloc(1, C.size_t(unsafe.Sizeof(C.git_clone_options{}))))
+	populateCloneOptions(copts, options)
 
 	if len(options.CheckoutBranch) != 0 {
 		copts.checkout_branch = C.CString(options.CheckoutBranch)
-		defer C.free(unsafe.Pointer(copts.checkout_branch))
 	}
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-	ret := C.git_clone(&repo.ptr, curl, cpath, &copts)
+	ret := C.git_clone(&repo.ptr, curl, cpath, copts)
+	freeCheckoutOpts(&copts.checkout_opts)
+	C.free(unsafe.Pointer(copts.checkout_branch))
+	C.free(unsafe.Pointer(copts))
+
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}

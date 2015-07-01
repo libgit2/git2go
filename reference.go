@@ -40,7 +40,7 @@ func (v *Reference) SetSymbolicTarget(target string, sig *Signature, msg string)
 	if err != nil {
 		return nil, err
 	}
-	defer C.free(unsafe.Pointer(csig))
+	defer C.git_signature_free(csig)
 
 	var cmsg *C.char
 	if msg == "" {
@@ -68,7 +68,7 @@ func (v *Reference) SetTarget(target *Oid, sig *Signature, msg string) (*Referen
 	if err != nil {
 		return nil, err
 	}
-	defer C.free(unsafe.Pointer(csig))
+	defer C.git_signature_free(csig)
 
 	var cmsg *C.char
 	if msg == "" {
@@ -109,7 +109,7 @@ func (v *Reference) Rename(name string, force bool, sig *Signature, msg string) 
 	if err != nil {
 		return nil, err
 	}
-	defer C.free(unsafe.Pointer(csig))
+	defer C.git_signature_free(csig)
 
 	var cmsg *C.char
 	if msg == "" {

@@ -5,6 +5,7 @@ package git
 
 extern int _go_git_diff_foreach(git_diff *diff, int eachFile, int eachHunk, int eachLine, void *payload);
 extern void _go_git_setup_diff_notify_callbacks(git_diff_options* opts);
+extern int _go_git_diff_blobs(git_blob *old, const char *old_path, git_blob *new, const char *new_path, git_diff_options *opts, int eachFile, int eachHunk, int eachLine, void *payload);
 */
 import "C"
 import (
@@ -94,7 +95,7 @@ type DiffHunk struct {
 	Header   string
 }
 
-func diffHunkFromC(delta *C.git_diff_delta, hunk *C.git_diff_hunk) DiffHunk {
+func diffHunkFromC(hunk *C.git_diff_hunk) DiffHunk {
 	return DiffHunk{
 		OldStart: int(hunk.old_start),
 		OldLines: int(hunk.old_lines),
@@ -112,7 +113,7 @@ type DiffLine struct {
 	Content   string
 }
 
-func diffLineFromC(delta *C.git_diff_delta, hunk *C.git_diff_hunk, line *C.git_diff_line) DiffLine {
+func diffLineFromC(line *C.git_diff_line) DiffLine {
 	return DiffLine{
 		Origin:    DiffLineType(line.origin),
 		OldLineno: int(line.old_lineno),
@@ -309,7 +310,7 @@ func diffForEachHunkCb(delta *C.git_diff_delta, hunk *C.git_diff_hunk, handle un
 
 	data.LineCallback = nil
 	if data.HunkCallback != nil {
-		cb, err := data.HunkCallback(diffHunkFromC(delta, hunk))
+		cb, err := data.HunkCallback(diffHunkFromC(hunk))
 		if err != nil {
 			data.Error = err
 			return -1
@@ -330,7 +331,7 @@ func diffForEachLineCb(delta *C.git_diff_delta, hunk *C.git_diff_hunk, line *C.g
 		panic("could not retrieve data for handle")
 	}
 
-	err := data.LineCallback(diffLineFromC(delta, hunk, line))
+	err := data.LineCallback(diffLineFromC(line))
 	if err != nil {
 		data.Error = err
 		return -1
@@ -669,4 +670,51 @@ func (v *Repository) DiffIndexToWorkdir(index *Index, opts *DiffOptions) (*Diff,
 		return notifyData.Diff, nil
 	}
 	return newDiffFromC(diffPtr), nil
+}
+
+// DiffBlobs performs a diff between two arbitrary blobs. You can pass
+// whatever file names you'd like for them to appear as in the diff.
+func DiffBlobs(oldBlob *Blob, oldAsPath string, newBlob *Blob, newAsPath string, opts *DiffOptions, fileCallback DiffForEachFileCallback, detail DiffDetail) error {
+	data := &diffForEachData{
+		FileCallback: fileCallback,
+	}
+
+	intHunks := C.int(0)
+	if detail >= DiffDetailHunks {
+		intHunks = C.int(1)
+	}
+
+	intLines := C.int(0)
+	if detail >= DiffDetailLines {
+		intLines = C.int(1)
+	}
+
+	handle := pointerHandles.Track(data)
+	defer pointerHandles.Untrack(handle)
+
+	var oldBlobPtr, newBlobPtr *C.git_blob
+	if oldBlob != nil {
+		oldBlobPtr = oldBlob.cast_ptr
+	}
+	if newBlob != nil {
+		newBlobPtr = newBlob.cast_ptr
+	}
+
+	oldBlobPath := C.CString(oldAsPath)
+	defer C.free(unsafe.Pointer(oldBlobPath))
+	newBlobPath := C.CString(newAsPath)
+	defer C.free(unsafe.Pointer(newBlobPath))
+
+	copts, _ := diffOptionsToC(opts)
+	defer freeDiffOptions(copts)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C._go_git_diff_blobs(oldBlobPtr, oldBlobPath, newBlobPtr, newBlobPath, copts, 1, intHunks, intLines, handle)
+	if ecode < 0 {
+		return MakeGitError(ecode)
+	}
+
+	return nil
 }
