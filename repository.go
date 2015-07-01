@@ -234,6 +234,18 @@ func (v *Repository) SetHeadDetached(id *Oid) error {
 	return nil
 }
 
+func (v *Repository) IsHeadDetached() (bool, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_repository_head_detached(v.ptr)
+	if ret < 0 {
+		return false, MakeGitError(ret)
+	}
+
+	return ret != 0, nil
+}
+
 func (v *Repository) Walk() (*RevWalk, error) {
 
 	var walkPtr *C.git_revwalk

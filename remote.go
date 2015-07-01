@@ -596,7 +596,6 @@ func populateFetchOptions(options *C.git_fetch_options, opts *FetchOptions) {
 // the configuration; msg specifies what to use for the reflog
 // entries. Leave "" to use defaults.
 func (o *Remote) Fetch(refspecs []string, opts *FetchOptions,  msg string) error {
-
 	var cmsg *C.char = nil
 	if msg != "" {
 		cmsg = C.CString(msg)
