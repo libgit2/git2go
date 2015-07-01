@@ -260,13 +260,11 @@ func (v *Repository) IsHeadDetached() (bool, error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_repository_head_detached(v.ptr)
-	switch ret {
-	case 1:
-		return true, nil
-	case 0:
-		return false, nil
+	if ret < 0 {
+		return false, MakeGitError(ret)
 	}
-	return false, MakeGitError(ret)
+
+	return ret != 0, nil
 }
 
 func (v *Repository) CreateReference(name string, id *Oid, force bool, sig *Signature, msg string) (*Reference, error) {
