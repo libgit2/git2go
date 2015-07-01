@@ -614,7 +614,7 @@ func (o *Remote) Fetch(refspecs []string, sig *Signature, msg string) error {
 		if err != nil {
 			return err
 		}
-		defer C.free(unsafe.Pointer(csig))
+		defer C.git_signature_free(csig)
 	}
 
 	var cmsg *C.char = nil
@@ -709,7 +709,7 @@ func (o *Remote) Push(refspecs []string, opts *PushOptions, sig *Signature, msg 
 		if err != nil {
 			return err
 		}
-		defer C.free(unsafe.Pointer(csig))
+		defer C.git_signature_free(csig)
 	}
 
 	var cmsg *C.char

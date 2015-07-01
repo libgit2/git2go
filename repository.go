@@ -214,7 +214,7 @@ func (v *Repository) SetHead(refname string, sig *Signature, msg string) error {
 	if err != nil {
 		return err
 	}
-	defer C.free(unsafe.Pointer(csig))
+	defer C.git_signature_free(csig)
 
 	var cmsg *C.char
 	if msg != "" {
@@ -237,7 +237,7 @@ func (v *Repository) SetHeadDetached(id *Oid, sig *Signature, msg string) error 
 	if err != nil {
 		return err
 	}
-	defer C.free(unsafe.Pointer(csig))
+	defer C.git_signature_free(csig)
 
 	var cmsg *C.char
 	if msg != "" {
@@ -263,7 +263,7 @@ func (v *Repository) CreateReference(name string, id *Oid, force bool, sig *Sign
 	if err != nil {
 		return nil, err
 	}
-	defer C.free(unsafe.Pointer(csig))
+	defer C.git_signature_free(csig)
 
 	var cmsg *C.char
 	if msg == "" {
@@ -297,7 +297,7 @@ func (v *Repository) CreateSymbolicReference(name, target string, force bool, si
 	if err != nil {
 		return nil, err
 	}
-	defer C.free(unsafe.Pointer(csig))
+	defer C.git_signature_free(csig)
 
 	var cmsg *C.char
 	if msg == "" {
