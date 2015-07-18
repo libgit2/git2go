@@ -72,12 +72,12 @@ type RemoteCallbacks struct {
 type FetchPrune uint
 
 const (
-	 // Use the setting from the configuration
+	// Use the setting from the configuration
 	FetchPruneUnspecified FetchPrune = C.GIT_FETCH_PRUNE_UNSPECIFIED
 	// Force pruning on
-	FetchPruneOn       FetchPrune = C.GIT_FETCH_PRUNE
+	FetchPruneOn FetchPrune = C.GIT_FETCH_PRUNE
 	// Force pruning off
-	FetchNoPrune       FetchPrune = C.GIT_FETCH_NO_PRUNE
+	FetchNoPrune FetchPrune = C.GIT_FETCH_NO_PRUNE
 )
 
 type DownloadTags uint
@@ -88,20 +88,20 @@ const (
 	DownloadTagsUnspecified DownloadTags = C.GIT_REMOTE_DOWNLOAD_TAGS_UNSPECIFIED
 	// Ask the server for tags pointing to objects we're already
 	// downloading.
-	DownloadTagsAuto     DownloadTags = C.GIT_REMOTE_DOWNLOAD_TAGS_AUTO
+	DownloadTagsAuto DownloadTags = C.GIT_REMOTE_DOWNLOAD_TAGS_AUTO
 
 	// Don't ask for any tags beyond the refspecs.
-	DownloadTagsNone     DownloadTags = C.GIT_REMOTE_DOWNLOAD_TAGS_NONE
+	DownloadTagsNone DownloadTags = C.GIT_REMOTE_DOWNLOAD_TAGS_NONE
 
 	// Ask for the all the tags.
-	DownloadTagsAll      DownloadTags = C.GIT_REMOTE_DOWNLOAD_TAGS_ALL
+	DownloadTagsAll DownloadTags = C.GIT_REMOTE_DOWNLOAD_TAGS_ALL
 )
 
 type FetchOptions struct {
 	// Callbacks to use for this fetch operation
 	RemoteCallbacks RemoteCallbacks
 	// Whether to perform a prune after the fetch
-	Prune           FetchPrune
+	Prune FetchPrune
 	// Whether to write the results to FETCH_HEAD. Defaults to
 	// on. Leave this default in order to behave like git.
 	UpdateFetchhead bool
@@ -111,7 +111,7 @@ type FetchOptions struct {
 	// downloading all of them.
 	//
 	// The default is to auto-follow tags.
-	DownloadTags    DownloadTags
+	DownloadTags DownloadTags
 }
 
 type Remote struct {
@@ -583,7 +583,7 @@ func (o *Remote) RefspecCount() uint {
 func populateFetchOptions(options *C.git_fetch_options, opts *FetchOptions) {
 	C.git_fetch_init_options(options, C.GIT_FETCH_OPTIONS_VERSION)
 	if opts == nil {
-		return;
+		return
 	}
 	populateRemoteCallbacks(&options.callbacks, &opts.RemoteCallbacks)
 	options.prune = C.git_fetch_prune_t(opts.Prune)
@@ -595,7 +595,7 @@ func populateFetchOptions(options *C.git_fetch_options, opts *FetchOptions) {
 // to use for this fetch, use an empty list to use the refspecs from
 // the configuration; msg specifies what to use for the reflog
 // entries. Leave "" to use defaults.
-func (o *Remote) Fetch(refspecs []string, opts *FetchOptions,  msg string) error {
+func (o *Remote) Fetch(refspecs []string, opts *FetchOptions, msg string) error {
 	var cmsg *C.char = nil
 	if msg != "" {
 		cmsg = C.CString(msg)
@@ -608,7 +608,7 @@ func (o *Remote) Fetch(refspecs []string, opts *FetchOptions,  msg string) error
 	defer freeStrarray(&crefspecs)
 
 	var coptions C.git_fetch_options
-	populateFetchOptions(&coptions, opts);
+	populateFetchOptions(&coptions, opts)
 	defer untrackCalbacksPayload(&coptions.callbacks)
 
 	runtime.LockOSThread()
@@ -630,7 +630,7 @@ func (o *Remote) ConnectPush(callbacks *RemoteCallbacks) error {
 }
 
 func (o *Remote) Connect(direction ConnectDirection, callbacks *RemoteCallbacks) error {
-	var ccallbacks C.git_remote_callbacks;
+	var ccallbacks C.git_remote_callbacks
 	populateRemoteCallbacks(&ccallbacks, callbacks)
 
 	runtime.LockOSThread()
@@ -716,7 +716,7 @@ func (o *Remote) PruneRefs() bool {
 }
 
 func (o *Remote) Prune(callbacks *RemoteCallbacks) error {
-	var ccallbacks C.git_remote_callbacks;
+	var ccallbacks C.git_remote_callbacks
 	populateRemoteCallbacks(&ccallbacks, callbacks)
 
 	runtime.LockOSThread()
