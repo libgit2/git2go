@@ -606,17 +606,7 @@ func (o *Remote) UpdateFetchHead() bool {
 // to use for this fetch, use an empty list to use the refspecs from
 // the configuration; sig and msg specify what to use for the reflog
 // entries. Leave nil and "" to use defaults.
-func (o *Remote) Fetch(refspecs []string, sig *Signature, msg string) error {
-
-	var csig *C.git_signature = nil
-	if sig != nil {
-		csig, err := sig.toC()
-		if err != nil {
-			return err
-		}
-		defer C.git_signature_free(csig)
-	}
-
+func (o *Remote) Fetch(refspecs []string, msg string) error {
 	var cmsg *C.char = nil
 	if msg != "" {
 		cmsg = C.CString(msg)
@@ -631,7 +621,7 @@ func (o *Remote) Fetch(refspecs []string, sig *Signature, msg string) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_remote_fetch(o.ptr, &crefspecs, csig, cmsg)
+	ret := C.git_remote_fetch(o.ptr, &crefspecs, cmsg)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -702,24 +692,7 @@ func (o *Remote) Ls(filterRefs ...string) ([]RemoteHead, error) {
 	return heads, nil
 }
 
-func (o *Remote) Push(refspecs []string, opts *PushOptions, sig *Signature, msg string) error {
-	var csig *C.git_signature = nil
-	if sig != nil {
-		csig, err := sig.toC()
-		if err != nil {
-			return err
-		}
-		defer C.git_signature_free(csig)
-	}
-
-	var cmsg *C.char
-	if msg == "" {
-		cmsg = nil
-	} else {
-		cmsg = C.CString(msg)
-		defer C.free(unsafe.Pointer(cmsg))
-	}
-
+func (o *Remote) Push(refspecs []string, opts *PushOptions) error {
 	var copts C.git_push_options
 	C.git_push_init_options(&copts, C.GIT_PUSH_OPTIONS_VERSION)
 	if opts != nil {
@@ -734,7 +707,7 @@ func (o *Remote) Push(refspecs []string, opts *PushOptions, sig *Signature, msg 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_remote_push(o.ptr, &crefspecs, &copts, csig, cmsg)
+	ret := C.git_remote_push(o.ptr, &crefspecs, &copts)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
