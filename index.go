@@ -59,14 +59,14 @@ func newIndexEntryFromC(entry *C.git_index_entry) *IndexEntry {
 }
 
 func populateCIndexEntry(source *IndexEntry, dest *C.git_index_entry) {
-	dest.ctime.seconds = C.git_time_t(source.Ctime.Unix())
-	dest.ctime.nanoseconds = C.uint(source.Ctime.UnixNano())
-	dest.mtime.seconds = C.git_time_t(source.Mtime.Unix())
-	dest.mtime.nanoseconds = C.uint(source.Mtime.UnixNano())
-	dest.mode = C.uint(source.Mode)
-	dest.uid = C.uint(source.Uid)
-	dest.gid = C.uint(source.Gid)
-	dest.file_size = C.git_off_t(source.Size)
+	dest.ctime.seconds = C.int32_t(source.Ctime.Unix())
+	dest.ctime.nanoseconds = C.uint32_t(source.Ctime.UnixNano())
+	dest.mtime.seconds = C.int32_t(source.Mtime.Unix())
+	dest.mtime.nanoseconds = C.uint32_t(source.Mtime.UnixNano())
+	dest.mode = C.uint32_t(source.Mode)
+	dest.uid = C.uint32_t(source.Uid)
+	dest.gid = C.uint32_t(source.Gid)
+	dest.file_size = C.uint32_t(source.Size)
 	dest.id = *source.Id.toC()
 	dest.path = C.CString(source.Path)
 }
@@ -276,7 +276,7 @@ func (v *Index) ReadTree(tree *Tree) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_index_read_tree(v.ptr, tree.cast_ptr);
+	ret := C.git_index_read_tree(v.ptr, tree.cast_ptr)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
