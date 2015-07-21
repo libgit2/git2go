@@ -78,7 +78,7 @@ const (
 	// Name/ref spec was not in a valid format
 	ErrInvalidSpec ErrorCode = C.GIT_EINVALIDSPEC
 	// Merge conflicts prevented operation
-	ErrMergeConflict ErrorCode = C.GIT_EMERGECONFLICT
+	ErrMergeConflict ErrorCode = C.GIT_ECONFLICT
 	// Lock file prevented operation
 	ErrLocked ErrorCode = C.GIT_ELOCKED
 	// Reference value does not match expected
