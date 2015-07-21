@@ -178,7 +178,7 @@ func (v *Odb) NewWriteStream(size int, otype ObjectType) (*OdbWriteStream, error
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_odb_open_wstream(&stream.ptr, v.ptr, C.size_t(size), C.git_otype(otype))
+	ret := C.git_odb_open_wstream(&stream.ptr, v.ptr, C.git_off_t(size), C.git_otype(otype))
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
