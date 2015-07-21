@@ -354,18 +354,16 @@ func (repo *Repository) CreateRemoteWithFetchspec(name string, url string, fetch
 	return remote, nil
 }
 
-func (repo *Repository) CreateAnonymousRemote(url, fetch string) (*Remote, error) {
+func (repo *Repository) CreateAnonymousRemote(url string) (*Remote, error) {
 	remote := &Remote{}
 
 	curl := C.CString(url)
 	defer C.free(unsafe.Pointer(curl))
-	cfetch := C.CString(fetch)
-	defer C.free(unsafe.Pointer(cfetch))
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_remote_create_anonymous(&remote.ptr, repo.ptr, curl, cfetch)
+	ret := C.git_remote_create_anonymous(&remote.ptr, repo.ptr, curl)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -511,22 +509,6 @@ func (o *Remote) FetchRefspecs() ([]string, error) {
 	return refspecs, nil
 }
 
-func (o *Remote) SetFetchRefspecs(refspecs []string) error {
-	crefspecs := C.git_strarray{}
-	crefspecs.count = C.size_t(len(refspecs))
-	crefspecs.strings = makeCStringsFromStrings(refspecs)
-	defer freeStrarray(&crefspecs)
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ret := C.git_remote_set_fetch_refspecs(o.ptr, &crefspecs)
-	if ret < 0 {
-		return MakeGitError(ret)
-	}
-	return nil
-}
-
 func (o *Repository) AddPush(remote, refspec string) error {
 	crefspec := C.CString(refspec)
 	defer C.free(unsafe.Pointer(crefspec))
@@ -557,22 +539,6 @@ func (o *Remote) PushRefspecs() ([]string, error) {
 	defer C.git_strarray_free(&crefspecs)
 	refspecs := makeStringsFromCStrings(crefspecs.strings, int(crefspecs.count))
 	return refspecs, nil
-}
-
-func (o *Remote) SetPushRefspecs(refspecs []string) error {
-	crefspecs := C.git_strarray{}
-	crefspecs.count = C.size_t(len(refspecs))
-	crefspecs.strings = makeCStringsFromStrings(refspecs)
-	defer freeStrarray(&crefspecs)
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ret := C.git_remote_set_push_refspecs(o.ptr, &crefspecs)
-	if ret < 0 {
-		return MakeGitError(ret)
-	}
-	return nil
 }
 
 func (o *Remote) RefspecCount() uint {
