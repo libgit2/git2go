@@ -628,16 +628,17 @@ func (v *Repository) RemoveNote(ref string, author, committer *Signature, id *Oi
 
 // DefaultNoteRef returns the default notes reference for a repository
 func (v *Repository) DefaultNoteRef() (string, error) {
-	var ptr *C.char
+	var buf C.git_buf
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if ret := C.git_note_default_ref(&ptr, v.ptr); ret < 0 {
+	if ret := C.git_note_default_ref(&buf, v.ptr); ret < 0 {
 		return "", MakeGitError(ret)
 	}
+	defer C.git_buf_free(&buf)
 
-	return C.GoString(ptr), nil
+	return C.GoString(buf.ptr), nil
 }
 
 type RepositoryState int
