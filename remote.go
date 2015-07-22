@@ -446,14 +446,17 @@ func (o *Remote) SetPushUrl(url string) error {
 	return nil
 }
 
-func (o *Remote) AddFetch(refspec string) error {
+func (o *Repository) AddFetch(remote, refspec string) error {
 	crefspec := C.CString(refspec)
 	defer C.free(unsafe.Pointer(crefspec))
+
+	cremote := C.CString(remote)
+	defer C.free(unsafe.Pointer(cremote))
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_remote_add_fetch(o.ptr, crefspec)
+	ret := C.git_remote_add_fetch(o.ptr, cremote, crefspec)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -530,14 +533,17 @@ func (o *Remote) SetFetchRefspecs(refspecs []string) error {
 	return nil
 }
 
-func (o *Remote) AddPush(refspec string) error {
+func (o *Repository) AddPush(remote, refspec string) error {
 	crefspec := C.CString(refspec)
 	defer C.free(unsafe.Pointer(crefspec))
+
+	cremote := C.CString(remote)
+	defer C.free(unsafe.Pointer(cremote))
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_remote_add_push(o.ptr, crefspec)
+	ret := C.git_remote_add_push(o.ptr, cremote, crefspec)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -573,10 +579,6 @@ func (o *Remote) SetPushRefspecs(refspecs []string) error {
 		return MakeGitError(ret)
 	}
 	return nil
-}
-
-func (o *Remote) ClearRefspecs() {
-	C.git_remote_clear_refspecs(o.ptr)
 }
 
 func (o *Remote) RefspecCount() uint {
