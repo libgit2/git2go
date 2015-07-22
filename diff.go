@@ -3,9 +3,9 @@ package git
 /*
 #include <git2.h>
 
-extern int _go_git_diff_foreach(git_diff *diff, int eachFile, int eachHunk, int eachLine, void *payload);
+extern int _go_git_diff_foreach(git_diff *diff, int eachFile, int eachBinary, int eachHunk, int eachLine, void *payload);
 extern void _go_git_setup_diff_notify_callbacks(git_diff_options* opts);
-extern int _go_git_diff_blobs(git_blob *old, const char *old_path, git_blob *new, const char *new_path, git_diff_options *opts, int eachFile, int eachHunk, int eachLine, void *payload);
+extern int _go_git_diff_blobs(git_blob *old, const char *old_path, git_blob *new, const char *new_path, git_diff_options *opts, int eachFile, int eachBinary, int eachHunk, int eachLine, void *payload);
 */
 import "C"
 import (
@@ -123,6 +123,43 @@ func diffLineFromC(line *C.git_diff_line) DiffLine {
 	}
 }
 
+type DiffBinaryType int
+
+const (
+	// There is no binary delta
+	DiffBinaryNone DiffBinaryType = C.GIT_DIFF_BINARY_NONE
+	// The binary data is the literal contents of the file
+	DiffBinaryLiteral DiffBinaryType = C.GIT_DIFF_BINARY_LITERAL
+	// The binary data is the delta from one side to the other
+	DiffBinaryDelta DiffBinaryType = C.GIT_DIFF_BINARY_DELTA
+)
+
+type DiffBinaryFile struct {
+	Data []byte
+	Type DiffBinaryType
+}
+
+type DiffBinary struct {
+	OldFile DiffBinaryFile
+	NewFile DiffBinaryFile
+}
+
+func diffBinaryFromC(binary *C.git_diff_binary) DiffBinary {
+	oldFile := DiffBinaryFile{
+		Data: []byte(C.GoStringN(binary.old_file.data, C.int(binary.old_file.datalen))),
+		Type: DiffBinaryType(binary.old_file._type),
+	}
+	newFile := DiffBinaryFile{
+		Data: []byte(C.GoStringN(binary.new_file.data, C.int(binary.new_file.datalen))),
+		Type: DiffBinaryType(binary.new_file._type),
+	}
+
+	return DiffBinary{
+		OldFile: oldFile,
+		NewFile: newFile,
+	}
+}
+
 type Diff struct {
 	ptr *C.git_diff
 }
@@ -232,10 +269,11 @@ func (diff *Diff) Stats() (*DiffStats, error) {
 }
 
 type diffForEachData struct {
-	FileCallback DiffForEachFileCallback
-	HunkCallback DiffForEachHunkCallback
-	LineCallback DiffForEachLineCallback
-	Error        error
+	FileCallback   DiffForEachFileCallback
+	HunkCallback   DiffForEachHunkCallback
+	LineCallback   DiffForEachLineCallback
+	BinaryCallback DiffForEachBinaryCallback
+	Error          error
 }
 
 type DiffForEachFileCallback func(DiffDelta, float64) (DiffForEachHunkCallback, error)
@@ -246,6 +284,7 @@ const (
 	DiffDetailFiles DiffDetail = iota
 	DiffDetailHunks
 	DiffDetailLines
+	DiffDetailBinaries
 )
 
 func (diff *Diff) ForEach(cbFile DiffForEachFileCallback, detail DiffDetail) error {
@@ -263,6 +302,11 @@ func (diff *Diff) ForEach(cbFile DiffForEachFileCallback, detail DiffDetail) err
 		intLines = C.int(1)
 	}
 
+	intBinaries := C.int(0)
+	if detail >= DiffDetailBinaries {
+		intBinaries = C.int(1)
+	}
+
 	data := &diffForEachData{
 		FileCallback: cbFile,
 	}
@@ -270,7 +314,7 @@ func (diff *Diff) ForEach(cbFile DiffForEachFileCallback, detail DiffDetail) err
 	handle := pointerHandles.Track(data)
 	defer pointerHandles.Untrack(handle)
 
-	ecode := C._go_git_diff_foreach(diff.ptr, 1, intHunks, intLines, handle)
+	ecode := C._go_git_diff_foreach(diff.ptr, 1, intHunks, intBinaries, intLines, handle)
 	if ecode < 0 {
 		return data.Error
 	}
@@ -332,6 +376,25 @@ func diffForEachLineCb(delta *C.git_diff_delta, hunk *C.git_diff_hunk, line *C.g
 	}
 
 	err := data.LineCallback(diffLineFromC(line))
+	if err != nil {
+		data.Error = err
+		return -1
+	}
+
+	return 0
+}
+
+type DiffForEachBinaryCallback func(DiffBinary) error
+
+//export diffForEachBinaryCb
+func diffForEachBinaryCb(delta *C.git_diff_delta, binary *C.git_diff_binary, handle unsafe.Pointer) int {
+	payload := pointerHandles.Get(handle)
+	data, ok := payload.(*diffForEachData)
+	if !ok {
+		panic("could not retrieve data for handle")
+	}
+
+	err := data.BinaryCallback(diffBinaryFromC(binary))
 	if err != nil {
 		data.Error = err
 		return -1
@@ -689,6 +752,11 @@ func DiffBlobs(oldBlob *Blob, oldAsPath string, newBlob *Blob, newAsPath string,
 		intLines = C.int(1)
 	}
 
+	intBinaries := C.int(0)
+	if detail >= DiffDetailBinaries {
+		intBinaries = C.int(1)
+	}
+
 	handle := pointerHandles.Track(data)
 	defer pointerHandles.Untrack(handle)
 
@@ -711,7 +779,7 @@ func DiffBlobs(oldBlob *Blob, oldAsPath string, newBlob *Blob, newAsPath string,
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C._go_git_diff_blobs(oldBlobPtr, oldBlobPath, newBlobPtr, newBlobPath, copts, 1, intHunks, intLines, handle)
+	ecode := C._go_git_diff_blobs(oldBlobPtr, oldBlobPath, newBlobPtr, newBlobPath, copts, 1, intBinaries, intHunks, intLines, handle)
 	if ecode < 0 {
 		return MakeGitError(ecode)
 	}
