@@ -57,7 +57,7 @@ func populateCloneOptions(ptr *C.git_clone_options, opts *CloneOptions) {
 		return
 	}
 	populateCheckoutOpts(&ptr.checkout_opts, opts.CheckoutOpts)
-	populateRemoteCallbacks(&ptr.remote_callbacks, opts.RemoteCallbacks)
+	populateRemoteCallbacks(&ptr.fetch_opts.callbacks, opts.RemoteCallbacks)
 	ptr.bare = cbool(opts.Bare)
 
 	if opts.RemoteCreateCallback != nil {

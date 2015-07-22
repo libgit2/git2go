@@ -16,7 +16,6 @@ type SubmoduleUpdateOptions struct {
 	*CheckoutOpts
 	*RemoteCallbacks
 	CloneCheckoutStrategy CheckoutStrategy
-	Signature             *Signature
 }
 
 // Submodule
@@ -27,7 +26,6 @@ type Submodule struct {
 type SubmoduleUpdate int
 
 const (
-	SubmoduleUpdateReset    SubmoduleUpdate = C.GIT_SUBMODULE_UPDATE_RESET
 	SubmoduleUpdateCheckout SubmoduleUpdate = C.GIT_SUBMODULE_UPDATE_CHECKOUT
 	SubmoduleUpdateRebase   SubmoduleUpdate = C.GIT_SUBMODULE_UPDATE_REBASE
 	SubmoduleUpdateMerge    SubmoduleUpdate = C.GIT_SUBMODULE_UPDATE_MERGE
@@ -37,7 +35,6 @@ const (
 type SubmoduleIgnore int
 
 const (
-	SubmoduleIgnoreReset     SubmoduleIgnore = C.GIT_SUBMODULE_IGNORE_RESET
 	SubmoduleIgnoreNone      SubmoduleIgnore = C.GIT_SUBMODULE_IGNORE_NONE
 	SubmoduleIgnoreUntracked SubmoduleIgnore = C.GIT_SUBMODULE_IGNORE_UNTRACKED
 	SubmoduleIgnoreDirty     SubmoduleIgnore = C.GIT_SUBMODULE_IGNORE_DIRTY
@@ -161,17 +158,6 @@ func (sub *Submodule) AddToIndex(write_index bool) error {
 	return nil
 }
 
-func (sub *Submodule) Save() error {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ret := C.git_submodule_save(sub.ptr)
-	if ret < 0 {
-		return MakeGitError(ret)
-	}
-	return nil
-}
-
 func (sub *Submodule) Owner() *Repository {
 	repo := C.git_submodule_owner(sub.ptr)
 	//FIXME: how to handle dangling references ?
@@ -193,14 +179,16 @@ func (sub *Submodule) Url() string {
 	return C.GoString(n)
 }
 
-func (sub *Submodule) SetUrl(url string) error {
+func (r *Repository) SetSubmoduleUrl(submodule, url string) error {
+	cname := C.CString(submodule)
+	defer C.free(unsafe.Pointer(cname))
 	curl := C.CString(url)
 	defer C.free(unsafe.Pointer(curl))
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_submodule_set_url(sub.ptr, curl)
+	ret := C.git_submodule_set_url(r.ptr, cname, curl)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -236,8 +224,11 @@ func (sub *Submodule) Ignore() SubmoduleIgnore {
 	return SubmoduleIgnore(o)
 }
 
-func (sub *Submodule) SetIgnore(ignore SubmoduleIgnore) SubmoduleIgnore {
-	o := C.git_submodule_set_ignore(sub.ptr, C.git_submodule_ignore_t(ignore))
+func (r *Repository) SetSubmoduleIgnore(submodule string, ignore SubmoduleIgnore) SubmoduleIgnore {
+	cname := C.CString(submodule)
+	defer C.free(unsafe.Pointer(cname))
+
+	o := C.git_submodule_set_ignore(r.ptr, cname, C.git_submodule_ignore_t(ignore))
 	return SubmoduleIgnore(o)
 }
 
@@ -246,8 +237,11 @@ func (sub *Submodule) UpdateStrategy() SubmoduleUpdate {
 	return SubmoduleUpdate(o)
 }
 
-func (sub *Submodule) SetUpdate(update SubmoduleUpdate) SubmoduleUpdate {
-	o := C.git_submodule_set_update(sub.ptr, C.git_submodule_update_t(update))
+func (r *Repository) SetSubmoduleUpdate(submodule string, update SubmoduleUpdate) SubmoduleUpdate {
+	cname := C.CString(submodule)
+	defer C.free(unsafe.Pointer(cname))
+
+	o := C.git_submodule_set_update(r.ptr, cname, C.git_submodule_update_t(update))
 	return SubmoduleUpdate(o)
 }
 
@@ -255,11 +249,15 @@ func (sub *Submodule) FetchRecurseSubmodules() SubmoduleRecurse {
 	return SubmoduleRecurse(C.git_submodule_fetch_recurse_submodules(sub.ptr))
 }
 
-func (sub *Submodule) SetFetchRecurseSubmodules(recurse SubmoduleRecurse) error {
+func (r *Repository) SetFetchRecurseSubmodules(submodule string, recurse SubmoduleRecurse) error {
+	cname := C.CString(submodule)
+	defer C.free(unsafe.Pointer(cname))
+
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_submodule_set_fetch_recurse_submodules(sub.ptr, C.git_submodule_recurse_t(recurse))
+	ret := C.git_submodule_set_fetch_recurse_submodules(r.ptr,
+		cname, C.git_submodule_recurse_t(recurse))
 	if ret < 0 {
 		return MakeGitError(C.int(ret))
 	}
@@ -312,17 +310,6 @@ func (sub *Submodule) Reload(force bool) error {
 	return nil
 }
 
-func (repo *Repository) ReloadAllSubmodules(force bool) error {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ret := C.git_submodule_reload_all(repo.ptr, cbool(force))
-	if ret < 0 {
-		return MakeGitError(ret)
-	}
-	return nil
-}
-
 func (sub *Submodule) Update(init bool, opts *SubmoduleUpdateOptions) error {
 	var copts C.git_submodule_update_options
 	err := populateSubmoduleUpdateOptions(&copts, opts)
@@ -349,14 +336,8 @@ func populateSubmoduleUpdateOptions(ptr *C.git_submodule_update_options, opts *S
 	}
 
 	populateCheckoutOpts(&ptr.checkout_opts, opts.CheckoutOpts)
-	populateRemoteCallbacks(&ptr.remote_callbacks, opts.RemoteCallbacks)
+	populateRemoteCallbacks(&ptr.fetch_opts.callbacks, opts.RemoteCallbacks)
 	ptr.clone_checkout_strategy = C.uint(opts.CloneCheckoutStrategy)
-
-	sig, err := opts.Signature.toC()
-	if err != nil {
-		return err
-	}
-	ptr.signature = sig
 
 	return nil
 }

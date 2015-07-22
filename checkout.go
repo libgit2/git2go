@@ -15,9 +15,9 @@ type CheckoutStrategy uint
 const (
 	CheckoutNone                      CheckoutStrategy = C.GIT_CHECKOUT_NONE                         // Dry run, no actual updates
 	CheckoutSafe                      CheckoutStrategy = C.GIT_CHECKOUT_SAFE                         // Allow safe updates that cannot overwrite uncommitted data
-	CheckoutSafeCreate                CheckoutStrategy = C.GIT_CHECKOUT_SAFE_CREATE                  // Allow safe updates plus creation of missing files
 	CheckoutForce                     CheckoutStrategy = C.GIT_CHECKOUT_FORCE                        // Allow all updates to force working directory to look like index
 	CheckoutAllowConflicts            CheckoutStrategy = C.GIT_CHECKOUT_ALLOW_CONFLICTS              // Allow checkout to make safe updates even if conflicts are found
+	CheckoutRecreateMissing           CheckoutStrategy = C.GIT_CHECKOUT_RECREATE_MISSING             // Allow checkout to recreate missing files
 	CheckoutRemoveUntracked           CheckoutStrategy = C.GIT_CHECKOUT_REMOVE_UNTRACKED             // Remove untracked files not in index (that are not ignored)
 	CheckoutRemoveIgnored             CheckoutStrategy = C.GIT_CHECKOUT_REMOVE_IGNORED               // Remove ignored files not in index
 	CheckoutUpdateOnly                CheckoutStrategy = C.GIT_CHECKOUT_UPDATE_ONLY                  // Only update existing files, don't create new ones
@@ -38,7 +38,7 @@ type CheckoutOpts struct {
 	FileMode        os.FileMode      // Default is 0644 or 0755 as dictated by blob
 	FileOpenFlags   int              // Default is O_CREAT | O_TRUNC | O_WRONLY
 	TargetDirectory string           // Alternative checkout path to workdir
-	Paths			[]string
+	Paths           []string
 }
 
 func checkoutOptionsFromC(c *C.git_checkout_options) CheckoutOpts {

@@ -206,49 +206,25 @@ func (v *Repository) Head() (*Reference, error) {
 	return newReferenceFromC(ptr, v), nil
 }
 
-func (v *Repository) SetHead(refname string, sig *Signature, msg string) error {
+func (v *Repository) SetHead(refname string) error {
 	cname := C.CString(refname)
 	defer C.free(unsafe.Pointer(cname))
-
-	csig, err := sig.toC()
-	if err != nil {
-		return err
-	}
-	defer C.git_signature_free(csig)
-
-	var cmsg *C.char
-	if msg != "" {
-		cmsg = C.CString(msg)
-		defer C.free(unsafe.Pointer(cmsg))
-	}
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_repository_set_head(v.ptr, cname, csig, cmsg)
+	ecode := C.git_repository_set_head(v.ptr, cname)
 	if ecode != 0 {
 		return MakeGitError(ecode)
 	}
 	return nil
 }
 
-func (v *Repository) SetHeadDetached(id *Oid, sig *Signature, msg string) error {
-	csig, err := sig.toC()
-	if err != nil {
-		return err
-	}
-	defer C.git_signature_free(csig)
-
-	var cmsg *C.char
-	if msg != "" {
-		cmsg = C.CString(msg)
-		defer C.free(unsafe.Pointer(cmsg))
-	}
-
+func (v *Repository) SetHeadDetached(id *Oid) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_repository_set_head_detached(v.ptr, id.toC(), csig, cmsg)
+	ecode := C.git_repository_set_head_detached(v.ptr, id.toC())
 	if ecode != 0 {
 		return MakeGitError(ecode)
 	}
@@ -267,15 +243,9 @@ func (v *Repository) IsHeadDetached() (bool, error) {
 	return ret != 0, nil
 }
 
-func (v *Repository) CreateReference(name string, id *Oid, force bool, sig *Signature, msg string) (*Reference, error) {
+func (v *Repository) CreateReference(name string, id *Oid, force bool, msg string) (*Reference, error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
-
-	csig, err := sig.toC()
-	if err != nil {
-		return nil, err
-	}
-	defer C.git_signature_free(csig)
 
 	var cmsg *C.char
 	if msg == "" {
@@ -290,7 +260,7 @@ func (v *Repository) CreateReference(name string, id *Oid, force bool, sig *Sign
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_reference_create(&ptr, v.ptr, cname, id.toC(), cbool(force), csig, cmsg)
+	ecode := C.git_reference_create(&ptr, v.ptr, cname, id.toC(), cbool(force), cmsg)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
@@ -298,18 +268,12 @@ func (v *Repository) CreateReference(name string, id *Oid, force bool, sig *Sign
 	return newReferenceFromC(ptr, v), nil
 }
 
-func (v *Repository) CreateSymbolicReference(name, target string, force bool, sig *Signature, msg string) (*Reference, error) {
+func (v *Repository) CreateSymbolicReference(name, target string, force bool, msg string) (*Reference, error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 
 	ctarget := C.CString(target)
 	defer C.free(unsafe.Pointer(ctarget))
-
-	csig, err := sig.toC()
-	if err != nil {
-		return nil, err
-	}
-	defer C.git_signature_free(csig)
 
 	var cmsg *C.char
 	if msg == "" {
@@ -324,7 +288,7 @@ func (v *Repository) CreateSymbolicReference(name, target string, force bool, si
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_reference_symbolic_create(&ptr, v.ptr, cname, ctarget, cbool(force), csig, cmsg)
+	ecode := C.git_reference_symbolic_create(&ptr, v.ptr, cname, ctarget, cbool(force), cmsg)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
@@ -664,16 +628,17 @@ func (v *Repository) RemoveNote(ref string, author, committer *Signature, id *Oi
 
 // DefaultNoteRef returns the default notes reference for a repository
 func (v *Repository) DefaultNoteRef() (string, error) {
-	var ptr *C.char
+	var buf C.git_buf
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if ret := C.git_note_default_ref(&ptr, v.ptr); ret < 0 {
+	if ret := C.git_note_default_ref(&buf, v.ptr); ret < 0 {
 		return "", MakeGitError(ret)
 	}
+	defer C.git_buf_free(&buf)
 
-	return C.GoString(ptr), nil
+	return C.GoString(buf.ptr), nil
 }
 
 type RepositoryState int

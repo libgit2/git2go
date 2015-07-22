@@ -41,15 +41,20 @@ void _go_git_refdb_backend_free(git_refdb_backend *backend)
     return;
 }
 
-int _go_git_diff_foreach(git_diff *diff, int eachFile, int eachHunk, int eachLine, void *payload)
+int _go_git_diff_foreach(git_diff *diff, int eachFile, int eachBinary, int eachHunk, int eachLine, void *payload)
 {
 	git_diff_file_cb fcb = NULL;
+    git_diff_binary_cb bcb = NULL;
 	git_diff_hunk_cb hcb = NULL;
 	git_diff_line_cb lcb = NULL;
 
 	if (eachFile) {
 		fcb = (git_diff_file_cb)&diffForEachFileCb;
 	}
+
+    if (eachBinary) {
+        bcb = (git_diff_binary_cb)&diffForEachBinaryCb;
+    }
 
 	if (eachHunk) {
 		hcb = (git_diff_hunk_cb)&diffForEachHunkCb;
@@ -59,18 +64,23 @@ int _go_git_diff_foreach(git_diff *diff, int eachFile, int eachHunk, int eachLin
 		lcb = (git_diff_line_cb)&diffForEachLineCb;
 	}
 
-	return git_diff_foreach(diff, fcb, hcb, lcb, payload);
+	return git_diff_foreach(diff, fcb, bcb, hcb, lcb, payload);
 }
 
-int _go_git_diff_blobs(git_blob *old, const char *old_path, git_blob *new, const char *new_path, git_diff_options *opts, int eachFile, int eachHunk, int eachLine, void *payload)
+int _go_git_diff_blobs(git_blob *old, const char *old_path, git_blob *new, const char *new_path, git_diff_options *opts, int eachFile, int eachBinary, int eachHunk, int eachLine, void *payload)
 {
 	git_diff_file_cb fcb = NULL;
+    git_diff_binary_cb bcb = NULL;
 	git_diff_hunk_cb hcb = NULL;
 	git_diff_line_cb lcb = NULL;
 
 	if (eachFile) {
 		fcb = (git_diff_file_cb)&diffForEachFileCb;
 	}
+
+    if (eachBinary) {
+        bcb = (git_diff_binary_cb)&diffForEachBinaryCb;
+    }
 
 	if (eachHunk) {
 		hcb = (git_diff_hunk_cb)&diffForEachHunkCb;
@@ -80,7 +90,7 @@ int _go_git_diff_blobs(git_blob *old, const char *old_path, git_blob *new, const
 		lcb = (git_diff_line_cb)&diffForEachLineCb;
 	}
 
-	return git_diff_blobs(old, old_path, new, new_path, opts, fcb, hcb, lcb, payload);
+	return git_diff_blobs(old, old_path, new, new_path, opts, fcb, bcb, hcb, lcb, payload);
 }
 
 void _go_git_setup_diff_notify_callbacks(git_diff_options *opts) {
