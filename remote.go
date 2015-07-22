@@ -418,28 +418,34 @@ func (o *Remote) PushUrl() string {
 	return C.GoString(C.git_remote_pushurl(o.ptr))
 }
 
-func (o *Remote) SetUrl(url string) error {
+func (o *Repository) SetUrl(remote, url string) error {
 	curl := C.CString(url)
 	defer C.free(unsafe.Pointer(curl))
+
+	cremote := C.CString(remote)
+	defer C.free(unsafe.Pointer(cremote))
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_remote_set_url(o.ptr, curl)
+	ret := C.git_remote_set_url(o.ptr, cremote, curl)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
 	return nil
 }
 
-func (o *Remote) SetPushUrl(url string) error {
+func (o *Repository) SetPushUrl(remote, url string) error {
 	curl := C.CString(url)
 	defer C.free(unsafe.Pointer(curl))
+
+	cremote := C.CString(remote)
+	defer C.free(unsafe.Pointer(cremote))
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_remote_set_pushurl(o.ptr, curl)
+	ret := C.git_remote_set_pushurl(o.ptr, cremote, curl)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
