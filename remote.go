@@ -390,18 +390,6 @@ func (repo *Repository) LookupRemote(name string) (*Remote, error) {
 	return remote, nil
 }
 
-func (o *Remote) Save() error {
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ret := C.git_remote_save(o.ptr)
-	if ret < 0 {
-		return MakeGitError(ret)
-	}
-	return nil
-}
-
 func (o *Remote) Owner() Repository {
 	return Repository{C.git_remote_owner(o.ptr)}
 }
