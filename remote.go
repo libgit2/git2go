@@ -70,8 +70,8 @@ type RemoteCallbacks struct {
 }
 
 type Remote struct {
-	ptr       *C.git_remote
-	callbacks RemoteCallbacks
+	ptr     *C.git_remote
+	options C.git_fetch_options
 }
 
 type CertificateKind uint
@@ -267,29 +267,18 @@ func RemoteIsValidName(name string) bool {
 	return false
 }
 
-func (r *Remote) SetCallbacks(callbacks *RemoteCallbacks) error {
-	r.callbacks = *callbacks
-
-	var ccallbacks C.git_remote_callbacks
-	populateRemoteCallbacks(&ccallbacks, &r.callbacks)
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ecode := C.git_remote_set_callbacks(r.ptr, &ccallbacks)
-	if ecode < 0 {
-		return MakeGitError(ecode)
+func (r *Remote) SetCallbacks(callbacks *RemoteCallbacks) {
+	if r.options.callbacks.payload != nil {
+		pointerHandles.Untrack(r.options.callbacks.payload)
 	}
-
-	return nil
+	populateRemoteCallbacks(&r.options.callbacks, callbacks)
 }
 
 func (r *Remote) Free() {
 	runtime.SetFinalizer(r, nil)
 
-	callbacks := C.git_remote_get_callbacks(r.ptr)
-	if callbacks != nil && callbacks.payload != nil {
-		pointerHandles.Untrack(callbacks.payload)
+	if r.options.callbacks.payload != nil {
+		pointerHandles.Untrack(r.options.callbacks.payload)
 	}
 
 	C.git_remote_free(r.ptr)
@@ -595,11 +584,11 @@ func (o *Remote) RefspecCount() uint {
 }
 
 func (o *Remote) SetUpdateFetchHead(val bool) {
-	C.git_remote_set_update_fetchhead(o.ptr, cbool(val))
+	o.options.update_fetchhead = cbool(val)
 }
 
 func (o *Remote) UpdateFetchHead() bool {
-	return C.git_remote_update_fetchhead(o.ptr) > 0
+	return o.options.update_fetchhead > 0
 }
 
 // Fetch performs a fetch operation. refspecs specifies which refspecs
@@ -621,7 +610,7 @@ func (o *Remote) Fetch(refspecs []string, msg string) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_remote_fetch(o.ptr, &crefspecs, cmsg)
+	ret := C.git_remote_fetch(o.ptr, &crefspecs, &o.options, cmsg)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -640,7 +629,7 @@ func (o *Remote) Connect(direction ConnectDirection) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if ret := C.git_remote_connect(o.ptr, C.git_direction(direction)); ret != 0 {
+	if ret := C.git_remote_connect(o.ptr, C.git_direction(direction), &o.options.callbacks); ret != 0 {
 		return MakeGitError(ret)
 	}
 	return nil
@@ -722,7 +711,7 @@ func (o *Remote) Prune() error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_remote_prune(o.ptr)
+	ret := C.git_remote_prune(o.ptr, &o.options.callbacks)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
