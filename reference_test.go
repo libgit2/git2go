@@ -208,6 +208,16 @@ func TestIsNote(t *testing.T) {
 		t.Fatalf("%s should not be a note", ref.Name())
 	}
 }
+
+func TestReferenceIsValidName(t *testing.T) {
+	if !ReferenceIsValidName("HEAD") {
+		t.Errorf("HEAD should be a valid reference name")
+	}
+	if ReferenceIsValidName("HEAD1") {
+		t.Errorf("HEAD1 should not be a valid reference name")
+	}
+}
+
 func compareStringList(t *testing.T, expected, actual []string) {
 	for i, v := range expected {
 		if actual[i] != v {
