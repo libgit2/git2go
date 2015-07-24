@@ -55,6 +55,24 @@ func (t Tree) EntryByName(filename string) *TreeEntry {
 	return newTreeEntry(entry)
 }
 
+// EntryById performs a lookup for a tree entry with the given SHA value.
+//
+// It returns a *TreeEntry that is owned by the Tree. You don't have to
+// free it, but you must not use it after the Tree is freed.
+//
+// Warning: this must examine every entry in the tree, so it is not fast.
+func (t Tree) EntryById(id *Oid) *TreeEntry {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	entry := C.git_tree_entry_byid(t.cast_ptr, id.toC())
+	if entry == nil {
+		return nil
+	}
+
+	return newTreeEntry(entry)
+}
+
 // EntryByPath looks up an entry by its full path, recursing into
 // deeper trees if necessary (i.e. if there are slashes in the path)
 func (t Tree) EntryByPath(path string) (*TreeEntry, error) {
