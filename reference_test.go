@@ -176,6 +176,48 @@ func TestUtil(t *testing.T) {
 	}
 }
 
+func TestIsNote(t *testing.T) {
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	commitID, _ := seedTestRepo(t, repo)
+
+	sig := &Signature{
+		Name:  "Rand Om Hacker",
+		Email: "random@hacker.com",
+		When:  time.Now(),
+	}
+
+	refname, err := repo.Notes.DefaultRef()
+	checkFatal(t, err)
+
+	_, err = repo.Notes.Create(refname, sig, sig, commitID, "This is a note", false)
+	checkFatal(t, err)
+
+	ref, err := repo.References.Lookup(refname)
+	checkFatal(t, err)
+
+	if !ref.IsNote() {
+		t.Fatalf("%s should be a note", ref.Name())
+	}
+
+	ref, err = repo.References.Create("refs/heads/foo", commitID, true, "")
+	checkFatal(t, err)
+
+	if ref.IsNote() {
+		t.Fatalf("%s should not be a note", ref.Name())
+	}
+}
+
+func TestReferenceIsValidName(t *testing.T) {
+	if !ReferenceIsValidName("HEAD") {
+		t.Errorf("HEAD should be a valid reference name")
+	}
+	if ReferenceIsValidName("HEAD1") {
+		t.Errorf("HEAD1 should not be a valid reference name")
+	}
+}
+
 func compareStringList(t *testing.T, expected, actual []string) {
 	for i, v := range expected {
 		if actual[i] != v {

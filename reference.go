@@ -315,6 +315,11 @@ func (v *Reference) IsTag() bool {
 	return C.git_reference_is_tag(v.ptr) == 1
 }
 
+// IsNote checks if the reference is a note.
+func (v *Reference) IsNote() bool {
+	return C.git_reference_is_note(v.ptr) == 1
+}
+
 func (v *Reference) Free() {
 	runtime.SetFinalizer(v, nil)
 	C.git_reference_free(v.ptr)
@@ -424,4 +429,23 @@ func (v *ReferenceIterator) Next() (*Reference, error) {
 func (v *ReferenceIterator) Free() {
 	runtime.SetFinalizer(v, nil)
 	C.git_reference_iterator_free(v.ptr)
+}
+
+// ReferenceIsValidName ensures the reference name is well-formed.
+//
+// Valid reference names must follow one of two patterns:
+//
+// 1. Top-level names must contain only capital letters and underscores,
+// and must begin and end with a letter. (e.g. "HEAD", "ORIG_HEAD").
+//
+// 2. Names prefixed with "refs/" can be almost anything. You must avoid
+// the characters '~', '^', ':', ' \ ', '?', '[', and '*', and the sequences
+// ".." and " @ {" which have special meaning to revparse.
+func ReferenceIsValidName(name string) bool {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+	if C.git_reference_is_valid_name(cname) == 1 {
+		return true
+	}
+	return false
 }
