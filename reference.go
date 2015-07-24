@@ -315,6 +315,11 @@ func (v *Reference) IsTag() bool {
 	return C.git_reference_is_tag(v.ptr) == 1
 }
 
+// IsNote checks if the reference is a note.
+func (v *Reference) IsNote() bool {
+	return C.git_reference_is_note(v.ptr) == 1
+}
+
 func (v *Reference) Free() {
 	runtime.SetFinalizer(v, nil)
 	C.git_reference_free(v.ptr)
