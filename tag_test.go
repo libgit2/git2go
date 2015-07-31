@@ -180,7 +180,7 @@ func createTestTag(t *testing.T, repo *Repository, commit *Commit) *Oid {
 		When:  time.Date(2013, 03, 06, 14, 30, 0, 0, loc),
 	}
 
-	tagId, err := repo.CreateTag("v0.0.0", commit, sig, "This is a tag")
+	tagId, err := repo.Tags.Create("v0.0.0", commit, sig, "This is a tag")
 	checkFatal(t, err)
 	return tagId
 }
@@ -194,7 +194,7 @@ func createTag(t *testing.T, repo *Repository, commit *Commit, name, message str
 		When:  time.Date(2013, 03, 06, 14, 30, 0, 0, loc),
 	}
 
-	tagId, err := repo.CreateTag(name, commit, sig, message)
+	tagId, err := repo.Tags.Create(name, commit, sig, message)
 	checkFatal(t, err)
 	return tagId
 }

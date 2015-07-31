@@ -321,36 +321,6 @@ func (v *Repository) CreateCommit(
 	return oid, nil
 }
 
-func (v *Repository) CreateTag(
-	name string, commit *Commit, tagger *Signature, message string) (*Oid, error) {
-
-	oid := new(Oid)
-
-	cname := C.CString(name)
-	defer C.free(unsafe.Pointer(cname))
-
-	cmessage := C.CString(message)
-	defer C.free(unsafe.Pointer(cmessage))
-
-	taggerSig, err := tagger.toC()
-	if err != nil {
-		return nil, err
-	}
-	defer C.git_signature_free(taggerSig)
-
-	ctarget := commit.gitObject.ptr
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ret := C.git_tag_create(oid.toC(), v.ptr, cname, ctarget, taggerSig, cmessage, 0)
-	if ret < 0 {
-		return nil, MakeGitError(ret)
-	}
-
-	return oid, nil
-}
-
 func (v *Odb) Free() {
 	runtime.SetFinalizer(v, nil)
 	C.git_odb_free(v.ptr)
