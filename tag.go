@@ -42,3 +42,7 @@ func (t Tag) TargetId() *Oid {
 func (t Tag) TargetType() ObjectType {
 	return ObjectType(C.git_tag_target_type(t.cast_ptr))
 }
+
+type TagsCollection struct {
+	repo *Repository
+}

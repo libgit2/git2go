@@ -27,6 +27,9 @@ type Repository struct {
 	// Notes represents the collection of notes and can be used to
 	// read, write and delete notes from this repository.
 	Notes      NoteCollection
+	// Tags represents the collection of tags and can be used to create,
+	// list and iterate tags in this repository.
+	Tags TagsCollection
 }
 
 func newRepositoryFromC(ptr *C.git_repository) *Repository {
@@ -36,6 +39,7 @@ func newRepositoryFromC(ptr *C.git_repository) *Repository {
 	repo.Submodules.repo = repo
 	repo.References.repo = repo
 	repo.Notes.repo      = repo
+	repo.Tags.repo = repo
 
 	runtime.SetFinalizer(repo, (*Repository).Free)
 
