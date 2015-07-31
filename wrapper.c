@@ -131,4 +131,9 @@ int _go_git_index_remove_all(git_index *index, const git_strarray *pathspec, voi
 	return git_index_remove_all(index, pathspec, cb, callback);
 }
 
+int _go_git_tag_foreach(git_repository *repo, void *payload)
+{
+    return git_tag_foreach(repo, (git_tag_foreach_cb)&gitTagForeachCb, payload);
+}
+
 /* EOF */

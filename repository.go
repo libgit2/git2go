@@ -27,6 +27,9 @@ type Repository struct {
 	// Notes represents the collection of notes and can be used to
 	// read, write and delete notes from this repository.
 	Notes      NoteCollection
+	// Tags represents the collection of tags and can be used to create,
+	// list and iterate tags in this repository.
+	Tags TagsCollection
 }
 
 func newRepositoryFromC(ptr *C.git_repository) *Repository {
@@ -36,6 +39,7 @@ func newRepositoryFromC(ptr *C.git_repository) *Repository {
 	repo.Submodules.repo = repo
 	repo.References.repo = repo
 	repo.Notes.repo      = repo
+	repo.Tags.repo = repo
 
 	runtime.SetFinalizer(repo, (*Repository).Free)
 
@@ -310,36 +314,6 @@ func (v *Repository) CreateCommit(
 		authorSig, committerSig,
 		nil, cmsg, tree.cast_ptr, C.size_t(nparents), parentsarg)
 
-	if ret < 0 {
-		return nil, MakeGitError(ret)
-	}
-
-	return oid, nil
-}
-
-func (v *Repository) CreateTag(
-	name string, commit *Commit, tagger *Signature, message string) (*Oid, error) {
-
-	oid := new(Oid)
-
-	cname := C.CString(name)
-	defer C.free(unsafe.Pointer(cname))
-
-	cmessage := C.CString(message)
-	defer C.free(unsafe.Pointer(cmessage))
-
-	taggerSig, err := tagger.toC()
-	if err != nil {
-		return nil, err
-	}
-	defer C.git_signature_free(taggerSig)
-
-	ctarget := commit.gitObject.ptr
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ret := C.git_tag_create(oid.toC(), v.ptr, cname, ctarget, taggerSig, cmessage, 0)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
