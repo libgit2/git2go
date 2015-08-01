@@ -102,3 +102,63 @@ func TestObjectOwner(t *testing.T) {
 	checkOwner(t, repo, commit)
 	checkOwner(t, repo, tree)
 }
+
+func TestObjectPeel(t *testing.T) {
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	commitID, treeID := seedTestRepo(t, repo)
+
+	var obj Object
+
+	commit, err := repo.LookupCommit(commitID)
+	checkFatal(t, err)
+
+	obj, err = commit.Peel(ObjectAny)
+	checkFatal(t, err)
+
+	if obj.Type() != ObjectTree {
+		t.Fatalf("Wrong object type when peeling a commit, expected tree, have %v", obj.Type())
+	}
+
+	obj, err = commit.Peel(ObjectTag)
+
+	if !IsErrorCode(err, ErrInvalidSpec) {
+		t.Fatalf("Wrong error when peeling a commit to a tag, expected ErrInvalidSpec, have %v", err)
+	}
+
+	tree, err := repo.LookupTree(treeID)
+	checkFatal(t, err)
+
+	obj, err = tree.Peel(ObjectAny)
+
+	if !IsErrorCode(err, ErrInvalidSpec) {
+		t.Fatalf("Wrong error when peeling a tree, expected ErrInvalidSpec, have %v", err)
+	}
+
+	entry := tree.EntryByName("README")
+
+	blob, err := repo.LookupBlob(entry.Id)
+	checkFatal(t, err)
+
+	obj, err = blob.Peel(ObjectAny)
+
+	if !IsErrorCode(err, ErrInvalidSpec) {
+		t.Fatalf("Wrong error when peeling a blob, expected ErrInvalidSpec, have %v", err)
+	}
+
+	tagID := createTestTag(t, repo, commit)
+
+	tag, err := repo.LookupTag(tagID)
+	checkFatal(t, err)
+
+	obj, err = tag.Peel(ObjectAny)
+	checkFatal(t, err)
+
+	if obj.Type() != ObjectCommit {
+		t.Fatalf("Wrong object type when peeling a tag, expected commit, have %v", obj.Type())
+	}
+
+	// TODO: Should test a tag that annotates a different object than a commit
+	// but it's impossible at the moment to tag such an object.
+}

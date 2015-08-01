@@ -22,6 +22,7 @@ type Object interface {
 	Id() *Oid
 	Type() ObjectType
 	Owner() *Repository
+	Peel(t ObjectType) (Object, error)
 }
 
 type gitObject struct {
@@ -67,6 +68,31 @@ func (o gitObject) Owner() *Repository {
 func (o *gitObject) Free() {
 	runtime.SetFinalizer(o, nil)
 	C.git_object_free(o.ptr)
+}
+
+// Peel recursively peels an object until an object of the specified type is met.
+//
+// If the query cannot be satisfied due to the object model, ErrInvalidSpec
+// will be returned (e.g. trying to peel a blob to a tree).
+//
+// If you pass ObjectAny as the target type, then the object will be peeled
+// until the type changes. A tag will be peeled until the referenced object
+// is no longer a tag, and a commit will be peeled to a tree. Any other object
+// type will return ErrInvalidSpec.
+//
+// If peeling a tag we discover an object which cannot be peeled to the target
+// type due to the object model, an error will be returned.
+func (o *gitObject) Peel(t ObjectType) (Object, error) {
+	var cobj *C.git_object
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if err := C.git_object_peel(&cobj, o.ptr, C.git_otype(t)); err < 0 {
+		return nil, MakeGitError(err)
+	}
+
+	return allocObject(cobj, o.repo), nil
 }
 
 func allocObject(cobj *C.git_object, repo *Repository) Object {
