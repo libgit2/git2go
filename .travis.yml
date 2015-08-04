@@ -1,6 +1,6 @@
 language: go
 
-sudo: false
+sudo: required
 
 install: ./script/install-libgit2.sh
 
