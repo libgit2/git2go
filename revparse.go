@@ -20,16 +20,16 @@ const (
 )
 
 type Revspec struct {
-	to    Object
-	from  Object
+	to    *Object
+	from  *Object
 	flags RevparseFlag
 }
 
-func (rs *Revspec) To() Object {
+func (rs *Revspec) To() *Object {
 	return rs.to
 }
 
-func (rs *Revspec) From() Object {
+func (rs *Revspec) From() *Object {
 	return rs.from
 }
 
@@ -38,8 +38,8 @@ func (rs *Revspec) Flags() RevparseFlag {
 }
 
 func newRevspecFromC(ptr *C.git_revspec, repo *Repository) *Revspec {
-	var to Object
-	var from Object
+	var to *Object
+	var from *Object
 
 	if ptr.to != nil {
 		to = allocObject(ptr.to, repo)
@@ -73,7 +73,7 @@ func (r *Repository) Revparse(spec string) (*Revspec, error) {
 	return newRevspecFromC(&crevspec, r), nil
 }
 
-func (v *Repository) RevparseSingle(spec string) (Object, error) {
+func (v *Repository) RevparseSingle(spec string) (*Object, error) {
 	cspec := C.CString(spec)
 	defer C.free(unsafe.Pointer(cspec))
 
@@ -90,7 +90,7 @@ func (v *Repository) RevparseSingle(spec string) (Object, error) {
 	return allocObject(ptr, v), nil
 }
 
-func (r *Repository) RevparseExt(spec string) (Object, *Reference, error) {
+func (r *Repository) RevparseExt(spec string) (*Object, *Reference, error) {
 	cspec := C.CString(spec)
 	defer C.free(unsafe.Pointer(cspec))
 

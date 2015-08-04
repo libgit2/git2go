@@ -13,7 +13,7 @@ import (
 
 // Tag
 type Tag struct {
-	gitObject
+	Object
 	cast_ptr *C.git_tag
 }
 
@@ -30,7 +30,7 @@ func (t Tag) Tagger() *Signature {
 	return newSignatureFromC(cast_ptr)
 }
 
-func (t Tag) Target() Object {
+func (t Tag) Target() *Object {
 	var ptr *C.git_object
 	ret := C.git_tag_target(&ptr, t.cast_ptr)
 
@@ -70,7 +70,7 @@ func (c *TagsCollection) Create(
 	}
 	defer C.git_signature_free(taggerSig)
 
-	ctarget := commit.gitObject.ptr
+	ctarget := commit.ptr
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -102,7 +102,7 @@ func (c *TagsCollection) CreateLightweight(name string, commit *Commit, force bo
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 
-	ctarget := commit.gitObject.ptr
+	ctarget := commit.ptr
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()

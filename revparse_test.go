@@ -46,7 +46,7 @@ func TestRevparseExt(t *testing.T) {
 	}
 }
 
-func checkObject(t *testing.T, obj Object, id *Oid) {
+func checkObject(t *testing.T, obj *Object, id *Oid) {
 	if obj == nil {
 		t.Fatalf("bad object")
 	}

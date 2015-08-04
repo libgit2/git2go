@@ -145,7 +145,7 @@ func (v *Repository) Index() (*Index, error) {
 	return newIndexFromC(ptr), nil
 }
 
-func (v *Repository) lookupType(id *Oid, t ObjectType) (Object, error) {
+func (v *Repository) lookupType(id *Oid, t ObjectType) (*Object, error) {
 	var ptr *C.git_object
 
 	runtime.LockOSThread()
@@ -159,7 +159,7 @@ func (v *Repository) lookupType(id *Oid, t ObjectType) (Object, error) {
 	return allocObject(ptr, v), nil
 }
 
-func (v *Repository) Lookup(id *Oid) (Object, error) {
+func (v *Repository) Lookup(id *Oid) (*Object, error) {
 	return v.lookupType(id, ObjectAny)
 }
 
@@ -169,7 +169,7 @@ func (v *Repository) LookupTree(id *Oid) (*Tree, error) {
 		return nil, err
 	}
 
-	return obj.(*Tree), nil
+	return obj.AsTree()
 }
 
 func (v *Repository) LookupCommit(id *Oid) (*Commit, error) {
@@ -178,7 +178,7 @@ func (v *Repository) LookupCommit(id *Oid) (*Commit, error) {
 		return nil, err
 	}
 
-	return obj.(*Commit), nil
+	return obj.AsCommit()
 }
 
 func (v *Repository) LookupBlob(id *Oid) (*Blob, error) {
@@ -187,7 +187,7 @@ func (v *Repository) LookupBlob(id *Oid) (*Blob, error) {
 		return nil, err
 	}
 
-	return obj.(*Blob), nil
+	return obj.AsBlob()
 }
 
 func (v *Repository) LookupTag(id *Oid) (*Tag, error) {
@@ -196,7 +196,7 @@ func (v *Repository) LookupTag(id *Oid) (*Tag, error) {
 		return nil, err
 	}
 
-	return obj.(*Tag), nil
+	return obj.AsTag()
 }
 
 func (v *Repository) Head() (*Reference, error) {

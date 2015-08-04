@@ -23,7 +23,7 @@ const (
 )
 
 type Tree struct {
-	gitObject
+	Object
 	cast_ptr *C.git_tree
 }
 
