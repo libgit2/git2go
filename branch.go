@@ -94,6 +94,7 @@ func (repo *Repository) CreateBranch(branchName string, target *Commit, force bo
 
 	var ptr *C.git_reference
 	cBranchName := C.CString(branchName)
+	defer C.free(unsafe.Pointer(cBranchName))
 	cForce := cbool(force)
 
 	cSignature, err := signature.toC()
@@ -134,6 +135,7 @@ func (b *Branch) Delete() error {
 func (b *Branch) Move(newBranchName string, force bool, signature *Signature, msg string) (*Branch, error) {
 	var ptr *C.git_reference
 	cNewBranchName := C.CString(newBranchName)
+	defer C.free(unsafe.Pointer(cNewBranchName))
 	cForce := cbool(force)
 
 	cSignature, err := signature.toC()
@@ -180,6 +182,7 @@ func (repo *Repository) LookupBranch(branchName string, bt BranchType) (*Branch,
 	var ptr *C.git_reference
 
 	cName := C.CString(branchName)
+	defer C.free(unsafe.Pointer(cName))
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -208,6 +211,7 @@ func (b *Branch) Name() (string, error) {
 
 func (repo *Repository) RemoteName(canonicalBranchName string) (string, error) {
 	cName := C.CString(canonicalBranchName)
+	defer C.free(unsafe.Pointer(cName))
 
 	nameBuf := C.git_buf{}
 
@@ -225,6 +229,7 @@ func (repo *Repository) RemoteName(canonicalBranchName string) (string, error) {
 
 func (b *Branch) SetUpstream(upstreamName string) error {
 	cName := C.CString(upstreamName)
+	defer C.free(unsafe.Pointer(cName))
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -251,6 +256,7 @@ func (b *Branch) Upstream() (*Reference, error) {
 
 func (repo *Repository) UpstreamName(canonicalBranchName string) (string, error) {
 	cName := C.CString(canonicalBranchName)
+	defer C.free(unsafe.Pointer(cName))
 
 	nameBuf := C.git_buf{}
 
