@@ -394,6 +394,7 @@ func MergeFile(ancestor MergeFileInput, ours MergeFileInput, theirs MergeFileInp
 			return nil, MakeGitError(ecode)
 		}
 		populateCMergeFileOptions(copts, *options)
+		defer freeCMergeFileOptions(copts)
 	}
 
 	runtime.LockOSThread()
