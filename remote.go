@@ -267,6 +267,15 @@ func RemoteIsValidName(name string) bool {
 	return false
 }
 
+func ReferenceIsValidName(name string) bool {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+	if C.git_reference_is_valid_name(cname) == 1 {
+		return true
+	}
+	return false
+}
+
 func (r *Remote) SetCallbacks(callbacks *RemoteCallbacks) error {
 	r.callbacks = *callbacks
 
@@ -638,6 +647,22 @@ func (o *Remote) Fetch(refspecs []string, sig *Signature, msg string) error {
 	return nil
 }
 
+func (o *Remote) Download(refspecs []string) error {
+	crefspecs := C.git_strarray{}
+	crefspecs.count = C.size_t(len(refspecs))
+	crefspecs.strings = makeCStringsFromStrings(refspecs)
+	defer freeStrarray(&crefspecs)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_remote_download(o.ptr, &crefspecs)
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+	return nil
+}
+
 func (o *Remote) ConnectFetch() error {
 	return o.Connect(ConnectDirectionFetch)
 }
@@ -654,6 +679,13 @@ func (o *Remote) Connect(direction ConnectDirection) error {
 		return MakeGitError(ret)
 	}
 	return nil
+}
+
+func (o *Remote) Disconnect() {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	C.git_remote_disconnect(o.ptr)
 }
 
 func (o *Remote) Ls(filterRefs ...string) ([]RemoteHead, error) {
