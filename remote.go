@@ -214,7 +214,9 @@ func credentialsCallback(_cred **C.git_cred, _url *C.char, _username_from_url *C
 	url := C.GoString(_url)
 	username_from_url := C.GoString(_username_from_url)
 	ret, cred := callbacks.CredentialsCallback(url, username_from_url, (CredType)(allowed_types))
-	*_cred = cred.ptr
+	if cred != nil {
+		*_cred = cred.ptr
+	}
 	return int(ret)
 }
 
