@@ -51,8 +51,8 @@ func newIndexEntryFromC(entry *C.git_index_entry) *IndexEntry {
 		return nil
 	}
 	return &IndexEntry{
-		IndexTime { int32(entry.ctime.seconds), uint32(entry.ctime.nanoseconds) },
-		IndexTime { int32(entry.mtime.seconds), uint32(entry.mtime.nanoseconds) },
+		IndexTime{int32(entry.ctime.seconds), uint32(entry.ctime.nanoseconds)},
+		IndexTime{int32(entry.mtime.seconds), uint32(entry.mtime.nanoseconds)},
 		Filemode(entry.mode),
 		uint32(entry.uid),
 		uint32(entry.gid),
@@ -280,7 +280,7 @@ func (v *Index) ReadTree(tree *Tree) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_index_read_tree(v.ptr, tree.cast_ptr);
+	ret := C.git_index_read_tree(v.ptr, tree.cast_ptr)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}

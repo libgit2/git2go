@@ -39,7 +39,7 @@ func TestCertificateCheck(t *testing.T) {
 	remote, err := repo.Remotes.Create("origin", "https://github.com/libgit2/TestGitRepository")
 	checkFatal(t, err)
 
-	options := FetchOptions {
+	options := FetchOptions{
 		RemoteCallbacks: RemoteCallbacks{
 			CertificateCheckCallback: func(cert *Certificate, valid bool, hostname string) ErrorCode {
 				return assertHostname(cert, valid, hostname, t)

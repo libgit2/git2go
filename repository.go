@@ -12,11 +12,11 @@ import (
 
 // Repository
 type Repository struct {
-	ptr     *C.git_repository
+	ptr *C.git_repository
 	// Remotes represents the collection of remotes and can be
 	// used to add, remove and configure remotes for this
 	// repository.
-	Remotes  RemoteCollection
+	Remotes RemoteCollection
 	// Submodules represents the collection of submodules and can
 	// be used to add, remove and configure submodules in this
 	// repostiory.
@@ -26,7 +26,7 @@ type Repository struct {
 	References ReferenceCollection
 	// Notes represents the collection of notes and can be used to
 	// read, write and delete notes from this repository.
-	Notes      NoteCollection
+	Notes NoteCollection
 	// Tags represents the collection of tags and can be used to create,
 	// list and iterate tags in this repository.
 	Tags TagsCollection
@@ -35,10 +35,10 @@ type Repository struct {
 func newRepositoryFromC(ptr *C.git_repository) *Repository {
 	repo := &Repository{ptr: ptr}
 
-	repo.Remotes.repo    = repo
+	repo.Remotes.repo = repo
 	repo.Submodules.repo = repo
 	repo.References.repo = repo
-	repo.Notes.repo      = repo
+	repo.Notes.repo = repo
 	repo.Tags.repo = repo
 
 	runtime.SetFinalizer(repo, (*Repository).Free)

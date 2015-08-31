@@ -85,8 +85,8 @@ const (
 )
 
 type MergeOptions struct {
-	Version     uint
-	TreeFlags   MergeTreeFlag
+	Version   uint
+	TreeFlags MergeTreeFlag
 
 	RenameThreshold uint
 	TargetLimit     uint
@@ -98,7 +98,7 @@ type MergeOptions struct {
 func mergeOptionsFromC(opts *C.git_merge_options) MergeOptions {
 	return MergeOptions{
 		Version:         uint(opts.version),
-		TreeFlags:           MergeTreeFlag(opts.tree_flags),
+		TreeFlags:       MergeTreeFlag(opts.tree_flags),
 		RenameThreshold: uint(opts.rename_threshold),
 		TargetLimit:     uint(opts.target_limit),
 		FileFavor:       MergeFileFavor(opts.file_favor),
@@ -259,10 +259,10 @@ func (r *Repository) MergeBases(one, two *Oid) ([]*Oid, error) {
 	}
 
 	oids := make([]*Oid, coids.count)
-	hdr := reflect.SliceHeader {
+	hdr := reflect.SliceHeader{
 		Data: uintptr(unsafe.Pointer(coids.ids)),
-		Len: int(coids.count),
-		Cap: int(coids.count),
+		Len:  int(coids.count),
+		Cap:  int(coids.count),
 	}
 
 	goSlice := *(*[]C.git_oid)(unsafe.Pointer(&hdr))
