@@ -10,6 +10,7 @@ extern git_annotated_commit* _go_git_annotated_commit_array_get(git_annotated_co
 */
 import "C"
 import (
+	"reflect"
 	"runtime"
 	"unsafe"
 )
@@ -243,6 +244,36 @@ func (r *Repository) MergeBase(one *Oid, two *Oid) (*Oid, error) {
 	return newOidFromC(&oid), nil
 }
 
+// MergeBases retrieves the list of merge bases between two commits.
+//
+// If none are found, an empty slice is returned and the error is set
+// approprately
+func (r *Repository) MergeBases(one, two *Oid) ([]*Oid, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var coids C.git_oidarray
+	ret := C.git_merge_bases(&coids, r.ptr, one.toC(), two.toC())
+	if ret < 0 {
+		return make([]*Oid, 0), MakeGitError(ret)
+	}
+
+	oids := make([]*Oid, coids.count)
+	hdr := reflect.SliceHeader {
+		Data: uintptr(unsafe.Pointer(coids.ids)),
+		Len: int(coids.count),
+		Cap: int(coids.count),
+	}
+
+	goSlice := *(*[]C.git_oid)(unsafe.Pointer(&hdr))
+
+	for i, cid := range goSlice {
+		oids[i] = newOidFromC(&cid)
+	}
+
+	return oids, nil
+}
+
 //TODO: int git_merge_base_many(git_oid *out, git_repository *repo, size_t length, const git_oid input_array[]);
 //TODO: GIT_EXTERN(int) git_merge_base_octopus(git_oid *out,git_repository *repo,size_t length,const git_oid input_array[]);
 
@@ -363,6 +394,7 @@ func MergeFile(ancestor MergeFileInput, ours MergeFileInput, theirs MergeFileInp
 			return nil, MakeGitError(ecode)
 		}
 		populateCMergeFileOptions(copts, *options)
+		defer freeCMergeFileOptions(copts)
 	}
 
 	runtime.LockOSThread()

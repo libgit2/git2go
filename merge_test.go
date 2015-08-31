@@ -2,6 +2,7 @@ package git
 
 import (
 	"testing"
+	"time"
 )
 
 func TestMergeWithSelf(t *testing.T) {
@@ -86,6 +87,64 @@ func TestMergeTreesWithoutAncestor(t *testing.T) {
 	_, err = index.GetConflict("README")
 	checkFatal(t, err)
 
+}
+
+func appendCommit(t *testing.T, repo *Repository) (*Oid, *Oid) {
+	loc, err := time.LoadLocation("Europe/Berlin")
+	checkFatal(t, err)
+	sig := &Signature{
+		Name:  "Rand Om Hacker",
+		Email: "random@hacker.com",
+		When:  time.Date(2013, 03, 06, 14, 30, 0, 0, loc),
+	}
+
+	idx, err := repo.Index()
+	checkFatal(t, err)
+	err = idx.AddByPath("README")
+	checkFatal(t, err)
+	treeId, err := idx.WriteTree()
+	checkFatal(t, err)
+
+	message := "This is another commit\n"
+	tree, err := repo.LookupTree(treeId)
+	checkFatal(t, err)
+
+	ref, err := repo.LookupReference("HEAD")
+	checkFatal(t, err)
+
+	parent, err := ref.Peel(ObjectCommit)
+	checkFatal(t, err)
+
+	commitId, err := repo.CreateCommit("HEAD", sig, sig, message, tree, parent.(*Commit))
+	checkFatal(t, err)
+
+	return commitId, treeId
+}
+
+func TestMergeBase(t *testing.T) {
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	commitAId, _ := seedTestRepo(t, repo)
+	commitBId, _ := appendCommit(t, repo)
+
+	mergeBase, err := repo.MergeBase(commitAId, commitBId)
+	checkFatal(t, err)
+
+	if mergeBase.Cmp(commitAId) != 0 {
+		t.Fatalf("unexpected merge base")
+	}
+
+	mergeBases, err := repo.MergeBases(commitAId, commitBId)
+	checkFatal(t, err)
+
+	if len(mergeBases) != 1 {
+		t.Fatalf("expected merge bases len to be 1, got %v", len(mergeBases))
+	}
+
+	if mergeBases[0].Cmp(commitAId) != 0 {
+		t.Fatalf("unexpected merge base")
+	}
 }
 
 func compareBytes(t *testing.T, expected, actual []byte) {
