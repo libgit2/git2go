@@ -11,7 +11,7 @@ func TestMergeWithSelf(t *testing.T) {
 
 	seedTestRepo(t, repo)
 
-	master, err := repo.LookupReference("refs/heads/master")
+	master, err := repo.References.Lookup("refs/heads/master")
 	checkFatal(t, err)
 
 	mergeHead, err := repo.AnnotatedCommitFromRef(master)
@@ -29,7 +29,7 @@ func TestMergeAnalysisWithSelf(t *testing.T) {
 
 	seedTestRepo(t, repo)
 
-	master, err := repo.LookupReference("refs/heads/master")
+	master, err := repo.References.Lookup("refs/heads/master")
 	checkFatal(t, err)
 
 	mergeHead, err := repo.AnnotatedCommitFromRef(master)
@@ -109,7 +109,7 @@ func appendCommit(t *testing.T, repo *Repository) (*Oid, *Oid) {
 	tree, err := repo.LookupTree(treeId)
 	checkFatal(t, err)
 
-	ref, err := repo.LookupReference("HEAD")
+	ref, err := repo.References.Lookup("HEAD")
 	checkFatal(t, err)
 
 	parent, err := ref.Peel(ObjectCommit)

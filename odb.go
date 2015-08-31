@@ -11,6 +11,7 @@ import (
 	"reflect"
 	"runtime"
 	"unsafe"
+	"fmt"
 )
 
 type Odb struct {
@@ -106,7 +107,9 @@ func odbForEachCb(id *C.git_oid, handle unsafe.Pointer) int {
 	}
 
 	err := data.callback(newOidFromC(id))
+	fmt.Println("err %v", err)
 	if err != nil {
+		fmt.Println("returning EUSER")
 		data.err = err
 		return C.GIT_EUSER
 	}
@@ -127,6 +130,7 @@ func (v *Odb) ForEach(callback OdbForEachCallback) error {
 	defer pointerHandles.Untrack(handle)
 
 	ret := C._go_git_odb_foreach(v.ptr, handle)
+	fmt.Println("ret %v", ret);
 	if ret == C.GIT_EUSER {
 		return data.err
 	} else if ret < 0 {
@@ -172,13 +176,13 @@ func (v *Odb) NewReadStream(id *Oid) (*OdbReadStream, error) {
 // NewWriteStream opens a write stream to the ODB, which allows you to
 // create a new object in the database. The size and type must be
 // known in advance
-func (v *Odb) NewWriteStream(size int, otype ObjectType) (*OdbWriteStream, error) {
+func (v *Odb) NewWriteStream(size int64, otype ObjectType) (*OdbWriteStream, error) {
 	stream := new(OdbWriteStream)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_odb_open_wstream(&stream.ptr, v.ptr, C.size_t(size), C.git_otype(otype))
+	ret := C.git_odb_open_wstream(&stream.ptr, v.ptr, C.git_off_t(size), C.git_otype(otype))
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}

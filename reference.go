@@ -21,13 +21,137 @@ type Reference struct {
 	repo *Repository
 }
 
+type ReferenceCollection struct {
+	repo *Repository
+}
+
+func (c *ReferenceCollection) Lookup(name string) (*Reference, error) {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+	var ptr *C.git_reference
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C.git_reference_lookup(&ptr, c.repo.ptr, cname)
+	if ecode < 0 {
+		return nil, MakeGitError(ecode)
+	}
+
+	return newReferenceFromC(ptr, c.repo), nil
+}
+
+func (c *ReferenceCollection) Create(name string, id *Oid, force bool, msg string) (*Reference, error) {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+
+	var cmsg *C.char
+	if msg == "" {
+		cmsg = nil
+	} else {
+		cmsg = C.CString(msg)
+		defer C.free(unsafe.Pointer(cmsg))
+	}
+
+	var ptr *C.git_reference
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C.git_reference_create(&ptr, c.repo.ptr, cname, id.toC(), cbool(force), cmsg)
+	if ecode < 0 {
+		return nil, MakeGitError(ecode)
+	}
+
+	return newReferenceFromC(ptr, c.repo), nil
+}
+
+func (c *ReferenceCollection) CreateSymbolic(name, target string, force bool, msg string) (*Reference, error) {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+
+	ctarget := C.CString(target)
+	defer C.free(unsafe.Pointer(ctarget))
+
+	var cmsg *C.char
+	if msg == "" {
+		cmsg = nil
+	} else {
+		cmsg = C.CString(msg)
+		defer C.free(unsafe.Pointer(cmsg))
+	}
+
+	var ptr *C.git_reference
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C.git_reference_symbolic_create(&ptr, c.repo.ptr, cname, ctarget, cbool(force), cmsg)
+	if ecode < 0 {
+		return nil, MakeGitError(ecode)
+	}
+
+	return newReferenceFromC(ptr, c.repo), nil
+}
+
+// EnsureLog ensures that there is a reflog for the given reference
+// name and creates an empty one if necessary.
+func (c *ReferenceCollection) EnsureLog(name string) error {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_reference_ensure_log(c.repo.ptr, cname)
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+
+	return nil
+}
+
+// HasLog returns whether there is a reflog for the given reference
+// name
+func (c *ReferenceCollection) HasLog(name string) (bool, error) {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_reference_has_log(c.repo.ptr, cname)
+	if ret < 0 {
+		return false, MakeGitError(ret)
+	}
+
+	return ret == 1, nil
+}
+
+// Dwim looks up a reference by DWIMing its short name
+func (c *ReferenceCollection) Dwim(name string) (*Reference, error) {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var ptr *C.git_reference
+	ret := C.git_reference_dwim(&ptr, c.repo.ptr, cname)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return newReferenceFromC(ptr, c.repo), nil
+}
+
 func newReferenceFromC(ptr *C.git_reference, repo *Repository) *Reference {
 	ref := &Reference{ptr: ptr, repo: repo}
 	runtime.SetFinalizer(ref, (*Reference).Free)
 	return ref
 }
 
-func (v *Reference) SetSymbolicTarget(target string, sig *Signature, msg string) (*Reference, error) {
+func (v *Reference) SetSymbolicTarget(target string, msg string) (*Reference, error) {
 	var ptr *C.git_reference
 
 	ctarget := C.CString(target)
@@ -36,12 +160,6 @@ func (v *Reference) SetSymbolicTarget(target string, sig *Signature, msg string)
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	csig, err := sig.toC()
-	if err != nil {
-		return nil, err
-	}
-	defer C.git_signature_free(csig)
-
 	var cmsg *C.char
 	if msg == "" {
 		cmsg = nil
@@ -50,7 +168,7 @@ func (v *Reference) SetSymbolicTarget(target string, sig *Signature, msg string)
 		defer C.free(unsafe.Pointer(cmsg))
 	}
 
-	ret := C.git_reference_symbolic_set_target(&ptr, v.ptr, ctarget, csig, cmsg)
+	ret := C.git_reference_symbolic_set_target(&ptr, v.ptr, ctarget, cmsg)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -58,17 +176,11 @@ func (v *Reference) SetSymbolicTarget(target string, sig *Signature, msg string)
 	return newReferenceFromC(ptr, v.repo), nil
 }
 
-func (v *Reference) SetTarget(target *Oid, sig *Signature, msg string) (*Reference, error) {
+func (v *Reference) SetTarget(target *Oid, msg string) (*Reference, error) {
 	var ptr *C.git_reference
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-
-	csig, err := sig.toC()
-	if err != nil {
-		return nil, err
-	}
-	defer C.git_signature_free(csig)
 
 	var cmsg *C.char
 	if msg == "" {
@@ -78,7 +190,7 @@ func (v *Reference) SetTarget(target *Oid, sig *Signature, msg string) (*Referen
 		defer C.free(unsafe.Pointer(cmsg))
 	}
 
-	ret := C.git_reference_set_target(&ptr, v.ptr, target.toC(), csig, cmsg)
+	ret := C.git_reference_set_target(&ptr, v.ptr, target.toC(), cmsg)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -100,16 +212,10 @@ func (v *Reference) Resolve() (*Reference, error) {
 	return newReferenceFromC(ptr, v.repo), nil
 }
 
-func (v *Reference) Rename(name string, force bool, sig *Signature, msg string) (*Reference, error) {
+func (v *Reference) Rename(name string, force bool, msg string) (*Reference, error) {
 	var ptr *C.git_reference
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
-
-	csig, err := sig.toC()
-	if err != nil {
-		return nil, err
-	}
-	defer C.git_signature_free(csig)
 
 	var cmsg *C.char
 	if msg == "" {
@@ -122,7 +228,7 @@ func (v *Reference) Rename(name string, force bool, sig *Signature, msg string) 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_reference_rename(&ptr, v.ptr, cname, cbool(force), csig, cmsg)
+	ret := C.git_reference_rename(&ptr, v.ptr, cname, cbool(force), cmsg)
 
 	if ret < 0 {
 		return nil, MakeGitError(ret)
@@ -207,6 +313,11 @@ func (v *Reference) IsRemote() bool {
 
 func (v *Reference) IsTag() bool {
 	return C.git_reference_is_tag(v.ptr) == 1
+}
+
+// IsNote checks if the reference is a note.
+func (v *Reference) IsNote() bool {
+	return C.git_reference_is_note(v.ptr) == 1
 }
 
 func (v *Reference) Free() {
@@ -318,4 +429,23 @@ func (v *ReferenceIterator) Next() (*Reference, error) {
 func (v *ReferenceIterator) Free() {
 	runtime.SetFinalizer(v, nil)
 	C.git_reference_iterator_free(v.ptr)
+}
+
+// ReferenceIsValidName ensures the reference name is well-formed.
+//
+// Valid reference names must follow one of two patterns:
+//
+// 1. Top-level names must contain only capital letters and underscores,
+// and must begin and end with a letter. (e.g. "HEAD", "ORIG_HEAD").
+//
+// 2. Names prefixed with "refs/" can be almost anything. You must avoid
+// the characters '~', '^', ':', ' \ ', '?', '[', and '*', and the sequences
+// ".." and " @ {" which have special meaning to revparse.
+func ReferenceIsValidName(name string) bool {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+	if C.git_reference_is_valid_name(cname) == 1 {
+		return true
+	}
+	return false
 }

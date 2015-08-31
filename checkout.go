@@ -15,18 +15,24 @@ type CheckoutStrategy uint
 const (
 	CheckoutNone                      CheckoutStrategy = C.GIT_CHECKOUT_NONE                         // Dry run, no actual updates
 	CheckoutSafe                      CheckoutStrategy = C.GIT_CHECKOUT_SAFE                         // Allow safe updates that cannot overwrite uncommitted data
-	CheckoutSafeCreate                CheckoutStrategy = C.GIT_CHECKOUT_SAFE_CREATE                  // Allow safe updates plus creation of missing files
 	CheckoutForce                     CheckoutStrategy = C.GIT_CHECKOUT_FORCE                        // Allow all updates to force working directory to look like index
+	CheckoutRecreateMissing           CheckoutStrategy = C.GIT_CHECKOUT_RECREATE_MISSING             // Allow checkout to recreate missing files
 	CheckoutAllowConflicts            CheckoutStrategy = C.GIT_CHECKOUT_ALLOW_CONFLICTS              // Allow checkout to make safe updates even if conflicts are found
 	CheckoutRemoveUntracked           CheckoutStrategy = C.GIT_CHECKOUT_REMOVE_UNTRACKED             // Remove untracked files not in index (that are not ignored)
 	CheckoutRemoveIgnored             CheckoutStrategy = C.GIT_CHECKOUT_REMOVE_IGNORED               // Remove ignored files not in index
 	CheckoutUpdateOnly                CheckoutStrategy = C.GIT_CHECKOUT_UPDATE_ONLY                  // Only update existing files, don't create new ones
 	CheckoutDontUpdateIndex           CheckoutStrategy = C.GIT_CHECKOUT_DONT_UPDATE_INDEX            // Normally checkout updates index entries as it goes; this stops that
 	CheckoutNoRefresh                 CheckoutStrategy = C.GIT_CHECKOUT_NO_REFRESH                   // Don't refresh index/config/etc before doing checkout
+	CheckoutSkipUnmerged              CheckoutStrategy = C.GIT_CHECKOUT_SKIP_UNMERGED                // Allow checkout to skip unmerged files
+	CheckoutUserOurs                  CheckoutStrategy = C.GIT_CHECKOUT_USE_OURS                     // For unmerged files, checkout stage 2 from index
+	CheckoutUseTheirs                 CheckoutStrategy = C.GIT_CHECKOUT_USE_THEIRS                   // For unmerged files, checkout stage 3 from index
 	CheckoutDisablePathspecMatch      CheckoutStrategy = C.GIT_CHECKOUT_DISABLE_PATHSPEC_MATCH       // Treat pathspec as simple list of exact match file paths
-	CheckoutSkipUnmerged              CheckoutStrategy = C.GIT_CHECKOUT_SKIP_UNMERGED                // Allow checkout to skip unmerged files (NOT IMPLEMENTED)
-	CheckoutUserOurs                  CheckoutStrategy = C.GIT_CHECKOUT_USE_OURS                     // For unmerged files, checkout stage 2 from index (NOT IMPLEMENTED)
-	CheckoutUseTheirs                 CheckoutStrategy = C.GIT_CHECKOUT_USE_THEIRS                   // For unmerged files, checkout stage 3 from index (NOT IMPLEMENTED)
+	CheckoutSkipLockedDirectories     CheckoutStrategy = C.GIT_CHECKOUT_SKIP_LOCKED_DIRECTORIES      // Ignore directories in use, they will be left empty
+	CheckoutDontOverwriteIgnored      CheckoutStrategy = C.GIT_CHECKOUT_DONT_OVERWRITE_IGNORED       // Don't overwrite ignored files that exist in the checkout target
+	CheckoutConflictStyleMerge        CheckoutStrategy = C.GIT_CHECKOUT_CONFLICT_STYLE_MERGE         // Write normal merge files for conflicts
+	CheckoutConflictStyleDiff3        CheckoutStrategy = C.GIT_CHECKOUT_CONFLICT_STYLE_DIFF3         // Include common ancestor data in diff3 format files for conflicts
+	CheckoutDontRemoveExisting        CheckoutStrategy = C.GIT_CHECKOUT_DONT_REMOVE_EXISTING         // Don't overwrite existing files or folders
+	CheckoutDontWriteIndex            CheckoutStrategy = C.GIT_CHECKOUT_DONT_WRITE_INDEX             // Normally checkout writes the index upon completion; this prevents that
 	CheckoutUpdateSubmodules          CheckoutStrategy = C.GIT_CHECKOUT_UPDATE_SUBMODULES            // Recursively checkout submodules with same options (NOT IMPLEMENTED)
 	CheckoutUpdateSubmodulesIfChanged CheckoutStrategy = C.GIT_CHECKOUT_UPDATE_SUBMODULES_IF_CHANGED // Recursively checkout submodules if HEAD moved in super repo (NOT IMPLEMENTED)
 )

@@ -34,7 +34,7 @@ func TestRevparseExt(t *testing.T) {
 
 	_, treeId := seedTestRepo(t, repo)
 
-	ref, err := repo.CreateReference("refs/heads/master", treeId, true, nil, "")
+	ref, err := repo.References.Create("refs/heads/master", treeId, true, "")
 	checkFatal(t, err)
 
 	obj, ref, err := repo.RevparseExt("master")

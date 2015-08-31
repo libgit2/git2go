@@ -11,17 +11,17 @@ func TestRemotePush(t *testing.T) {
 	localRepo := createTestRepo(t)
 	defer cleanupTestRepo(t, localRepo)
 
-	remote, err := localRepo.CreateRemote("test_push", repo.Path())
+	remote, err := localRepo.Remotes.Create("test_push", repo.Path())
 	checkFatal(t, err)
 
 	seedTestRepo(t, localRepo)
 
-	err = remote.Push([]string{"refs/heads/master"}, nil, nil, "")
+	err = remote.Push([]string{"refs/heads/master"}, nil)
 	checkFatal(t, err)
 
-	_, err = localRepo.LookupReference("refs/remotes/test_push/master")
+	_, err = localRepo.References.Lookup("refs/remotes/test_push/master")
 	checkFatal(t, err)
 
-	_, err = repo.LookupReference("refs/heads/master")
+	_, err = repo.References.Lookup("refs/heads/master")
 	checkFatal(t, err)
 }
