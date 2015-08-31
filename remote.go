@@ -153,6 +153,9 @@ type HostkeyCertificate struct {
 }
 
 type PushOptions struct {
+	// Callbacks to use for this push operation
+	RemoteCallbacks RemoteCallbacks
+
 	PbParallelism uint
 }
 
@@ -211,7 +214,9 @@ func credentialsCallback(_cred **C.git_cred, _url *C.char, _username_from_url *C
 	url := C.GoString(_url)
 	username_from_url := C.GoString(_username_from_url)
 	ret, cred := callbacks.CredentialsCallback(url, username_from_url, (CredType)(allowed_types))
-	*_cred = cred.ptr
+	if cred != nil {
+		*_cred = cred.ptr
+	}
 	return int(ret)
 }
 
@@ -591,6 +596,17 @@ func populateFetchOptions(options *C.git_fetch_options, opts *FetchOptions) {
 	options.download_tags = C.git_remote_autotag_option_t(opts.DownloadTags)
 }
 
+func populatePushOptions(options *C.git_push_options, opts *PushOptions) {
+	C.git_push_init_options(options, C.GIT_PUSH_OPTIONS_VERSION)
+	if opts == nil {
+		return
+	}
+
+	options.pb_parallelism = C.uint(opts.PbParallelism)
+
+	populateRemoteCallbacks(&options.callbacks, &opts.RemoteCallbacks)
+}
+
 // Fetch performs a fetch operation. refspecs specifies which refspecs
 // to use for this fetch, use an empty list to use the refspecs from
 // the configuration; msg specifies what to use for the reflog
@@ -689,22 +705,19 @@ func (o *Remote) Ls(filterRefs ...string) ([]RemoteHead, error) {
 }
 
 func (o *Remote) Push(refspecs []string, opts *PushOptions) error {
-	var copts C.git_push_options
-	C.git_push_init_options(&copts, C.GIT_PUSH_OPTIONS_VERSION)
-	if opts != nil {
-		copts.pb_parallelism = C.uint(opts.PbParallelism)
-	}
-
 	crefspecs := C.git_strarray{}
 	crefspecs.count = C.size_t(len(refspecs))
 	crefspecs.strings = makeCStringsFromStrings(refspecs)
 	defer freeStrarray(&crefspecs)
 
+	var coptions C.git_push_options
+	populatePushOptions(&coptions, opts)
+	defer untrackCalbacksPayload(&coptions.callbacks)
+
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-	defer untrackCalbacksPayload(&copts.callbacks)
 
-	ret := C.git_remote_push(o.ptr, &crefspecs, &copts)
+	ret := C.git_remote_push(o.ptr, &crefspecs, &coptions)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
