@@ -14,9 +14,8 @@ import (
 // SubmoduleUpdateOptions
 type SubmoduleUpdateOptions struct {
 	*CheckoutOpts
-	*RemoteCallbacks
+	*FetchOptions
 	CloneCheckoutStrategy CheckoutStrategy
-	Signature             *Signature
 }
 
 // Submodule
@@ -27,7 +26,6 @@ type Submodule struct {
 type SubmoduleUpdate int
 
 const (
-	SubmoduleUpdateReset    SubmoduleUpdate = C.GIT_SUBMODULE_UPDATE_RESET
 	SubmoduleUpdateCheckout SubmoduleUpdate = C.GIT_SUBMODULE_UPDATE_CHECKOUT
 	SubmoduleUpdateRebase   SubmoduleUpdate = C.GIT_SUBMODULE_UPDATE_REBASE
 	SubmoduleUpdateMerge    SubmoduleUpdate = C.GIT_SUBMODULE_UPDATE_MERGE
@@ -37,7 +35,6 @@ const (
 type SubmoduleIgnore int
 
 const (
-	SubmoduleIgnoreReset     SubmoduleIgnore = C.GIT_SUBMODULE_IGNORE_RESET
 	SubmoduleIgnoreNone      SubmoduleIgnore = C.GIT_SUBMODULE_IGNORE_NONE
 	SubmoduleIgnoreUntracked SubmoduleIgnore = C.GIT_SUBMODULE_IGNORE_UNTRACKED
 	SubmoduleIgnoreDirty     SubmoduleIgnore = C.GIT_SUBMODULE_IGNORE_DIRTY
@@ -71,13 +68,17 @@ const (
 	SubmoduleRecurseOndemand SubmoduleRecurse = C.GIT_SUBMODULE_RECURSE_ONDEMAND
 )
 
+type SubmoduleCollection struct {
+	repo *Repository
+}
+
 func SubmoduleStatusIsUnmodified(status int) bool {
 	o := SubmoduleStatus(status) & ^(SubmoduleStatusInHead | SubmoduleStatusInIndex |
 		SubmoduleStatusInConfig | SubmoduleStatusInWd)
 	return o == 0
 }
 
-func (repo *Repository) LookupSubmodule(name string) (*Submodule, error) {
+func (c *SubmoduleCollection) Lookup(name string) (*Submodule, error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 
@@ -86,7 +87,7 @@ func (repo *Repository) LookupSubmodule(name string) (*Submodule, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_submodule_lookup(&sub.ptr, repo.ptr, cname)
+	ret := C.git_submodule_lookup(&sub.ptr, c.repo.ptr, cname)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -107,21 +108,21 @@ func SubmoduleVisitor(csub unsafe.Pointer, name *C.char, handle unsafe.Pointer) 
 	}
 }
 
-func (repo *Repository) ForeachSubmodule(cbk SubmoduleCbk) error {
+func (c *SubmoduleCollection) Foreach(cbk SubmoduleCbk) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
 	handle := pointerHandles.Track(cbk)
 	defer pointerHandles.Untrack(handle)
 
-	ret := C._go_git_visit_submodule(repo.ptr, handle)
+	ret := C._go_git_visit_submodule(c.repo.ptr, handle)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
 	return nil
 }
 
-func (repo *Repository) AddSubmodule(url, path string, use_git_link bool) (*Submodule, error) {
+func (c *SubmoduleCollection) Add(url, path string, use_git_link bool) (*Submodule, error) {
 	curl := C.CString(url)
 	defer C.free(unsafe.Pointer(curl))
 	cpath := C.CString(path)
@@ -132,7 +133,7 @@ func (repo *Repository) AddSubmodule(url, path string, use_git_link bool) (*Subm
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_submodule_add_setup(&sub.ptr, repo.ptr, curl, cpath, cbool(use_git_link))
+	ret := C.git_submodule_add_setup(&sub.ptr, c.repo.ptr, curl, cpath, cbool(use_git_link))
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -161,23 +162,6 @@ func (sub *Submodule) AddToIndex(write_index bool) error {
 	return nil
 }
 
-func (sub *Submodule) Save() error {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ret := C.git_submodule_save(sub.ptr)
-	if ret < 0 {
-		return MakeGitError(ret)
-	}
-	return nil
-}
-
-func (sub *Submodule) Owner() *Repository {
-	repo := C.git_submodule_owner(sub.ptr)
-	//FIXME: how to handle dangling references ?
-	return &Repository{repo}
-}
-
 func (sub *Submodule) Name() string {
 	n := C.git_submodule_name(sub.ptr)
 	return C.GoString(n)
@@ -193,14 +177,16 @@ func (sub *Submodule) Url() string {
 	return C.GoString(n)
 }
 
-func (sub *Submodule) SetUrl(url string) error {
+func (c *SubmoduleCollection) SetUrl(submodule, url string) error {
+	csubmodule := C.CString(submodule)
+	defer C.free(unsafe.Pointer(csubmodule))
 	curl := C.CString(url)
 	defer C.free(unsafe.Pointer(curl))
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_submodule_set_url(sub.ptr, curl)
+	ret := C.git_submodule_set_url(c.repo.ptr, csubmodule, curl)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -236,9 +222,19 @@ func (sub *Submodule) Ignore() SubmoduleIgnore {
 	return SubmoduleIgnore(o)
 }
 
-func (sub *Submodule) SetIgnore(ignore SubmoduleIgnore) SubmoduleIgnore {
-	o := C.git_submodule_set_ignore(sub.ptr, C.git_submodule_ignore_t(ignore))
-	return SubmoduleIgnore(o)
+func (c *SubmoduleCollection) SetIgnore(submodule string, ignore SubmoduleIgnore) error {
+	csubmodule := C.CString(submodule)
+	defer C.free(unsafe.Pointer(csubmodule))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_submodule_set_ignore(c.repo.ptr, csubmodule, C.git_submodule_ignore_t(ignore))
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+
+	return nil
 }
 
 func (sub *Submodule) UpdateStrategy() SubmoduleUpdate {
@@ -246,20 +242,33 @@ func (sub *Submodule) UpdateStrategy() SubmoduleUpdate {
 	return SubmoduleUpdate(o)
 }
 
-func (sub *Submodule) SetUpdate(update SubmoduleUpdate) SubmoduleUpdate {
-	o := C.git_submodule_set_update(sub.ptr, C.git_submodule_update_t(update))
-	return SubmoduleUpdate(o)
+func (c *SubmoduleCollection) SetUpdate(submodule string, update SubmoduleUpdate) error {
+	csubmodule := C.CString(submodule)
+	defer C.free(unsafe.Pointer(csubmodule))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_submodule_set_update(c.repo.ptr, csubmodule, C.git_submodule_update_t(update))
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+
+	return nil
 }
 
 func (sub *Submodule) FetchRecurseSubmodules() SubmoduleRecurse {
 	return SubmoduleRecurse(C.git_submodule_fetch_recurse_submodules(sub.ptr))
 }
 
-func (sub *Submodule) SetFetchRecurseSubmodules(recurse SubmoduleRecurse) error {
+func (c *SubmoduleCollection) SetFetchRecurseSubmodules(submodule string, recurse SubmoduleRecurse) error {
+	csubmodule := C.CString(submodule)
+	defer C.free(unsafe.Pointer(csubmodule))
+
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_submodule_set_fetch_recurse_submodules(sub.ptr, C.git_submodule_recurse_t(recurse))
+	ret := C.git_submodule_set_fetch_recurse_submodules(c.repo.ptr, csubmodule, C.git_submodule_recurse_t(recurse))
 	if ret < 0 {
 		return MakeGitError(C.int(ret))
 	}
@@ -289,38 +298,15 @@ func (sub *Submodule) Sync() error {
 }
 
 func (sub *Submodule) Open() (*Repository, error) {
-	repo := new(Repository)
-
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_submodule_open(&repo.ptr, sub.ptr)
+	var ptr *C.git_repository
+	ret := C.git_submodule_open(&ptr, sub.ptr)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	return repo, nil
-}
-
-func (sub *Submodule) Reload(force bool) error {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ret := C.git_submodule_reload(sub.ptr, cbool(force))
-	if ret < 0 {
-		return MakeGitError(ret)
-	}
-	return nil
-}
-
-func (repo *Repository) ReloadAllSubmodules(force bool) error {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ret := C.git_submodule_reload_all(repo.ptr, cbool(force))
-	if ret < 0 {
-		return MakeGitError(ret)
-	}
-	return nil
+	return newRepositoryFromC(ptr), nil
 }
 
 func (sub *Submodule) Update(init bool, opts *SubmoduleUpdateOptions) error {
@@ -349,14 +335,8 @@ func populateSubmoduleUpdateOptions(ptr *C.git_submodule_update_options, opts *S
 	}
 
 	populateCheckoutOpts(&ptr.checkout_opts, opts.CheckoutOpts)
-	populateRemoteCallbacks(&ptr.remote_callbacks, opts.RemoteCallbacks)
+	populateFetchOptions(&ptr.fetch_opts, opts.FetchOptions)
 	ptr.clone_checkout_strategy = C.uint(opts.CloneCheckoutStrategy)
-
-	sig, err := opts.Signature.toC()
-	if err != nil {
-		return err
-	}
-	ptr.signature = sig
 
 	return nil
 }

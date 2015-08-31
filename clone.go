@@ -11,19 +11,17 @@ import (
 	"unsafe"
 )
 
-type RemoteCreateCallback func(repo Repository, name, url string) (*Remote, ErrorCode)
+type RemoteCreateCallback func(repo *Repository, name, url string) (*Remote, ErrorCode)
 
 type CloneOptions struct {
 	*CheckoutOpts
-	*RemoteCallbacks
+	*FetchOptions
 	Bare                 bool
 	CheckoutBranch       string
 	RemoteCreateCallback RemoteCreateCallback
 }
 
 func Clone(url string, path string, options *CloneOptions) (*Repository, error) {
-	repo := new(Repository)
-
 	curl := C.CString(url)
 	defer C.free(unsafe.Pointer(curl))
 
@@ -40,21 +38,23 @@ func Clone(url string, path string, options *CloneOptions) (*Repository, error) 
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-	ret := C.git_clone(&repo.ptr, curl, cpath, copts)
+
+	var ptr *C.git_repository
+	ret := C.git_clone(&ptr, curl, cpath, copts)
+	freeCheckoutOpts(&copts.checkout_opts)
 
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
 
-	runtime.SetFinalizer(repo, (*Repository).Free)
-	return repo, nil
+	return newRepositoryFromC(ptr), nil
 }
 
 //export remoteCreateCallback
 func remoteCreateCallback(cremote unsafe.Pointer, crepo unsafe.Pointer, cname, curl *C.char, payload unsafe.Pointer) C.int {
 	name := C.GoString(cname)
 	url := C.GoString(curl)
-	repo := Repository{(*C.git_repository)(crepo)}
+	repo := newRepositoryFromC((*C.git_repository)(crepo))
 
 	if opts, ok := pointerHandles.Get(payload).(CloneOptions); ok {
 		remote, err := opts.RemoteCreateCallback(repo, name, url)
@@ -83,7 +83,7 @@ func populateCloneOptions(ptr *C.git_clone_options, opts *CloneOptions) {
 		return
 	}
 	populateCheckoutOpts(&ptr.checkout_opts, opts.CheckoutOpts)
-	populateRemoteCallbacks(&ptr.remote_callbacks, opts.RemoteCallbacks)
+	populateFetchOptions(&ptr.fetch_opts, opts.FetchOptions)
 	ptr.bare = cbool(opts.Bare)
 
 	if opts.RemoteCreateCallback != nil {

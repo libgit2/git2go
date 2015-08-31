@@ -18,10 +18,20 @@ func TestClone(t *testing.T) {
 	path, err := ioutil.TempDir("", "git2go")
 	checkFatal(t, err)
 
+	ref, err := repo.References.Lookup("refs/heads/master")
+	checkFatal(t, err)
+
 	repo2, err := Clone(repo.Path(), path, &CloneOptions{Bare: true})
 	defer cleanupTestRepo(t, repo2)
 
 	checkFatal(t, err)
+
+	ref2, err := repo2.References.Lookup("refs/heads/master")
+	checkFatal(t, err)
+
+	if ref.Cmp(ref2) != 0 {
+		t.Fatal("reference in clone does not match original ref")
+	}
 }
 
 func TestCloneWithCallback(t *testing.T) {
@@ -37,10 +47,10 @@ func TestCloneWithCallback(t *testing.T) {
 
 	opts := CloneOptions{
 		Bare: true,
-		RemoteCreateCallback: func(r Repository, name, url string) (*Remote, ErrorCode) {
+		RemoteCreateCallback: func(r *Repository, name, url string) (*Remote, ErrorCode) {
 			testPayload += 1
 
-			remote, err := r.CreateRemote(REMOTENAME, url)
+			remote, err := r.Remotes.Create(REMOTENAME, url)
 			if err != nil {
 				return nil, ErrGeneric
 			}
@@ -58,7 +68,7 @@ func TestCloneWithCallback(t *testing.T) {
 		t.Fatal("Payload's value has not been changed")
 	}
 
-	remote, err := repo2.LookupRemote(REMOTENAME)
+	remote, err := repo2.Remotes.Lookup(REMOTENAME)
 	if err != nil || remote == nil {
 		t.Fatal("Remote was not created properly")
 	}
