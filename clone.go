@@ -55,15 +55,16 @@ func remoteCreateCallback(cremote unsafe.Pointer, crepo unsafe.Pointer, cname, c
 	name := C.GoString(cname)
 	url := C.GoString(curl)
 	repo := newRepositoryFromC((*C.git_repository)(crepo))
+	// We don't own this repository, so make sure we don't try to free it
+	runtime.SetFinalizer(repo, nil)
 
 	if opts, ok := pointerHandles.Get(payload).(CloneOptions); ok {
 		remote, err := opts.RemoteCreateCallback(repo, name, url)
+		// clear finalizer as the calling C function will
+		// free the remote itself
+		runtime.SetFinalizer(remote, nil)
 
 		if err == ErrOk && remote != nil {
-			// clear finalizer as the calling C function will
-			// free the remote itself
-			runtime.SetFinalizer(remote, nil)
-
 			cptr := (**C.git_remote)(cremote)
 			*cptr = remote.ptr
 		} else if err == ErrOk && remote == nil {
