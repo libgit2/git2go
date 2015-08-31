@@ -263,7 +263,7 @@ func (v *Reference) Delete() error {
 	return nil
 }
 
-func (v *Reference) Peel(t ObjectType) (Object, error) {
+func (v *Reference) Peel(t ObjectType) (*Object, error) {
 	var cobj *C.git_object
 
 	runtime.LockOSThread()
