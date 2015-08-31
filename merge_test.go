@@ -115,7 +115,10 @@ func appendCommit(t *testing.T, repo *Repository) (*Oid, *Oid) {
 	parent, err := ref.Peel(ObjectCommit)
 	checkFatal(t, err)
 
-	commitId, err := repo.CreateCommit("HEAD", sig, sig, message, tree, parent.(*Commit))
+	parentCommit, err := parent.AsCommit()
+	checkFatal(t, err)
+
+	commitId, err := repo.CreateCommit("HEAD", sig, sig, message, tree, parentCommit)
 	checkFatal(t, err)
 
 	return commitId, treeId
