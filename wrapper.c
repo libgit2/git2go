@@ -5,6 +5,11 @@
 
 typedef int (*gogit_submodule_cbk)(git_submodule *sm, const char *name, void *payload);
 
+void _go_git_populate_remote_cb(git_clone_options *opts)
+{
+	opts->remote_cb = (git_remote_create_cb)remoteCreateCallback;
+}
+
 int _go_git_visit_submodule(git_repository *repo, void *fct)
 {
 	  return git_submodule_foreach(repo, (gogit_submodule_cbk)&SubmoduleVisitor, fct);
