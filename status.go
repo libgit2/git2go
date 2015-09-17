@@ -126,34 +126,24 @@ type StatusOptions struct {
 	Pathspec []string
 }
 
-func (opts *StatusOptions) toC() *C.git_status_options {
-	if opts == nil {
-		return nil
-	}
-
-	cpathspec := C.git_strarray{}
-	if opts.Pathspec != nil {
-		cpathspec.count = C.size_t(len(opts.Pathspec))
-		cpathspec.strings = makeCStringsFromStrings(opts.Pathspec)
-		defer freeStrarray(&cpathspec)
-	}
-
-	copts := &C.git_status_options{
-		version:  C.GIT_STATUS_OPTIONS_VERSION,
-		show:     C.git_status_show_t(opts.Show),
-		flags:    C.uint(opts.Flags),
-		pathspec: cpathspec,
-	}
-
-	return copts
-}
-
 func (v *Repository) StatusList(opts *StatusOptions) (*StatusList, error) {
 	var ptr *C.git_status_list
 	var copts *C.git_status_options
 
 	if opts != nil {
-		copts = opts.toC()
+		cpathspec := C.git_strarray{}
+		if opts.Pathspec != nil {
+			cpathspec.count = C.size_t(len(opts.Pathspec))
+			cpathspec.strings = makeCStringsFromStrings(opts.Pathspec)
+			defer freeStrarray(&cpathspec)
+		}
+
+		copts = &C.git_status_options{
+			version:  C.GIT_STATUS_OPTIONS_VERSION,
+			show:     C.git_status_show_t(opts.Show),
+			flags:    C.uint(opts.Flags),
+			pathspec: cpathspec,
+		}
 	} else {
 		copts = &C.git_status_options{}
 		ret := C.git_status_init_options(copts, C.GIT_STATUS_OPTIONS_VERSION)
