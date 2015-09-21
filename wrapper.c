@@ -141,4 +141,12 @@ int _go_git_tag_foreach(git_repository *repo, void *payload)
     return git_tag_foreach(repo, (git_tag_foreach_cb)&gitTagForeachCb, payload);
 }
 
+void _go_git_setup_stash_apply_progress_callbacks(git_stash_apply_options *opts) {
+	opts->progress_cb = (git_stash_apply_progress_cb)stashApplyProgressCb;
+}
+
+int _go_git_stash_foreach(git_repository *repo, void *payload) {
+    return git_stash_foreach(repo, (git_stash_cb)&stashForeachCb, payload);
+}
+
 /* EOF */
