@@ -331,6 +331,17 @@ func (v *Index) EntryByIndex(index uint) (*IndexEntry, error) {
 	return newIndexEntryFromC(centry), nil
 }
 
+func (v *Index) EntryByPath(path string, stage int) (*IndexEntry, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	centry := C.git_index_get_bypath(v.ptr, C.CString(path), C.int(stage))
+	if centry == nil {
+		return nil, MakeGitError(C.GIT_ENOTFOUND)
+	}
+	return newIndexEntryFromC(centry), nil
+}
+
 func (v *Index) HasConflicts() bool {
 	return C.git_index_has_conflicts(v.ptr) != 0
 }
