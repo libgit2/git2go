@@ -12,6 +12,9 @@ import (
 type ConfigLevel int
 
 const (
+	// System-wide on Windows, for compatibility with portable git
+	ConfigLevelProgramdata ConfigLevel = C.GIT_CONFIG_LEVEL_PROGRAMDATA
+
 	// System-wide configuration file; /etc/gitconfig on Linux systems
 	ConfigLevelSystem ConfigLevel = C.GIT_CONFIG_LEVEL_SYSTEM
 
@@ -404,6 +407,24 @@ func ConfigFindXDG() (string, error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_config_find_xdg(&buf)
+	if ret < 0 {
+		return "", MakeGitError(ret)
+	}
+
+	return C.GoString(buf.ptr), nil
+}
+
+// ConfigFindProgramdata locate the path to the configuration file in ProgramData.
+//
+// Look for the file in %PROGRAMDATA%\Git\config used by portable git.
+func ConfigFindProgramdata() (string, error) {
+	var buf C.git_buf
+	defer C.git_buf_free(&buf)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_config_find_programdata(&buf)
 	if ret < 0 {
 		return "", MakeGitError(ret)
 	}
