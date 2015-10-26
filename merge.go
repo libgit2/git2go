@@ -178,6 +178,9 @@ const (
 	MergePreferenceFastForwardOnly MergePreference = C.GIT_MERGE_PREFERENCE_FASTFORWARD_ONLY
 )
 
+// MergeAnalysis returns the possible actions which could be taken by
+// a 'git-merge' command. There may be multiple answers, so the first
+// return value is a bitmask of MergeAnalysis values.
 func (r *Repository) MergeAnalysis(theirHeads []*AnnotatedCommit) (MergeAnalysis, MergePreference, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
