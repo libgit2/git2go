@@ -81,7 +81,14 @@ func (r *Repository) AnnotatedCommitFromRef(ref *Reference) (*AnnotatedCommit, e
 type MergeTreeFlag int
 
 const (
+	// Detect renames that occur between the common ancestor and the "ours"
+	// side or the common ancestor and the "theirs" side.  This will enable
+	// the ability to merge between a modified and renamed file.
 	MergeTreeFindRenames MergeTreeFlag = C.GIT_MERGE_TREE_FIND_RENAMES
+	// If a conflict occurs, exit immediately instead of attempting to
+	// continue resolving conflicts.  The merge operation will fail with
+	// GIT_EMERGECONFLICT and no index will be returned.
+	MergeTreeFailOnConflict MergeTreeFlag = C.GIT_MERGE_TREE_FAIL_ON_CONFLICT
 )
 
 type MergeOptions struct {

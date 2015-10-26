@@ -26,6 +26,24 @@ const (
 	IndexAddCheckPathspec        IndexAddOpts = C.GIT_INDEX_ADD_CHECK_PATHSPEC
 )
 
+type IndexStageOpts int
+
+const (
+	// IndexStageAny matches any index stage.
+	//
+	// Some index APIs take a stage to match; pass this value to match
+	// any entry matching the path regardless of stage.
+	IndexStageAny IndexStageOpts = C.GIT_INDEX_STAGE_ANY
+	// IndexStageNormal is a normal staged file in the index.
+	IndexStageNormal IndexStageOpts = C.GIT_INDEX_STAGE_NORMAL
+	// IndexStageAncestor is the ancestor side of a conflict.
+	IndexStageAncestor IndexStageOpts = C.GIT_INDEX_STAGE_ANCESTOR
+	// IndexStageOurs is the "ours" side of a conflict.
+	IndexStageOurs IndexStageOpts = C.GIT_INDEX_STAGE_OURS
+	// IndexStageTheirs is the "theirs" side of a conflict.
+	IndexStageTheirs IndexStageOpts = C.GIT_INDEX_STAGE_THEIRS
+)
+
 type Index struct {
 	ptr *C.git_index
 }
