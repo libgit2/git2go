@@ -97,7 +97,7 @@ func NewIndex() (*Index, error) {
 		return nil, MakeGitError(err)
 	}
 
-	return &Index{ptr: ptr}, nil
+	return newIndexFromC(ptr), nil
 }
 
 // OpenIndex creates a new index at the given path. If the file does
@@ -115,7 +115,7 @@ func OpenIndex(path string) (*Index, error) {
 		return nil, MakeGitError(err)
 	}
 
-	return &Index{ptr: ptr}, nil
+	return newIndexFromC(ptr), nil
 }
 
 // Path returns the index' path on disk or an empty string if it
