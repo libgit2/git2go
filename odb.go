@@ -11,7 +11,6 @@ import (
 	"reflect"
 	"runtime"
 	"unsafe"
-	"fmt"
 )
 
 type Odb struct {
@@ -107,9 +106,7 @@ func odbForEachCb(id *C.git_oid, handle unsafe.Pointer) int {
 	}
 
 	err := data.callback(newOidFromC(id))
-	fmt.Println("err %v", err)
 	if err != nil {
-		fmt.Println("returning EUSER")
 		data.err = err
 		return C.GIT_EUSER
 	}
@@ -130,7 +127,6 @@ func (v *Odb) ForEach(callback OdbForEachCallback) error {
 	defer pointerHandles.Untrack(handle)
 
 	ret := C._go_git_odb_foreach(v.ptr, handle)
-	fmt.Println("ret %v", ret);
 	if ret == C.GIT_EUSER {
 		return data.err
 	} else if ret < 0 {
