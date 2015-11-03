@@ -18,10 +18,22 @@ func setupConfig() (*Config, error) {
 		return nil, err
 	}
 
-	c.SetString("foo.bar", "baz")
-	c.SetBool("foo.bool", true)
-	c.SetInt32("foo.int32", 32)
-	c.SetInt64("foo.int64", 64)
+	err = c.SetString("foo.bar", "baz")
+	if err != nil {
+		return nil, err
+	}
+	err = c.SetBool("foo.bool", true)
+	if err != nil {
+		return nil, err
+	}
+	err = c.SetInt32("foo.int32", 32)
+	if err != nil {
+		return nil, err
+	}
+	err = c.SetInt64("foo.int64", 64)
+	if err != nil {
+		return nil, err
+	}
 
 	return c, err
 }
@@ -86,6 +98,7 @@ func TestConfigLookups(t *testing.T) {
 
 	if err != nil {
 		t.Errorf("Setup error: '%v'. Expected none\n", err)
+		return
 	}
 	defer c.Free()
 
