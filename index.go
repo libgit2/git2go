@@ -350,10 +350,13 @@ func (v *Index) EntryByIndex(index uint) (*IndexEntry, error) {
 }
 
 func (v *Index) EntryByPath(path string, stage int) (*IndexEntry, error) {
+	cpath := C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
+
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	centry := C.git_index_get_bypath(v.ptr, C.CString(path), C.int(stage))
+	centry := C.git_index_get_bypath(v.ptr, cpath, C.int(stage))
 	if centry == nil {
 		return nil, MakeGitError(C.GIT_ENOTFOUND)
 	}
