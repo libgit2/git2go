@@ -1,6 +1,9 @@
 package git
 
 /*
+#cgo CFLAGS: -I${SRCDIR}/vendor/libgit2/include
+#cgo LDFLAGS: ${SRCDIR}/vendor/libgit2/build/libgit2.a
+#cgo pkg-config: --static ${SRCDIR}/vendor/libgit2/build/libgit2.pc
 #include <git2.h>
 #include <git2/sys/openssl.h>
 */
