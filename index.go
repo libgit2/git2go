@@ -363,6 +363,36 @@ func (v *Index) EntryByPath(path string, stage int) (*IndexEntry, error) {
 	return newIndexEntryFromC(centry), nil
 }
 
+func (v *Index) Find(path string) (uint, error) {
+	cpath := C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var pos C.size_t
+	ret := C.git_index_find(&pos, v.ptr, cpath)
+	if ret < 0 {
+		return uint(0), MakeGitError(ret)
+	}
+	return uint(pos), nil
+}
+
+func (v *Index) FindPrefix(prefix string) (uint, error) {
+	cprefix := C.CString(prefix)
+	defer C.free(unsafe.Pointer(cprefix))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var pos C.size_t
+	ret := C.git_index_find_prefix(&pos, v.ptr, cprefix)
+	if ret < 0 {
+		return uint(0), MakeGitError(ret)
+	}
+	return uint(pos), nil
+}
+
 func (v *Index) HasConflicts() bool {
 	return C.git_index_has_conflicts(v.ptr) != 0
 }
