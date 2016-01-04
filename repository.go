@@ -62,15 +62,29 @@ func OpenRepository(path string) (*Repository, error) {
 	return newRepositoryFromC(ptr), nil
 }
 
-func OpenRepositoryExtended(path string) (*Repository, error) {
+type RepositoryOpenFlag int
+
+const (
+	RepositoryOpenNoSearch RepositoryOpenFlag = C.GIT_REPOSITORY_OPEN_NO_SEARCH
+	RepositoryOpenCrossFs  RepositoryOpenFlag = C.GIT_REPOSITORY_OPEN_CROSS_FS
+	RepositoryOpenBare     RepositoryOpenFlag = C.GIT_REPOSITORY_OPEN_BARE
+)
+
+func OpenRepositoryExtended(path string, flags RepositoryOpenFlag, ceiling string) (*Repository, error) {
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
+
+	var cceiling *C.char = nil
+	if len(ceiling) > 0 {
+		cceiling = C.CString(ceiling)
+		defer C.free(unsafe.Pointer(cceiling))
+	}
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
 	var ptr *C.git_repository
-	ret := C.git_repository_open_ext(&ptr, cpath, 0, nil)
+	ret := C.git_repository_open_ext(&ptr, cpath, C.uint(flags), cceiling)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
