@@ -52,12 +52,12 @@ func (v *HandleList) Track(pointer interface{}) unsafe.Pointer {
 
 	v.Unlock()
 
-	return unsafe.Pointer(&slot)
+	return unsafe.Pointer(uintptr(slot))
 }
 
 // Untrack stops tracking the pointer given by the handle
 func (v *HandleList) Untrack(handle unsafe.Pointer) {
-	slot := *(*int)(handle)
+	slot := int(uintptr(handle))
 
 	v.Lock()
 
@@ -69,7 +69,7 @@ func (v *HandleList) Untrack(handle unsafe.Pointer) {
 
 // Get retrieves the pointer from the given handle
 func (v *HandleList) Get(handle unsafe.Pointer) interface{} {
-	slot := *(*int)(handle)
+	slot := int(uintptr(handle))
 
 	v.RLock()
 

@@ -321,17 +321,21 @@ type MergeFileInput struct {
 }
 
 // populate a C struct with merge file input, make sure to use freeMergeFileInput to clean up allocs
-func populateCMergeFileInput(c *C.git_merge_file_input, input MergeFileInput) {
+func populateCMergeFileInput(c *C.git_merge_file_input, input MergeFileInput) *C.char {
 	c.path = C.CString(input.Path)
+	var toFree *C.char
 	if input.Contents != nil {
-		c.ptr = (*C.char)(unsafe.Pointer(&input.Contents[0]))
+		toFree = C.CString(string(input.Contents))
+		c.ptr = toFree
 		c.size = C.size_t(len(input.Contents))
 	}
 	c.mode = C.uint(input.Mode)
+	return toFree
 }
 
-func freeCMergeFileInput(c *C.git_merge_file_input) {
+func freeCMergeFileInput(c *C.git_merge_file_input, toFree *C.char) {
 	C.free(unsafe.Pointer(c.path))
+	C.free(unsafe.Pointer(toFree))
 }
 
 type MergeFileFlags int
@@ -382,12 +386,12 @@ func MergeFile(ancestor MergeFileInput, ours MergeFileInput, theirs MergeFileInp
 	var cours C.git_merge_file_input
 	var ctheirs C.git_merge_file_input
 
-	populateCMergeFileInput(&cancestor, ancestor)
-	defer freeCMergeFileInput(&cancestor)
-	populateCMergeFileInput(&cours, ours)
-	defer freeCMergeFileInput(&cours)
-	populateCMergeFileInput(&ctheirs, theirs)
-	defer freeCMergeFileInput(&ctheirs)
+	t := populateCMergeFileInput(&cancestor, ancestor)
+	defer freeCMergeFileInput(&cancestor, t)
+	t = populateCMergeFileInput(&cours, ours)
+	defer freeCMergeFileInput(&cours, t)
+	t = populateCMergeFileInput(&ctheirs, theirs)
+	defer freeCMergeFileInput(&ctheirs, t)
 
 	var copts *C.git_merge_file_options
 	if options != nil {
