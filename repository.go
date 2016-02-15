@@ -447,3 +447,24 @@ func (r *Repository) StateCleanup() error {
 	}
 	return nil
 }
+func (r *Repository) AddGitIgnoreRules(rules string) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	crules := C.CString(rules)
+	defer C.free(unsafe.Pointer(crules))
+	if ret := C.git_ignore_add_rule(r.ptr, crules); ret < 0 {
+		return MakeGitError(ret)
+	}
+	return nil
+}
+
+func (r *Repository) ClearGitIgnoreRules() error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if ret := C.git_ignore_clear_internal_rules(r.ptr); ret < 0 {
+		return MakeGitError(ret)
+	}
+	return nil
+}

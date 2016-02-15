@@ -84,7 +84,7 @@ func (repo *Repository) CreateBlobFromChunks(hintPath string, callback BlobChunk
 
 	var chintPath *C.char = nil
 	if len(hintPath) > 0 {
-		C.CString(hintPath)
+		chintPath = C.CString(hintPath)
 		defer C.free(unsafe.Pointer(chintPath))
 	}
 	oid := C.git_oid{}

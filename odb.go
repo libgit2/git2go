@@ -8,7 +8,6 @@ extern void _go_git_odb_backend_free(git_odb_backend *backend);
 */
 import "C"
 import (
-	"fmt"
 	"reflect"
 	"runtime"
 	"unsafe"
@@ -55,6 +54,21 @@ func (v *Odb) AddBackend(backend *OdbBackend, priority int) (err error) {
 	return nil
 }
 
+func (v *Odb) ReadHeader(oid *Oid) (uint64, ObjectType, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	
+	var sz C.size_t
+	var cotype C.git_otype 
+
+	ret := C.git_odb_read_header(&sz, &cotype, v.ptr, oid.toC())
+	if ret < 0 {
+		return 0, C.GIT_OBJ_BAD, MakeGitError(ret)
+	}
+
+	return uint64(sz), ObjectType(cotype), nil
+}
+	
 func (v *Odb) Exists(oid *Oid) bool {
 	ret := C.git_odb_exists(v.ptr, oid.toC())
 	return ret != 0
@@ -107,9 +121,7 @@ func odbForEachCb(id *C.git_oid, handle unsafe.Pointer) int {
 	}
 
 	err := data.callback(newOidFromC(id))
-	fmt.Println("err %v", err)
 	if err != nil {
-		fmt.Println("returning EUSER")
 		data.err = err
 		return C.GIT_EUSER
 	}
@@ -130,7 +142,6 @@ func (v *Odb) ForEach(callback OdbForEachCallback) error {
 	defer pointerHandles.Untrack(handle)
 
 	ret := C._go_git_odb_foreach(v.ptr, handle)
-	fmt.Println("ret %v", ret)
 	if ret == C.GIT_EUSER {
 		return data.err
 	} else if ret < 0 {

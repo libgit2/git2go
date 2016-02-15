@@ -637,15 +637,17 @@ func (o *Remote) Fetch(refspecs []string, opts *FetchOptions, msg string) error 
 	crefspecs.strings = makeCStringsFromStrings(refspecs)
 	defer freeStrarray(&crefspecs)
 
-	var coptions C.git_fetch_options
-	populateFetchOptions(&coptions, opts)
+	coptions := (*C.git_fetch_options)(C.calloc(1, C.size_t(unsafe.Sizeof(C.git_fetch_options{}))))
+	defer C.free(unsafe.Pointer(coptions))
+
+	populateFetchOptions(coptions, opts)
 	defer untrackCalbacksPayload(&coptions.callbacks)
 	defer freeStrarray(&coptions.custom_headers)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_remote_fetch(o.ptr, &crefspecs, &coptions, cmsg)
+	ret := C.git_remote_fetch(o.ptr, &crefspecs, coptions, cmsg)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -737,15 +739,17 @@ func (o *Remote) Push(refspecs []string, opts *PushOptions) error {
 	crefspecs.strings = makeCStringsFromStrings(refspecs)
 	defer freeStrarray(&crefspecs)
 
-	var coptions C.git_push_options
-	populatePushOptions(&coptions, opts)
+	coptions := (*C.git_push_options)(C.calloc(1, C.size_t(unsafe.Sizeof(C.git_push_options{}))))
+	defer C.free(unsafe.Pointer(coptions))
+
+	populatePushOptions(coptions, opts)
 	defer untrackCalbacksPayload(&coptions.callbacks)
 	defer freeStrarray(&coptions.custom_headers)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_remote_push(o.ptr, &crefspecs, &coptions)
+	ret := C.git_remote_push(o.ptr, &crefspecs, coptions)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}

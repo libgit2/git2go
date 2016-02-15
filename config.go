@@ -118,18 +118,20 @@ func (c *Config) LookupInt64(name string) (int64, error) {
 }
 
 func (c *Config) LookupString(name string) (string, error) {
-	var ptr *C.char
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
+
+	valBuf := C.git_buf{}
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if ret := C.git_config_get_string(&ptr, c.ptr, cname); ret < 0 {
+	if ret := C.git_config_get_string_buf(&valBuf, c.ptr, cname); ret < 0 {
 		return "", MakeGitError(ret)
 	}
+	defer C.git_buf_free(&valBuf)
 
-	return C.GoString(ptr), nil
+	return C.GoString(valBuf.ptr), nil
 }
 
 func (c *Config) LookupBool(name string) (bool, error) {
