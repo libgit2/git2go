@@ -141,4 +141,21 @@ int _go_git_tag_foreach(git_repository *repo, void *payload)
     return git_tag_foreach(repo, (git_tag_foreach_cb)&gitTagForeachCb, payload);
 }
 
+/*
+ * Wrap git_merge_file() such that we pass the content directly from
+ * Go into C. Without it, we would have to allocate C memory to
+ * satisfy the pointer rules
+ */
+int _go_git_merge_file_wrapper(git_merge_file_result *out, git_merge_file_input *ancestor,
+			       git_merge_file_input *ours, git_merge_file_input *theirs,
+			       const git_merge_file_options *opts, void *content_ancestor,
+			       void *content_ours, void *content_theirs)
+{
+	ancestor->ptr = content_ancestor;
+	ours->ptr = content_ours;
+	theirs->ptr = content_theirs;
+
+	return git_merge_file(out, ancestor, ours, theirs, opts);
+}
+
 /* EOF */

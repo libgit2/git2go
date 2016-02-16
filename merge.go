@@ -7,6 +7,11 @@ extern git_annotated_commit** _go_git_make_merge_head_array(size_t len);
 extern void _go_git_annotated_commit_array_set(git_annotated_commit** array, git_annotated_commit* ptr, size_t n);
 extern git_annotated_commit* _go_git_annotated_commit_array_get(git_annotated_commit** array, size_t n);
 
+extern int _go_git_merge_file_wrapper(git_merge_file_result *out, git_merge_file_input *ancestor,
+				      git_merge_file_input *ours, git_merge_file_input *theirs,
+				      const git_merge_file_options *opts, void *content_ancestor,
+				      void *content_ours, void *content_theirs);
+
 */
 import "C"
 import (
@@ -324,7 +329,6 @@ type MergeFileInput struct {
 func populateCMergeFileInput(c *C.git_merge_file_input, input MergeFileInput) {
 	c.path = C.CString(input.Path)
 	if input.Contents != nil {
-		c.ptr = (*C.char)(unsafe.Pointer(&input.Contents[0]))
 		c.size = C.size_t(len(input.Contents))
 	}
 	c.mode = C.uint(input.Mode)
@@ -404,7 +408,10 @@ func MergeFile(ancestor MergeFileInput, ours MergeFileInput, theirs MergeFileInp
 	defer runtime.UnlockOSThread()
 
 	var result C.git_merge_file_result
-	ecode := C.git_merge_file(&result, &cancestor, &cours, &ctheirs, copts)
+	ecode := C._go_git_merge_file_wrapper(&result, &cancestor, &cours, &ctheirs, copts,
+		unsafe.Pointer(&ancestor.Contents[0]),
+		unsafe.Pointer(&ours.Contents[0]),
+		unsafe.Pointer(&theirs.Contents[0]))
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
