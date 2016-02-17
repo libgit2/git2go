@@ -76,13 +76,15 @@ func (v *Odb) Exists(oid *Oid) bool {
 
 func (v *Odb) Write(data []byte, otype ObjectType) (oid *Oid, err error) {
 	oid = new(Oid)
-	cstr := C.CString(string(data))
-	defer C.free(unsafe.Pointer(cstr))
+	var cptr unsafe.Pointer
+	if len(data) > 0 {
+		cptr = unsafe.Pointer(&data[0])
+	}
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_odb_write(oid.toC(), v.ptr, unsafe.Pointer(cstr), C.size_t(len(data)), C.git_otype(otype))
+	ret := C.git_odb_write(oid.toC(), v.ptr, cptr, C.size_t(len(data)), C.git_otype(otype))
 
 	if ret < 0 {
 		return nil, MakeGitError(ret)
