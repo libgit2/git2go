@@ -10,15 +10,14 @@ type HandleList struct {
 	sync.RWMutex
 	// stores the Go pointers
 	handles []interface{}
-	// Indicates which indices are in use, and keeps a pointer to slot int variable (the handle)
-	// in the Go world, so that the Go garbage collector does not free it.
-	set map[int]*int
+	// Indicates which indices are in use.
+	set map[int]bool
 }
 
 func NewHandleList() *HandleList {
 	return &HandleList{
 		handles: make([]interface{}, 5),
-		set:     make(map[int]*int),
+		set:     make(map[int]bool),
 	}
 }
 
@@ -26,8 +25,7 @@ func NewHandleList() *HandleList {
 // list. You must only run this function while holding a write lock.
 func (v *HandleList) findUnusedSlot() int {
 	for i := 1; i < len(v.handles); i++ {
-		_, isUsed := v.set[i]
-		if !isUsed {
+		if !v.set[i] {
 			return i
 		}
 	}
@@ -48,7 +46,7 @@ func (v *HandleList) Track(pointer interface{}) unsafe.Pointer {
 
 	slot := v.findUnusedSlot()
 	v.handles[slot] = pointer
-	v.set[slot] = &slot // Keep a pointer to slot in Go world, so it's not freed by GC.
+	v.set[slot] = true
 
 	v.Unlock()
 
@@ -73,7 +71,7 @@ func (v *HandleList) Get(handle unsafe.Pointer) interface{} {
 
 	v.RLock()
 
-	if _, ok := v.set[slot]; !ok {
+	if !v.set[slot] {
 		panic(fmt.Sprintf("invalid pointer handle: %p", handle))
 	}
 
