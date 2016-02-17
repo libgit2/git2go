@@ -265,8 +265,8 @@ func (r *Repository) MergeBases(one, two *Oid) ([]*Oid, error) {
 	oids := make([]*Oid, coids.count)
 	hdr := reflect.SliceHeader {
 		Data: uintptr(unsafe.Pointer(coids.ids)),
-		Len:   int(coids.count),
-		Cap:   int(coids.count),
+		Len: int(coids.count),
+		Cap: int(coids.count),
 	}
 
 	goSlice := *(*[]C.git_oid)(unsafe.Pointer(&hdr))
