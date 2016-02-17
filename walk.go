@@ -194,6 +194,10 @@ func (v *RevWalk) Iterate(fun RevWalkIterator) (err error) {
 	return nil
 }
 
+func (v *RevWalk) SimplifyFirstParent() {
+	C.git_revwalk_simplify_first_parent(v.ptr)
+}
+
 func (v *RevWalk) Sorting(sm SortType) {
 	C.git_revwalk_sorting(v.ptr, C.uint(sm))
 }

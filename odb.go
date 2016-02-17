@@ -54,6 +54,21 @@ func (v *Odb) AddBackend(backend *OdbBackend, priority int) (err error) {
 	return nil
 }
 
+func (v *Odb) ReadHeader(oid *Oid) (uint64, ObjectType, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	
+	var sz C.size_t
+	var cotype C.git_otype 
+
+	ret := C.git_odb_read_header(&sz, &cotype, v.ptr, oid.toC())
+	if ret < 0 {
+		return 0, C.GIT_OBJ_BAD, MakeGitError(ret)
+	}
+
+	return uint64(sz), ObjectType(cotype), nil
+}
+	
 func (v *Odb) Exists(oid *Oid) bool {
 	ret := C.git_odb_exists(v.ptr, oid.toC())
 	return ret != 0
