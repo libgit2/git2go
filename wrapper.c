@@ -141,4 +141,27 @@ int _go_git_tag_foreach(git_repository *repo, void *payload)
     return git_tag_foreach(repo, (git_tag_foreach_cb)&gitTagForeachCb, payload);
 }
 
+int _go_git_merge_file(git_merge_file_result* out, char* ancestorContents, size_t ancestorLen, char* ancestorPath, unsigned int ancestorMode, char* oursContents, size_t oursLen, char* oursPath, unsigned int oursMode, char* theirsContents, size_t theirsLen, char* theirsPath, unsigned int theirsMode, git_merge_file_options* copts) {
+	git_merge_file_input ancestor = GIT_MERGE_FILE_INPUT_INIT;
+	git_merge_file_input ours = GIT_MERGE_FILE_INPUT_INIT;
+	git_merge_file_input theirs = GIT_MERGE_FILE_INPUT_INIT;
+
+	ancestor.ptr = ancestorContents;
+	ancestor.size = ancestorLen;
+	ancestor.path = ancestorPath;
+	ancestor.mode = ancestorMode;
+
+	ours.ptr = oursContents;
+	ours.size = oursLen;
+	ours.path = oursPath;
+	ours.mode = oursMode;
+
+	theirs.ptr = theirsContents;
+	theirs.size = theirsLen;
+	theirs.path = theirsPath;
+	theirs.mode = theirsMode;
+
+	return git_merge_file(out, &ancestor, &ours, &theirs, copts);
+}
+
 /* EOF */
