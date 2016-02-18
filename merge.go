@@ -6,6 +6,7 @@ package git
 extern git_annotated_commit** _go_git_make_merge_head_array(size_t len);
 extern void _go_git_annotated_commit_array_set(git_annotated_commit** array, git_annotated_commit* ptr, size_t n);
 extern git_annotated_commit* _go_git_annotated_commit_array_get(git_annotated_commit** array, size_t n);
+extern int _go_git_merge_file(git_merge_file_result*, char*, size_t, char*, unsigned int, char*, size_t, char*, unsigned int, char*, size_t, char*, unsigned int, git_merge_file_options*);
 
 */
 import "C"
@@ -327,20 +328,6 @@ type MergeFileInput struct {
 	Contents []byte
 }
 
-// populate a C struct with merge file input, make sure to use freeMergeFileInput to clean up allocs
-func populateCMergeFileInput(c *C.git_merge_file_input, input MergeFileInput) {
-	c.path = C.CString(input.Path)
-	if input.Contents != nil {
-		c.ptr = (*C.char)(unsafe.Pointer(&input.Contents[0]))
-		c.size = C.size_t(len(input.Contents))
-	}
-	c.mode = C.uint(input.Mode)
-}
-
-func freeCMergeFileInput(c *C.git_merge_file_input) {
-	C.free(unsafe.Pointer(c.path))
-}
-
 type MergeFileFlags int
 
 const (
@@ -385,16 +372,26 @@ func freeCMergeFileOptions(c *C.git_merge_file_options) {
 
 func MergeFile(ancestor MergeFileInput, ours MergeFileInput, theirs MergeFileInput, options *MergeFileOptions) (*MergeFileResult, error) {
 
-	var cancestor C.git_merge_file_input
-	var cours C.git_merge_file_input
-	var ctheirs C.git_merge_file_input
+	ancestorPath := C.CString(ancestor.Path)
+	defer C.free(unsafe.Pointer(ancestorPath))
+	var ancestorContents *byte
+	if len(ancestor.Contents) > 0 {
+		ancestorContents = &ancestor.Contents[0]
+	}
 
-	populateCMergeFileInput(&cancestor, ancestor)
-	defer freeCMergeFileInput(&cancestor)
-	populateCMergeFileInput(&cours, ours)
-	defer freeCMergeFileInput(&cours)
-	populateCMergeFileInput(&ctheirs, theirs)
-	defer freeCMergeFileInput(&ctheirs)
+	oursPath := C.CString(ours.Path)
+	defer C.free(unsafe.Pointer(oursPath))
+	var oursContents *byte
+	if len(ours.Contents) > 0 {
+		oursContents = &ours.Contents[0]
+	}
+
+	theirsPath := C.CString(theirs.Path)
+	defer C.free(unsafe.Pointer(theirsPath))
+	var theirsContents *byte
+	if len(theirs.Contents) > 0 {
+		theirsContents = &theirs.Contents[0]
+	}
 
 	var copts *C.git_merge_file_options
 	if options != nil {
@@ -411,7 +408,11 @@ func MergeFile(ancestor MergeFileInput, ours MergeFileInput, theirs MergeFileInp
 	defer runtime.UnlockOSThread()
 
 	var result C.git_merge_file_result
-	ecode := C.git_merge_file(&result, &cancestor, &cours, &ctheirs, copts)
+	ecode := C._go_git_merge_file(&result,
+		(*C.char)(unsafe.Pointer(ancestorContents)), C.size_t(len(ancestor.Contents)), ancestorPath, C.uint(ancestor.Mode),
+		(*C.char)(unsafe.Pointer(oursContents)), C.size_t(len(ours.Contents)), oursPath, C.uint(ours.Mode),
+		(*C.char)(unsafe.Pointer(theirsContents)), C.size_t(len(theirs.Contents)), theirsPath, C.uint(theirs.Mode),
+		copts)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
