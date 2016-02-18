@@ -10,12 +10,12 @@ func TestObjectPoymorphism(t *testing.T) {
 
 	commitId, treeId := seedTestRepo(t, repo)
 
-	var obj Object
+	var obj *Object
 
 	commit, err := repo.LookupCommit(commitId)
 	checkFatal(t, err)
 
-	obj = commit
+	obj = &commit.Object
 	if obj.Type() != ObjectCommit {
 		t.Fatalf("Wrong object type, expected commit, have %v", obj.Type())
 	}
@@ -27,13 +27,13 @@ func TestObjectPoymorphism(t *testing.T) {
 	tree, err := repo.LookupTree(treeId)
 	checkFatal(t, err)
 
-	obj = tree
+	obj = &tree.Object
 	if obj.Type() != ObjectTree {
 		t.Fatalf("Wrong object type, expected tree, have %v", obj.Type())
 	}
 
-	tree2, ok := obj.(*Tree)
-	if !ok {
+	tree2, err := obj.AsTree()
+	if err != nil {
 		t.Fatalf("Converting back to *Tree is not ok")
 	}
 
@@ -46,16 +46,16 @@ func TestObjectPoymorphism(t *testing.T) {
 		t.Fatal("Wrong filemode for \"README\"")
 	}
 
-	_, ok = obj.(*Commit)
-	if ok {
+	_, err = obj.AsCommit()
+	if err == nil {
 		t.Fatalf("*Tree is somehow the same as *Commit")
 	}
 
 	obj, err = repo.Lookup(tree.Id())
 	checkFatal(t, err)
 
-	_, ok = obj.(*Tree)
-	if !ok {
+	_, err = obj.AsTree()
+	if err != nil {
 		t.Fatalf("Lookup creates the wrong type")
 	}
 
@@ -99,8 +99,8 @@ func TestObjectOwner(t *testing.T) {
 	tree, err := repo.LookupTree(treeId)
 	checkFatal(t, err)
 
-	checkOwner(t, repo, commit)
-	checkOwner(t, repo, tree)
+	checkOwner(t, repo, commit.Object)
+	checkOwner(t, repo, tree.Object)
 }
 
 func TestObjectPeel(t *testing.T) {
@@ -109,7 +109,7 @@ func TestObjectPeel(t *testing.T) {
 
 	commitID, treeID := seedTestRepo(t, repo)
 
-	var obj Object
+	var obj *Object
 
 	commit, err := repo.LookupCommit(commitID)
 	checkFatal(t, err)

@@ -127,7 +127,7 @@ func (c *Commit) Describe(opts *DescribeOptions) (*DescribeResult, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_describe_commit(&resultPtr, c.gitObject.ptr, cDescribeOpts)
+	ecode := C.git_describe_commit(&resultPtr, c.ptr, cDescribeOpts)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}

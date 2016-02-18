@@ -12,11 +12,11 @@ import (
 
 // Repository
 type Repository struct {
-	ptr     *C.git_repository
+	ptr *C.git_repository
 	// Remotes represents the collection of remotes and can be
 	// used to add, remove and configure remotes for this
 	// repository.
-	Remotes  RemoteCollection
+	Remotes RemoteCollection
 	// Submodules represents the collection of submodules and can
 	// be used to add, remove and configure submodules in this
 	// repostiory.
@@ -26,7 +26,7 @@ type Repository struct {
 	References ReferenceCollection
 	// Notes represents the collection of notes and can be used to
 	// read, write and delete notes from this repository.
-	Notes      NoteCollection
+	Notes NoteCollection
 	// Tags represents the collection of tags and can be used to create,
 	// list and iterate tags in this repository.
 	Tags TagsCollection
@@ -35,10 +35,10 @@ type Repository struct {
 func newRepositoryFromC(ptr *C.git_repository) *Repository {
 	repo := &Repository{ptr: ptr}
 
-	repo.Remotes.repo    = repo
+	repo.Remotes.repo = repo
 	repo.Submodules.repo = repo
 	repo.References.repo = repo
-	repo.Notes.repo      = repo
+	repo.Notes.repo = repo
 	repo.Tags.repo = repo
 
 	runtime.SetFinalizer(repo, (*Repository).Free)
@@ -62,15 +62,29 @@ func OpenRepository(path string) (*Repository, error) {
 	return newRepositoryFromC(ptr), nil
 }
 
-func OpenRepositoryExtended(path string) (*Repository, error) {
+type RepositoryOpenFlag int
+
+const (
+	RepositoryOpenNoSearch RepositoryOpenFlag = C.GIT_REPOSITORY_OPEN_NO_SEARCH
+	RepositoryOpenCrossFs  RepositoryOpenFlag = C.GIT_REPOSITORY_OPEN_CROSS_FS
+	RepositoryOpenBare     RepositoryOpenFlag = C.GIT_REPOSITORY_OPEN_BARE
+)
+
+func OpenRepositoryExtended(path string, flags RepositoryOpenFlag, ceiling string) (*Repository, error) {
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
+
+	var cceiling *C.char = nil
+	if len(ceiling) > 0 {
+		cceiling = C.CString(ceiling)
+		defer C.free(unsafe.Pointer(cceiling))
+	}
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
 	var ptr *C.git_repository
-	ret := C.git_repository_open_ext(&ptr, cpath, 0, nil)
+	ret := C.git_repository_open_ext(&ptr, cpath, C.uint(flags), cceiling)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -145,7 +159,7 @@ func (v *Repository) Index() (*Index, error) {
 	return newIndexFromC(ptr), nil
 }
 
-func (v *Repository) lookupType(id *Oid, t ObjectType) (Object, error) {
+func (v *Repository) lookupType(id *Oid, t ObjectType) (*Object, error) {
 	var ptr *C.git_object
 
 	runtime.LockOSThread()
@@ -159,7 +173,7 @@ func (v *Repository) lookupType(id *Oid, t ObjectType) (Object, error) {
 	return allocObject(ptr, v), nil
 }
 
-func (v *Repository) Lookup(id *Oid) (Object, error) {
+func (v *Repository) Lookup(id *Oid) (*Object, error) {
 	return v.lookupType(id, ObjectAny)
 }
 
@@ -169,7 +183,7 @@ func (v *Repository) LookupTree(id *Oid) (*Tree, error) {
 		return nil, err
 	}
 
-	return obj.(*Tree), nil
+	return obj.AsTree()
 }
 
 func (v *Repository) LookupCommit(id *Oid) (*Commit, error) {
@@ -178,7 +192,7 @@ func (v *Repository) LookupCommit(id *Oid) (*Commit, error) {
 		return nil, err
 	}
 
-	return obj.(*Commit), nil
+	return obj.AsCommit()
 }
 
 func (v *Repository) LookupBlob(id *Oid) (*Blob, error) {
@@ -187,7 +201,7 @@ func (v *Repository) LookupBlob(id *Oid) (*Blob, error) {
 		return nil, err
 	}
 
-	return obj.(*Blob), nil
+	return obj.AsBlob()
 }
 
 func (v *Repository) LookupTag(id *Oid) (*Tag, error) {
@@ -196,7 +210,7 @@ func (v *Repository) LookupTag(id *Oid) (*Tag, error) {
 		return nil, err
 	}
 
-	return obj.(*Tag), nil
+	return obj.AsTag()
 }
 
 func (v *Repository) Head() (*Reference, error) {

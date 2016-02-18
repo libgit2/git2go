@@ -1,8 +1,11 @@
 default: test
 
-test:
-	go run script/check-MakeGitError-thread-lock.go
-	go test ./...
+build-libgit2:
+	./script/build-libgit2-static.sh
 
-install:
-	go install ./...
+test: build-libgit2
+	go run script/check-MakeGitError-thread-lock.go
+	./script/with-static.sh go test ./...
+
+install: build-libgit2
+	./script/with-static.sh go install ./...

@@ -72,12 +72,12 @@ type RemoteCallbacks struct {
 type FetchPrune uint
 
 const (
-	 // Use the setting from the configuration
+	// Use the setting from the configuration
 	FetchPruneUnspecified FetchPrune = C.GIT_FETCH_PRUNE_UNSPECIFIED
 	// Force pruning on
-	FetchPruneOn       FetchPrune = C.GIT_FETCH_PRUNE
+	FetchPruneOn FetchPrune = C.GIT_FETCH_PRUNE
 	// Force pruning off
-	FetchNoPrune       FetchPrune = C.GIT_FETCH_NO_PRUNE
+	FetchNoPrune FetchPrune = C.GIT_FETCH_NO_PRUNE
 )
 
 type DownloadTags uint
@@ -88,20 +88,20 @@ const (
 	DownloadTagsUnspecified DownloadTags = C.GIT_REMOTE_DOWNLOAD_TAGS_UNSPECIFIED
 	// Ask the server for tags pointing to objects we're already
 	// downloading.
-	DownloadTagsAuto     DownloadTags = C.GIT_REMOTE_DOWNLOAD_TAGS_AUTO
+	DownloadTagsAuto DownloadTags = C.GIT_REMOTE_DOWNLOAD_TAGS_AUTO
 
 	// Don't ask for any tags beyond the refspecs.
-	DownloadTagsNone     DownloadTags = C.GIT_REMOTE_DOWNLOAD_TAGS_NONE
+	DownloadTagsNone DownloadTags = C.GIT_REMOTE_DOWNLOAD_TAGS_NONE
 
 	// Ask for the all the tags.
-	DownloadTagsAll      DownloadTags = C.GIT_REMOTE_DOWNLOAD_TAGS_ALL
+	DownloadTagsAll DownloadTags = C.GIT_REMOTE_DOWNLOAD_TAGS_ALL
 )
 
 type FetchOptions struct {
 	// Callbacks to use for this fetch operation
 	RemoteCallbacks RemoteCallbacks
 	// Whether to perform a prune after the fetch
-	Prune           FetchPrune
+	Prune FetchPrune
 	// Whether to write the results to FETCH_HEAD. Defaults to
 	// on. Leave this default in order to behave like git.
 	UpdateFetchhead bool
@@ -111,7 +111,10 @@ type FetchOptions struct {
 	// downloading all of them.
 	//
 	// The default is to auto-follow tags.
-	DownloadTags    DownloadTags
+	DownloadTags DownloadTags
+
+	// Headers are extra headers for the fetch operation.
+	Headers []string
 }
 
 type Remote struct {
@@ -157,6 +160,9 @@ type PushOptions struct {
 	RemoteCallbacks RemoteCallbacks
 
 	PbParallelism uint
+
+	// Headers are extra headers for the push operation.
+	Headers []string
 }
 
 type RemoteHead struct {
@@ -588,12 +594,16 @@ func (o *Remote) RefspecCount() uint {
 func populateFetchOptions(options *C.git_fetch_options, opts *FetchOptions) {
 	C.git_fetch_init_options(options, C.GIT_FETCH_OPTIONS_VERSION)
 	if opts == nil {
-		return;
+		return
 	}
 	populateRemoteCallbacks(&options.callbacks, &opts.RemoteCallbacks)
 	options.prune = C.git_fetch_prune_t(opts.Prune)
 	options.update_fetchhead = cbool(opts.UpdateFetchhead)
 	options.download_tags = C.git_remote_autotag_option_t(opts.DownloadTags)
+
+	options.custom_headers = C.git_strarray{}
+	options.custom_headers.count = C.size_t(len(opts.Headers))
+	options.custom_headers.strings = makeCStringsFromStrings(opts.Headers)
 }
 
 func populatePushOptions(options *C.git_push_options, opts *PushOptions) {
@@ -604,6 +614,10 @@ func populatePushOptions(options *C.git_push_options, opts *PushOptions) {
 
 	options.pb_parallelism = C.uint(opts.PbParallelism)
 
+	options.custom_headers = C.git_strarray{}
+	options.custom_headers.count = C.size_t(len(opts.Headers))
+	options.custom_headers.strings = makeCStringsFromStrings(opts.Headers)
+
 	populateRemoteCallbacks(&options.callbacks, &opts.RemoteCallbacks)
 }
 
@@ -611,7 +625,7 @@ func populatePushOptions(options *C.git_push_options, opts *PushOptions) {
 // to use for this fetch, use an empty list to use the refspecs from
 // the configuration; msg specifies what to use for the reflog
 // entries. Leave "" to use defaults.
-func (o *Remote) Fetch(refspecs []string, opts *FetchOptions,  msg string) error {
+func (o *Remote) Fetch(refspecs []string, opts *FetchOptions, msg string) error {
 	var cmsg *C.char = nil
 	if msg != "" {
 		cmsg = C.CString(msg)
@@ -628,6 +642,7 @@ func (o *Remote) Fetch(refspecs []string, opts *FetchOptions,  msg string) error
 
 	populateFetchOptions(coptions, opts)
 	defer untrackCalbacksPayload(&coptions.callbacks)
+	defer freeStrarray(&coptions.custom_headers)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -639,22 +654,34 @@ func (o *Remote) Fetch(refspecs []string, opts *FetchOptions,  msg string) error
 	return nil
 }
 
-func (o *Remote) ConnectFetch(callbacks *RemoteCallbacks) error {
-	return o.Connect(ConnectDirectionFetch, callbacks)
+func (o *Remote) ConnectFetch(callbacks *RemoteCallbacks, headers []string) error {
+	return o.Connect(ConnectDirectionFetch, callbacks, headers)
 }
 
-func (o *Remote) ConnectPush(callbacks *RemoteCallbacks) error {
-	return o.Connect(ConnectDirectionPush, callbacks)
+func (o *Remote) ConnectPush(callbacks *RemoteCallbacks, headers []string) error {
+	return o.Connect(ConnectDirectionPush, callbacks, headers)
 }
 
-func (o *Remote) Connect(direction ConnectDirection, callbacks *RemoteCallbacks) error {
-	var ccallbacks C.git_remote_callbacks;
+// Connect opens a connection to a remote.
+//
+// The transport is selected based on the URL. The direction argument
+// is due to a limitation of the git protocol (over TCP or SSH) which
+// starts up a specific binary which can only do the one or the other.
+//
+// 'headers' are extra HTTP headers to use in this connection.
+func (o *Remote) Connect(direction ConnectDirection, callbacks *RemoteCallbacks, headers []string) error {
+	var ccallbacks C.git_remote_callbacks
 	populateRemoteCallbacks(&ccallbacks, callbacks)
+
+	cheaders := C.git_strarray{}
+	cheaders.count = C.size_t(len(headers))
+	cheaders.strings = makeCStringsFromStrings(headers)
+	defer freeStrarray(&cheaders)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if ret := C.git_remote_connect(o.ptr, C.git_direction(direction), &ccallbacks); ret != 0 {
+	if ret := C.git_remote_connect(o.ptr, C.git_direction(direction), &ccallbacks, &cheaders); ret != 0 {
 		return MakeGitError(ret)
 	}
 	return nil
@@ -717,6 +744,7 @@ func (o *Remote) Push(refspecs []string, opts *PushOptions) error {
 
 	populatePushOptions(coptions, opts)
 	defer untrackCalbacksPayload(&coptions.callbacks)
+	defer freeStrarray(&coptions.custom_headers)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -733,7 +761,7 @@ func (o *Remote) PruneRefs() bool {
 }
 
 func (o *Remote) Prune(callbacks *RemoteCallbacks) error {
-	var ccallbacks C.git_remote_callbacks;
+	var ccallbacks C.git_remote_callbacks
 	populateRemoteCallbacks(&ccallbacks, callbacks)
 
 	runtime.LockOSThread()
