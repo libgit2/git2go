@@ -82,12 +82,12 @@ func (r *Repository) AnnotatedCommitFromRef(ref *Reference) (*AnnotatedCommit, e
 type MergeTreeFlag int
 
 const (
-	MergeTreeFindRenames MergeTreeFlag = C.GIT_MERGE_TREE_FIND_RENAMES
+	MergeTreeFindRenames MergeTreeFlag = C.GIT_MERGE_FIND_RENAMES
 )
 
 type MergeOptions struct {
-	Version     uint
-	TreeFlags   MergeTreeFlag
+	Version   uint
+	TreeFlags MergeTreeFlag
 
 	RenameThreshold uint
 	TargetLimit     uint
@@ -99,7 +99,7 @@ type MergeOptions struct {
 func mergeOptionsFromC(opts *C.git_merge_options) MergeOptions {
 	return MergeOptions{
 		Version:         uint(opts.version),
-		TreeFlags:           MergeTreeFlag(opts.tree_flags),
+		TreeFlags:       MergeTreeFlag(opts.flags),
 		RenameThreshold: uint(opts.rename_threshold),
 		TargetLimit:     uint(opts.target_limit),
 		FileFavor:       MergeFileFavor(opts.file_favor),
@@ -125,7 +125,7 @@ func (mo *MergeOptions) toC() *C.git_merge_options {
 	}
 	return &C.git_merge_options{
 		version:          C.uint(mo.Version),
-		tree_flags:       C.git_merge_tree_flag_t(mo.TreeFlags),
+		flags:            C.git_merge_flag_t(mo.TreeFlags),
 		rename_threshold: C.uint(mo.RenameThreshold),
 		target_limit:     C.uint(mo.TargetLimit),
 		file_favor:       C.git_merge_file_favor_t(mo.FileFavor),
@@ -263,10 +263,10 @@ func (r *Repository) MergeBases(one, two *Oid) ([]*Oid, error) {
 	}
 
 	oids := make([]*Oid, coids.count)
-	hdr := reflect.SliceHeader {
+	hdr := reflect.SliceHeader{
 		Data: uintptr(unsafe.Pointer(coids.ids)),
-		Len: int(coids.count),
-		Cap: int(coids.count),
+		Len:  int(coids.count),
+		Cap:  int(coids.count),
 	}
 
 	goSlice := *(*[]C.git_oid)(unsafe.Pointer(&hdr))
@@ -354,7 +354,7 @@ func populateCMergeFileOptions(c *C.git_merge_file_options, options MergeFileOpt
 	c.our_label = C.CString(options.OurLabel)
 	c.their_label = C.CString(options.TheirLabel)
 	c.favor = C.git_merge_file_favor_t(options.Favor)
-	c.flags = C.uint(options.Flags)
+	c.flags = C.git_merge_file_flag_t(options.Flags)
 }
 
 func freeCMergeFileOptions(c *C.git_merge_file_options) {
