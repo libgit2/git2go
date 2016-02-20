@@ -550,7 +550,7 @@ func diffOptionsToC(opts *DiffOptions) (copts *C.git_diff_options, notifyData *d
 
 		if opts.NotifyCallback != nil {
 			C._go_git_setup_diff_notify_callbacks(copts)
-			copts.notify_payload = pointerHandles.Track(notifyData)
+			copts.payload = pointerHandles.Track(notifyData)
 		}
 	}
 	return
@@ -562,8 +562,8 @@ func freeDiffOptions(copts *C.git_diff_options) {
 		freeStrarray(&cpathspec)
 		C.free(unsafe.Pointer(copts.old_prefix))
 		C.free(unsafe.Pointer(copts.new_prefix))
-		if copts.notify_payload != nil {
-			pointerHandles.Untrack(copts.notify_payload)
+		if copts.payload != nil {
+			pointerHandles.Untrack(copts.payload)
 		}
 	}
 }

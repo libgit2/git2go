@@ -6,6 +6,34 @@ import (
 	"testing"
 )
 
+func TestOdbReadHeader(t *testing.T) {
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	_, _ = seedTestRepo(t, repo)
+	odb, err := repo.Odb()
+	if err != nil {
+		t.Fatalf("Odb: %v", err)
+	}
+	data := []byte("hello")
+	id, err := odb.Write(data, ObjectBlob)
+	if err != nil {
+		t.Fatalf("odb.Write: %v", err)
+	}
+
+	sz, typ, err := odb.ReadHeader(id)
+	if err != nil {
+		t.Fatalf("ReadHeader: %v", err)
+	}
+	
+	if sz != uint64(len(data)) {
+		t.Errorf("ReadHeader got size %d, want %d", sz, len(data))
+	}
+	if typ != ObjectBlob {
+		t.Errorf("ReadHeader got object type %s", typ)
+	}
+}
+
 func TestOdbStream(t *testing.T) {
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)

@@ -8,7 +8,7 @@ Go bindings for [libgit2](http://libgit2.github.com/). The `master` branch follo
 Installing
 ----------
 
-This project wraps the functionality provided by libgit2. If you're using a stable version, install it to your system via your system's package manaager and then install git2go as usual.
+This project wraps the functionality provided by libgit2. If you're using a stable version, install it to your system via your system's package manager and then install git2go as usual.
 
 Otherwise (`next` which tracks an unstable version), we need to build libgit2 as well. In order to build it, you need `cmake`, `pkg-config` and a C compiler. You will also need the development packages for OpenSSL and LibSSH2 installed if you want libgit2 to support HTTPS and SSH respectively.
 

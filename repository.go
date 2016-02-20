@@ -66,15 +66,29 @@ func OpenRepository(path string) (*Repository, error) {
 	return newRepositoryFromC(ptr), nil
 }
 
-func OpenRepositoryExtended(path string) (*Repository, error) {
+type RepositoryOpenFlag int
+
+const (
+	RepositoryOpenNoSearch RepositoryOpenFlag = C.GIT_REPOSITORY_OPEN_NO_SEARCH
+	RepositoryOpenCrossFs  RepositoryOpenFlag = C.GIT_REPOSITORY_OPEN_CROSS_FS
+	RepositoryOpenBare     RepositoryOpenFlag = C.GIT_REPOSITORY_OPEN_BARE
+)
+
+func OpenRepositoryExtended(path string, flags RepositoryOpenFlag, ceiling string) (*Repository, error) {
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
+
+	var cceiling *C.char = nil
+	if len(ceiling) > 0 {
+		cceiling = C.CString(ceiling)
+		defer C.free(unsafe.Pointer(cceiling))
+	}
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
 	var ptr *C.git_repository
-	ret := C.git_repository_open_ext(&ptr, cpath, 0, nil)
+	ret := C.git_repository_open_ext(&ptr, cpath, C.uint(flags), cceiling)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -434,6 +448,27 @@ func (r *Repository) StateCleanup() error {
 	cErr := C.git_repository_state_cleanup(r.ptr)
 	if cErr < 0 {
 		return MakeGitError(cErr)
+	}
+	return nil
+}
+func (r *Repository) AddGitIgnoreRules(rules string) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	crules := C.CString(rules)
+	defer C.free(unsafe.Pointer(crules))
+	if ret := C.git_ignore_add_rule(r.ptr, crules); ret < 0 {
+		return MakeGitError(ret)
+	}
+	return nil
+}
+
+func (r *Repository) ClearGitIgnoreRules() error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if ret := C.git_ignore_clear_internal_rules(r.ptr); ret < 0 {
+		return MakeGitError(ret)
 	}
 	return nil
 }

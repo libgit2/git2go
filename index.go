@@ -26,6 +26,24 @@ const (
 	IndexAddCheckPathspec        IndexAddOpts = C.GIT_INDEX_ADD_CHECK_PATHSPEC
 )
 
+type IndexStageOpts int
+
+const (
+	// IndexStageAny matches any index stage.
+	//
+	// Some index APIs take a stage to match; pass this value to match
+	// any entry matching the path regardless of stage.
+	IndexStageAny IndexStageOpts = C.GIT_INDEX_STAGE_ANY
+	// IndexStageNormal is a normal staged file in the index.
+	IndexStageNormal IndexStageOpts = C.GIT_INDEX_STAGE_NORMAL
+	// IndexStageAncestor is the ancestor side of a conflict.
+	IndexStageAncestor IndexStageOpts = C.GIT_INDEX_STAGE_ANCESTOR
+	// IndexStageOurs is the "ours" side of a conflict.
+	IndexStageOurs IndexStageOpts = C.GIT_INDEX_STAGE_OURS
+	// IndexStageTheirs is the "theirs" side of a conflict.
+	IndexStageTheirs IndexStageOpts = C.GIT_INDEX_STAGE_THEIRS
+)
+
 type Index struct {
 	ptr *C.git_index
 }
@@ -97,7 +115,7 @@ func NewIndex() (*Index, error) {
 		return nil, MakeGitError(err)
 	}
 
-	return &Index{ptr: ptr}, nil
+	return newIndexFromC(ptr), nil
 }
 
 // OpenIndex creates a new index at the given path. If the file does
@@ -115,7 +133,7 @@ func OpenIndex(path string) (*Index, error) {
 		return nil, MakeGitError(err)
 	}
 
-	return &Index{ptr: ptr}, nil
+	return newIndexFromC(ptr), nil
 }
 
 // Path returns the index' path on disk or an empty string if it
@@ -329,6 +347,50 @@ func (v *Index) EntryByIndex(index uint) (*IndexEntry, error) {
 		return nil, fmt.Errorf("Index out of Bounds")
 	}
 	return newIndexEntryFromC(centry), nil
+}
+
+func (v *Index) EntryByPath(path string, stage int) (*IndexEntry, error) {
+	cpath := C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	centry := C.git_index_get_bypath(v.ptr, cpath, C.int(stage))
+	if centry == nil {
+		return nil, MakeGitError(C.GIT_ENOTFOUND)
+	}
+	return newIndexEntryFromC(centry), nil
+}
+
+func (v *Index) Find(path string) (uint, error) {
+	cpath := C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var pos C.size_t
+	ret := C.git_index_find(&pos, v.ptr, cpath)
+	if ret < 0 {
+		return uint(0), MakeGitError(ret)
+	}
+	return uint(pos), nil
+}
+
+func (v *Index) FindPrefix(prefix string) (uint, error) {
+	cprefix := C.CString(prefix)
+	defer C.free(unsafe.Pointer(cprefix))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var pos C.size_t
+	ret := C.git_index_find_prefix(&pos, v.ptr, cprefix)
+	if ret < 0 {
+		return uint(0), MakeGitError(ret)
+	}
+	return uint(pos), nil
 }
 
 func (v *Index) HasConflicts() bool {

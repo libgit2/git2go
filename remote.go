@@ -112,6 +112,9 @@ type FetchOptions struct {
 	//
 	// The default is to auto-follow tags.
 	DownloadTags DownloadTags
+
+	// Headers are extra headers for the fetch operation.
+	Headers []string
 }
 
 type Remote struct {
@@ -157,6 +160,9 @@ type PushOptions struct {
 	RemoteCallbacks RemoteCallbacks
 
 	PbParallelism uint
+
+	// Headers are extra headers for the push operation.
+	Headers []string
 }
 
 type RemoteHead struct {
@@ -594,6 +600,10 @@ func populateFetchOptions(options *C.git_fetch_options, opts *FetchOptions) {
 	options.prune = C.git_fetch_prune_t(opts.Prune)
 	options.update_fetchhead = cbool(opts.UpdateFetchhead)
 	options.download_tags = C.git_remote_autotag_option_t(opts.DownloadTags)
+
+	options.custom_headers = C.git_strarray{}
+	options.custom_headers.count = C.size_t(len(opts.Headers))
+	options.custom_headers.strings = makeCStringsFromStrings(opts.Headers)
 }
 
 func populatePushOptions(options *C.git_push_options, opts *PushOptions) {
@@ -603,6 +613,10 @@ func populatePushOptions(options *C.git_push_options, opts *PushOptions) {
 	}
 
 	options.pb_parallelism = C.uint(opts.PbParallelism)
+
+	options.custom_headers = C.git_strarray{}
+	options.custom_headers.count = C.size_t(len(opts.Headers))
+	options.custom_headers.strings = makeCStringsFromStrings(opts.Headers)
 
 	populateRemoteCallbacks(&options.callbacks, &opts.RemoteCallbacks)
 }
@@ -623,36 +637,51 @@ func (o *Remote) Fetch(refspecs []string, opts *FetchOptions, msg string) error 
 	crefspecs.strings = makeCStringsFromStrings(refspecs)
 	defer freeStrarray(&crefspecs)
 
-	var coptions C.git_fetch_options
-	populateFetchOptions(&coptions, opts)
+	coptions := (*C.git_fetch_options)(C.calloc(1, C.size_t(unsafe.Sizeof(C.git_fetch_options{}))))
+	defer C.free(unsafe.Pointer(coptions))
+
+	populateFetchOptions(coptions, opts)
 	defer untrackCalbacksPayload(&coptions.callbacks)
+	defer freeStrarray(&coptions.custom_headers)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_remote_fetch(o.ptr, &crefspecs, &coptions, cmsg)
+	ret := C.git_remote_fetch(o.ptr, &crefspecs, coptions, cmsg)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
 	return nil
 }
 
-func (o *Remote) ConnectFetch(callbacks *RemoteCallbacks) error {
-	return o.Connect(ConnectDirectionFetch, callbacks)
+func (o *Remote) ConnectFetch(callbacks *RemoteCallbacks, headers []string) error {
+	return o.Connect(ConnectDirectionFetch, callbacks, headers)
 }
 
-func (o *Remote) ConnectPush(callbacks *RemoteCallbacks) error {
-	return o.Connect(ConnectDirectionPush, callbacks)
+func (o *Remote) ConnectPush(callbacks *RemoteCallbacks, headers []string) error {
+	return o.Connect(ConnectDirectionPush, callbacks, headers)
 }
 
-func (o *Remote) Connect(direction ConnectDirection, callbacks *RemoteCallbacks) error {
+// Connect opens a connection to a remote.
+//
+// The transport is selected based on the URL. The direction argument
+// is due to a limitation of the git protocol (over TCP or SSH) which
+// starts up a specific binary which can only do the one or the other.
+//
+// 'headers' are extra HTTP headers to use in this connection.
+func (o *Remote) Connect(direction ConnectDirection, callbacks *RemoteCallbacks, headers []string) error {
 	var ccallbacks C.git_remote_callbacks
 	populateRemoteCallbacks(&ccallbacks, callbacks)
+
+	cheaders := C.git_strarray{}
+	cheaders.count = C.size_t(len(headers))
+	cheaders.strings = makeCStringsFromStrings(headers)
+	defer freeStrarray(&cheaders)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if ret := C.git_remote_connect(o.ptr, C.git_direction(direction), &ccallbacks); ret != 0 {
+	if ret := C.git_remote_connect(o.ptr, C.git_direction(direction), &ccallbacks, &cheaders); ret != 0 {
 		return MakeGitError(ret)
 	}
 	return nil
@@ -710,14 +739,17 @@ func (o *Remote) Push(refspecs []string, opts *PushOptions) error {
 	crefspecs.strings = makeCStringsFromStrings(refspecs)
 	defer freeStrarray(&crefspecs)
 
-	var coptions C.git_push_options
-	populatePushOptions(&coptions, opts)
+	coptions := (*C.git_push_options)(C.calloc(1, C.size_t(unsafe.Sizeof(C.git_push_options{}))))
+	defer C.free(unsafe.Pointer(coptions))
+
+	populatePushOptions(coptions, opts)
 	defer untrackCalbacksPayload(&coptions.callbacks)
+	defer freeStrarray(&coptions.custom_headers)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_remote_push(o.ptr, &crefspecs, &coptions)
+	ret := C.git_remote_push(o.ptr, &crefspecs, coptions)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}

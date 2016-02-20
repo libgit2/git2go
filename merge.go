@@ -6,6 +6,7 @@ package git
 extern git_annotated_commit** _go_git_make_merge_head_array(size_t len);
 extern void _go_git_annotated_commit_array_set(git_annotated_commit** array, git_annotated_commit* ptr, size_t n);
 extern git_annotated_commit* _go_git_annotated_commit_array_get(git_annotated_commit** array, size_t n);
+extern int _go_git_merge_file(git_merge_file_result*, char*, size_t, char*, unsigned int, char*, size_t, char*, unsigned int, char*, size_t, char*, unsigned int, git_merge_file_options*);
 
 */
 import "C"
@@ -81,7 +82,14 @@ func (r *Repository) AnnotatedCommitFromRef(ref *Reference) (*AnnotatedCommit, e
 type MergeTreeFlag int
 
 const (
-	MergeTreeFindRenames MergeTreeFlag = C.GIT_MERGE_TREE_FIND_RENAMES
+	// Detect renames that occur between the common ancestor and the "ours"
+	// side or the common ancestor and the "theirs" side.  This will enable
+	// the ability to merge between a modified and renamed file.
+	MergeTreeFindRenames MergeTreeFlag = C.GIT_MERGE_FIND_RENAMES
+	// If a conflict occurs, exit immediately instead of attempting to
+	// continue resolving conflicts.  The merge operation will fail with
+	// GIT_EMERGECONFLICT and no index will be returned.
+	MergeTreeFailOnConflict MergeTreeFlag = C.GIT_MERGE_FAIL_ON_CONFLICT
 )
 
 type MergeOptions struct {
@@ -98,7 +106,7 @@ type MergeOptions struct {
 func mergeOptionsFromC(opts *C.git_merge_options) MergeOptions {
 	return MergeOptions{
 		Version:         uint(opts.version),
-		TreeFlags:       MergeTreeFlag(opts.tree_flags),
+		TreeFlags:       MergeTreeFlag(opts.flags),
 		RenameThreshold: uint(opts.rename_threshold),
 		TargetLimit:     uint(opts.target_limit),
 		FileFavor:       MergeFileFavor(opts.file_favor),
@@ -124,7 +132,7 @@ func (mo *MergeOptions) toC() *C.git_merge_options {
 	}
 	return &C.git_merge_options{
 		version:          C.uint(mo.Version),
-		tree_flags:       C.git_merge_tree_flag_t(mo.TreeFlags),
+		flags:            C.git_merge_flag_t(mo.TreeFlags),
 		rename_threshold: C.uint(mo.RenameThreshold),
 		target_limit:     C.uint(mo.TargetLimit),
 		file_favor:       C.git_merge_file_favor_t(mo.FileFavor),
@@ -178,6 +186,9 @@ const (
 	MergePreferenceFastForwardOnly MergePreference = C.GIT_MERGE_PREFERENCE_FASTFORWARD_ONLY
 )
 
+// MergeAnalysis returns the possible actions which could be taken by
+// a 'git-merge' command. There may be multiple answers, so the first
+// return value is a bitmask of MergeAnalysis values.
 func (r *Repository) MergeAnalysis(theirHeads []*AnnotatedCommit) (MergeAnalysis, MergePreference, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -317,20 +328,6 @@ type MergeFileInput struct {
 	Contents []byte
 }
 
-// populate a C struct with merge file input, make sure to use freeMergeFileInput to clean up allocs
-func populateCMergeFileInput(c *C.git_merge_file_input, input MergeFileInput) {
-	c.path = C.CString(input.Path)
-	if input.Contents != nil {
-		c.ptr = (*C.char)(unsafe.Pointer(&input.Contents[0]))
-		c.size = C.size_t(len(input.Contents))
-	}
-	c.mode = C.uint(input.Mode)
-}
-
-func freeCMergeFileInput(c *C.git_merge_file_input) {
-	C.free(unsafe.Pointer(c.path))
-}
-
 type MergeFileFlags int
 
 const (
@@ -364,7 +361,7 @@ func populateCMergeFileOptions(c *C.git_merge_file_options, options MergeFileOpt
 	c.our_label = C.CString(options.OurLabel)
 	c.their_label = C.CString(options.TheirLabel)
 	c.favor = C.git_merge_file_favor_t(options.Favor)
-	c.flags = C.uint(options.Flags)
+	c.flags = C.git_merge_file_flag_t(options.Flags)
 }
 
 func freeCMergeFileOptions(c *C.git_merge_file_options) {
@@ -375,16 +372,26 @@ func freeCMergeFileOptions(c *C.git_merge_file_options) {
 
 func MergeFile(ancestor MergeFileInput, ours MergeFileInput, theirs MergeFileInput, options *MergeFileOptions) (*MergeFileResult, error) {
 
-	var cancestor C.git_merge_file_input
-	var cours C.git_merge_file_input
-	var ctheirs C.git_merge_file_input
+	ancestorPath := C.CString(ancestor.Path)
+	defer C.free(unsafe.Pointer(ancestorPath))
+	var ancestorContents *byte
+	if len(ancestor.Contents) > 0 {
+		ancestorContents = &ancestor.Contents[0]
+	}
 
-	populateCMergeFileInput(&cancestor, ancestor)
-	defer freeCMergeFileInput(&cancestor)
-	populateCMergeFileInput(&cours, ours)
-	defer freeCMergeFileInput(&cours)
-	populateCMergeFileInput(&ctheirs, theirs)
-	defer freeCMergeFileInput(&ctheirs)
+	oursPath := C.CString(ours.Path)
+	defer C.free(unsafe.Pointer(oursPath))
+	var oursContents *byte
+	if len(ours.Contents) > 0 {
+		oursContents = &ours.Contents[0]
+	}
+
+	theirsPath := C.CString(theirs.Path)
+	defer C.free(unsafe.Pointer(theirsPath))
+	var theirsContents *byte
+	if len(theirs.Contents) > 0 {
+		theirsContents = &theirs.Contents[0]
+	}
 
 	var copts *C.git_merge_file_options
 	if options != nil {
@@ -401,7 +408,11 @@ func MergeFile(ancestor MergeFileInput, ours MergeFileInput, theirs MergeFileInp
 	defer runtime.UnlockOSThread()
 
 	var result C.git_merge_file_result
-	ecode := C.git_merge_file(&result, &cancestor, &cours, &ctheirs, copts)
+	ecode := C._go_git_merge_file(&result,
+		(*C.char)(unsafe.Pointer(ancestorContents)), C.size_t(len(ancestor.Contents)), ancestorPath, C.uint(ancestor.Mode),
+		(*C.char)(unsafe.Pointer(oursContents)), C.size_t(len(ours.Contents)), oursPath, C.uint(ours.Mode),
+		(*C.char)(unsafe.Pointer(theirsContents)), C.size_t(len(theirs.Contents)), theirsPath, C.uint(theirs.Mode),
+		copts)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}

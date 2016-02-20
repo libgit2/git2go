@@ -45,6 +45,7 @@ type CheckoutOpts struct {
 	FileOpenFlags   int              // Default is O_CREAT | O_TRUNC | O_WRONLY
 	TargetDirectory string           // Alternative checkout path to workdir
 	Paths           []string
+	Baseline        *Tree
 }
 
 func checkoutOptionsFromC(c *C.git_checkout_options) CheckoutOpts {
@@ -88,6 +89,10 @@ func populateCheckoutOpts(ptr *C.git_checkout_options, opts *CheckoutOpts) *C.gi
 	if len(opts.Paths) > 0 {
 		ptr.paths.strings = makeCStringsFromStrings(opts.Paths)
 		ptr.paths.count = C.size_t(len(opts.Paths))
+	}
+
+	if opts.Baseline != nil {
+		ptr.baseline = opts.Baseline.cast_ptr
 	}
 
 	return ptr
