@@ -62,7 +62,7 @@ func (c *StashCollection) Save(
 
 	ret := C.git_stash_save(
 		oid.toC(), c.repo.ptr,
-		stasherC, messageC, C.uint(flags))
+		stasherC, messageC, C.uint32_t(flags))
 
 	if ret < 0 {
 		return nil, MakeGitError(ret)
