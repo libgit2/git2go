@@ -155,8 +155,6 @@ func DefaultStashApplyOptions() (StashApplyOptions, error) {
 	if ecode < 0 {
 		return StashApplyOptions{}, MakeGitError(ecode)
 	}
-	defer freeStashApplyOptions(&optsC)
-
 	return StashApplyOptions{
 		Flags:           StashApplyFlag(optsC.flags),
 		CheckoutOptions: checkoutOptionsFromC(&optsC.checkout_options),
@@ -172,10 +170,10 @@ func (opts *StashApplyOptions) toC() (
 		}
 
 		optsC = &C.git_stash_apply_options{
-			version:          C.GIT_STASH_APPLY_OPTIONS_VERSION,
-			flags:            C.git_stash_apply_flags(opts.Flags),
-			checkout_options: *opts.CheckoutOptions.toC(),
+			version: C.GIT_STASH_APPLY_OPTIONS_VERSION,
+			flags:   C.git_stash_apply_flags(opts.Flags),
 		}
+		populateCheckoutOpts(&optsC.checkout_options, &opts.CheckoutOptions)
 		if opts.ProgressCallback != nil {
 			C._go_git_setup_stash_apply_progress_callbacks(optsC)
 			optsC.progress_payload = pointerHandles.Track(progressData)
