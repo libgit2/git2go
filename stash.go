@@ -182,12 +182,16 @@ func (opts *StashApplyOptions) toC() (
 	return
 }
 
+// should be called after every call to toC() as deferred.
+func untrackStashApplyOptionsCallback(optsC *C.git_stash_apply_options) {
+	if optsC != nil && optsC.progress_payload != nil {
+		pointerHandles.Untrack(optsC.progress_payload)
+	}
+}
+
 func freeStashApplyOptions(optsC *C.git_stash_apply_options) {
 	if optsC != nil {
 		freeCheckoutOpts(&optsC.checkout_options)
-		if optsC.progress_payload != nil {
-			pointerHandles.Untrack(optsC.progress_payload)
-		}
 	}
 }
 
@@ -217,6 +221,7 @@ func freeStashApplyOptions(optsC *C.git_stash_apply_options) {
 // Error codes can be interogated with IsErrorCode(err, ErrNotFound).
 func (c *StashCollection) Apply(index int, opts StashApplyOptions) error {
 	optsC, progressData := opts.toC()
+	defer untrackStashApplyOptionsCallback(optsC)
 	defer freeStashApplyOptions(optsC)
 
 	runtime.LockOSThread()
@@ -316,6 +321,7 @@ func (c *StashCollection) Drop(index int) error {
 // state for the given index.
 func (c *StashCollection) Pop(index int, opts StashApplyOptions) error {
 	optsC, progressData := opts.toC()
+	defer untrackStashApplyOptionsCallback(optsC)
 	defer freeStashApplyOptions(optsC)
 
 	runtime.LockOSThread()
