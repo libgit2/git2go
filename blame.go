@@ -58,8 +58,8 @@ func (v *Repository) BlameFile(path string, opts *BlameOptions) (*Blame, error) 
 			version:              C.GIT_BLAME_OPTIONS_VERSION,
 			flags:                C.uint32_t(opts.Flags),
 			min_match_characters: C.uint16_t(opts.MinMatchCharacters),
-			min_line:             C.uint32_t(opts.MinLine),
-			max_line:             C.uint32_t(opts.MaxLine),
+			min_line:             C.size_t(opts.MinLine),
+			max_line:             C.size_t(opts.MaxLine),
 		}
 		if opts.NewestCommit != nil {
 			copts.newest_commit = *opts.NewestCommit.toC()
@@ -100,7 +100,7 @@ func (blame *Blame) HunkByIndex(index int) (BlameHunk, error) {
 }
 
 func (blame *Blame) HunkByLine(lineno int) (BlameHunk, error) {
-	ptr := C.git_blame_get_hunk_byline(blame.ptr, C.uint32_t(lineno))
+	ptr := C.git_blame_get_hunk_byline(blame.ptr, C.size_t(lineno))
 	if ptr == nil {
 		return BlameHunk{}, ErrInvalid
 	}

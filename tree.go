@@ -23,7 +23,7 @@ const (
 )
 
 type Tree struct {
-	gitObject
+	Object
 	cast_ptr *C.git_tree
 }
 
@@ -149,7 +149,7 @@ func (v *TreeBuilder) Free() {
 	C.git_treebuilder_free(v.ptr)
 }
 
-func (v *TreeBuilder) Insert(filename string, id *Oid, filemode int) error {
+func (v *TreeBuilder) Insert(filename string, id *Oid, filemode Filemode) error {
 	cfilename := C.CString(filename)
 	defer C.free(unsafe.Pointer(cfilename))
 

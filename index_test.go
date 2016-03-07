@@ -32,10 +32,11 @@ func TestIndexReadTree(t *testing.T) {
 	ref, err := repo.Head()
 	checkFatal(t, err)
 
-	obj, err := ref.Peel(ObjectTree);
+	obj, err := ref.Peel(ObjectTree)
 	checkFatal(t, err)
 
-	tree := obj.(*Tree)
+	tree, err := obj.AsTree()
+	checkFatal(t, err)
 
 	idx, err := NewIndex()
 	checkFatal(t, err)

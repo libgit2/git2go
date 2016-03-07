@@ -18,7 +18,7 @@ import (
 )
 
 type Blob struct {
-	gitObject
+	Object
 	cast_ptr *C.git_blob
 }
 
