@@ -622,6 +622,36 @@ func (v *Repository) DiffTreeToWorkdir(oldTree *Tree, opts *DiffOptions) (*Diff,
 	return newDiffFromC(diffPtr), nil
 }
 
+func (v *Repository) DiffTreeToIndex(oldTree *Tree, index *Index, opts *DiffOptions) (*Diff, error) {
+	var diffPtr *C.git_diff
+	var oldPtr *C.git_tree
+	var indexPtr *C.git_index
+
+	if oldTree != nil {
+		oldPtr = oldTree.cast_ptr
+	}
+
+	if index != nil {
+		indexPtr = index.ptr
+	}
+
+	copts, notifyData := diffOptionsToC(opts)
+	defer freeDiffOptions(copts)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C.git_diff_tree_to_index(&diffPtr, v.ptr, oldPtr, indexPtr, copts)
+	if ecode < 0 {
+		return nil, MakeGitError(ecode)
+	}
+
+	if notifyData != nil && notifyData.Diff != nil {
+		return notifyData.Diff, nil
+	}
+	return newDiffFromC(diffPtr), nil
+}
+
 func (v *Repository) DiffTreeToWorkdirWithIndex(oldTree *Tree, opts *DiffOptions) (*Diff, error) {
 	var diffPtr *C.git_diff
 	var oldPtr *C.git_tree
