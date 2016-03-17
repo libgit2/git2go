@@ -30,6 +30,9 @@ type Repository struct {
 	// Tags represents the collection of tags and can be used to create,
 	// list and iterate tags in this repository.
 	Tags TagsCollection
+	// Stashes represents the collection of stashes and can be used to
+	// save, apply and iterate over stash states in this repository.
+	Stashes StashCollection
 }
 
 func newRepositoryFromC(ptr *C.git_repository) *Repository {
@@ -40,6 +43,7 @@ func newRepositoryFromC(ptr *C.git_repository) *Repository {
 	repo.References.repo = repo
 	repo.Notes.repo = repo
 	repo.Tags.repo = repo
+	repo.Stashes.repo = repo
 
 	runtime.SetFinalizer(repo, (*Repository).Free)
 
