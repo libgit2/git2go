@@ -34,6 +34,7 @@ const (
 	DeltaIgnored    Delta = C.GIT_DELTA_IGNORED
 	DeltaUntracked  Delta = C.GIT_DELTA_UNTRACKED
 	DeltaTypeChange Delta = C.GIT_DELTA_TYPECHANGE
+	DeltaConflicted Delta = C.GIT_DELTA_CONFLICTED
 )
 
 type DiffLineType int

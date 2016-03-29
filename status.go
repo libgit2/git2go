@@ -25,6 +25,7 @@ const (
 	StatusWtTypeChange    Status = C.GIT_STATUS_WT_TYPECHANGE
 	StatusWtRenamed       Status = C.GIT_STATUS_WT_RENAMED
 	StatusIgnored         Status = C.GIT_STATUS_IGNORED
+	StatusConflicted      Status = C.GIT_STATUS_CONFLICTED
 )
 
 type StatusEntry struct {
