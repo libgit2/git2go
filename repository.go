@@ -291,6 +291,17 @@ func (v *Repository) IsEmpty() (bool, error) {
 	return ret != 0, nil
 }
 
+func (v *Repository) IsShallow() (bool, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_repository_is_shallow(v.ptr)
+	if ret < 0 {
+		return false, MakeGitError(ret)
+	}
+	return ret != 0, nil
+}
+
 func (v *Repository) Walk() (*RevWalk, error) {
 
 	var walkPtr *C.git_revwalk
