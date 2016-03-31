@@ -268,6 +268,40 @@ func (v *Repository) IsHeadDetached() (bool, error) {
 	return ret != 0, nil
 }
 
+func (v *Repository) IsHeadUnborn() (bool, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_repository_head_unborn(v.ptr)
+	if ret < 0 {
+		return false, MakeGitError(ret)
+	}
+	return ret != 0, nil
+}
+
+func (v *Repository) IsEmpty() (bool, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_repository_is_empty(v.ptr)
+	if ret < 0 {
+		return false, MakeGitError(ret)
+	}
+
+	return ret != 0, nil
+}
+
+func (v *Repository) IsShallow() (bool, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_repository_is_shallow(v.ptr)
+	if ret < 0 {
+		return false, MakeGitError(ret)
+	}
+	return ret != 0, nil
+}
+
 func (v *Repository) Walk() (*RevWalk, error) {
 
 	var walkPtr *C.git_revwalk
