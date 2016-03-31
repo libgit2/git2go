@@ -36,11 +36,17 @@ func (repo *Repository) CreateBlobFromBuffer(data []byte) (*Oid, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
+	// data may violate cgo 1.6's rules about not having pointers to
+	// pointers passed to C, so make a copy where we know that won't be a
+	// problem:
+	safeData := make([]byte, len(data))
+	copy(data, safeData)
+
 	var id C.git_oid
 	var ptr unsafe.Pointer
 
 	if len(data) > 0 {
-		ptr = unsafe.Pointer(&data[0])
+		ptr = unsafe.Pointer(&safeData[0])
 	} else {
 		ptr = unsafe.Pointer(nil)
 	}
