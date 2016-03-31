@@ -40,7 +40,7 @@ func (repo *Repository) CreateBlobFromBuffer(data []byte) (*Oid, error) {
 	// pointers passed to C, so make a copy where we know that won't be a
 	// problem:
 	safeData := make([]byte, len(data))
-	copy(data, safeData)
+	copy(safeData, data)
 
 	var id C.git_oid
 	var ptr unsafe.Pointer
