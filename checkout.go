@@ -96,6 +96,9 @@ func (opts *CheckoutOpts) toC() *C.git_checkout_options {
 
 //export checkoutNotifyCallback
 func checkoutNotifyCallback(why C.git_checkout_notify_t, cpath *C.char, cbaseline, ctarget, cworkdir, data unsafe.Pointer) int {
+	if data == nil {
+		return 0
+	}
 	path := C.GoString(cpath)
 	var baseline, target, workdir DiffFile
 	if cbaseline != nil {
@@ -116,6 +119,9 @@ func checkoutNotifyCallback(why C.git_checkout_notify_t, cpath *C.char, cbaselin
 
 //export checkoutProgressCallback
 func checkoutProgressCallback(path *C.char, completed_steps, total_steps C.size_t, data unsafe.Pointer) int {
+	if data == nil {
+		return 0
+	}
 	opts := pointerHandles.Get(data).(CheckoutOpts)
 	if opts.ProgressCallback == nil {
 		return 0
