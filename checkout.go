@@ -73,8 +73,12 @@ func checkoutOptionsFromC(c *C.git_checkout_options) CheckoutOpts {
 	opts.FileMode = os.FileMode(c.file_mode)
 	opts.FileOpenFlags = int(c.file_open_flags)
 	opts.NotifyFlags = CheckoutNotifyType(c.notify_flags)
-	opts.NotifyCallback = pointerHandles.Get(c.notify_payload).(CheckoutOpts).NotifyCallback
-	opts.ProgressCallback = pointerHandles.Get(c.progress_payload).(CheckoutOpts).ProgressCallback
+	if c.notify_payload != nil {
+		opts.NotifyCallback = pointerHandles.Get(c.notify_payload).(CheckoutOpts).NotifyCallback
+	}
+	if c.progress_payload != nil {
+		opts.ProgressCallback = pointerHandles.Get(c.progress_payload).(CheckoutOpts).ProgressCallback
+	}
 	if c.target_directory != nil {
 		opts.TargetDirectory = C.GoString(c.target_directory)
 	}
