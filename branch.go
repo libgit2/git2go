@@ -13,6 +13,7 @@ import (
 type BranchType uint
 
 const (
+	BranchAll    BranchType = C.GIT_BRANCH_ALL
 	BranchLocal  BranchType = C.GIT_BRANCH_LOCAL
 	BranchRemote BranchType = C.GIT_BRANCH_REMOTE
 )
