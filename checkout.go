@@ -74,10 +74,10 @@ func checkoutOptionsFromC(c *C.git_checkout_options) CheckoutOpts {
 	opts.FileOpenFlags = int(c.file_open_flags)
 	opts.NotifyFlags = CheckoutNotifyType(c.notify_flags)
 	if c.notify_payload != nil {
-		opts.NotifyCallback = pointerHandles.Get(c.notify_payload).(CheckoutOpts).NotifyCallback
+		opts.NotifyCallback = pointerHandles.Get(c.notify_payload).(*CheckoutOpts).NotifyCallback
 	}
 	if c.progress_payload != nil {
-		opts.ProgressCallback = pointerHandles.Get(c.progress_payload).(CheckoutOpts).ProgressCallback
+		opts.ProgressCallback = pointerHandles.Get(c.progress_payload).(*CheckoutOpts).ProgressCallback
 	}
 	if c.target_directory != nil {
 		opts.TargetDirectory = C.GoString(c.target_directory)
@@ -110,7 +110,7 @@ func checkoutNotifyCallback(why C.git_checkout_notify_t, cpath *C.char, cbaselin
 	if cworkdir != nil {
 		workdir = diffFileFromC((*C.git_diff_file)(cworkdir))
 	}
-	opts := pointerHandles.Get(data).(CheckoutOpts)
+	opts := pointerHandles.Get(data).(*CheckoutOpts)
 	if opts.NotifyCallback == nil {
 		return 0
 	}
@@ -122,7 +122,7 @@ func checkoutProgressCallback(path *C.char, completed_steps, total_steps C.size_
 	if data == nil {
 		return 0
 	}
-	opts := pointerHandles.Get(data).(CheckoutOpts)
+	opts := pointerHandles.Get(data).(*CheckoutOpts)
 	if opts.ProgressCallback == nil {
 		return 0
 	}
@@ -146,11 +146,12 @@ func populateCheckoutOpts(ptr *C.git_checkout_options, opts *CheckoutOpts) *C.gi
 	if opts.NotifyCallback != nil || opts.ProgressCallback != nil {
 		C._go_git_populate_checkout_cb(ptr)
 	}
+	payload := pointerHandles.Track(opts)
 	if opts.NotifyCallback != nil {
-		ptr.notify_payload = pointerHandles.Track(*opts)
+		ptr.notify_payload = payload
 	}
 	if opts.ProgressCallback != nil {
-		ptr.progress_payload = pointerHandles.Track(*opts)
+		ptr.progress_payload = payload
 	}
 	if opts.TargetDirectory != "" {
 		ptr.target_directory = C.CString(opts.TargetDirectory)
@@ -177,9 +178,6 @@ func freeCheckoutOpts(ptr *C.git_checkout_options) {
 	}
 	if ptr.notify_payload != nil {
 		pointerHandles.Untrack(ptr.notify_payload)
-	}
-	if ptr.progress_payload != nil {
-		pointerHandles.Untrack(ptr.progress_payload)
 	}
 }
 
