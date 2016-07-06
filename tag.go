@@ -83,6 +83,21 @@ func (c *TagsCollection) Create(
 	return oid, nil
 }
 
+func (c *TagsCollection) Remove(name string) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+
+	ret := C.git_tag_delete(c.repo.ptr, cname)
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+
+	return nil
+}
+
 // CreateLightweight creates a new lightweight tag pointing to a commit
 // and returns the id of the target object.
 //

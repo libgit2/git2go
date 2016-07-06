@@ -28,7 +28,7 @@ type Repository struct {
 	// read, write and delete notes from this repository.
 	Notes NoteCollection
 	// Tags represents the collection of tags and can be used to create,
-	// list and iterate tags in this repository.
+	// list, iterate and remove tags in this repository.
 	Tags TagsCollection
 }
 
