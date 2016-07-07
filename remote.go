@@ -454,9 +454,9 @@ func (o *Remote) PushUrl() string {
 	return C.GoString(C.git_remote_pushurl(o.ptr))
 }
 
-func (c *RemoteCollection) Rename(remote, newname string) error {
+func (c *RemoteCollection) Rename(remote, newname string) ([]string, error) {
 	cproblems := C.git_strarray{}
-
+	defer freeStrarray(&cproblems)
 	cnewname := C.CString(newname)
 	defer C.free(unsafe.Pointer(cnewname))
 	cremote := C.CString(remote)
@@ -467,10 +467,10 @@ func (c *RemoteCollection) Rename(remote, newname string) error {
 
 	ret := C.git_remote_rename(&cproblems, c.repo.ptr, cremote, cnewname)
 	if ret < 0 {
-		return MakeGitError(ret)
+		problems := makeStringsFromCStrings(cproblems.strings, int(cproblems.count))
+		return problems, MakeGitError(ret)
 	}
-	C.git_strarray_free(&cproblems)
-	return nil
+	return []string{}, nil
 }
 
 func (c *RemoteCollection) SetUrl(remote, url string) error {
