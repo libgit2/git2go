@@ -226,6 +226,10 @@ func (object *OdbObject) Len() (len uint64) {
 	return uint64(C.git_odb_object_size(object.ptr))
 }
 
+func (object *OdbObject) Type() ObjectType {
+	return ObjectType(C.git_odb_object_type(object.ptr))
+}
+
 func (object *OdbObject) Data() (data []byte) {
 	var c_blob unsafe.Pointer = C.git_odb_object_data(object.ptr)
 	var blob []byte
