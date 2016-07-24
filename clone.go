@@ -41,7 +41,6 @@ func Clone(url string, path string, options *CloneOptions) (*Repository, error) 
 
 	var ptr *C.git_repository
 	ret := C.git_clone(&ptr, curl, cpath, copts)
-	freeCheckoutOpts(&copts.checkout_opts)
 
 	if ret < 0 {
 		return nil, MakeGitError(ret)
