@@ -173,7 +173,7 @@ func (v *RevWalk) Iterate(fun RevWalkIterator) (err error) {
 			return nil
 		}
 		if err != nil {
-			if err.(GitError).Code == ErrIterOver {
+			if err.(*GitError).Code == ErrIterOver {
 				err = nil
 			}
 
