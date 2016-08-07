@@ -33,7 +33,7 @@ type RebaseOperation struct {
 	Exec string
 }
 
-func rebaseOperationFromC(c *C.git_rebase_operation) *RebaseOperation {
+func newRebaseOperationFromC(c *C.git_rebase_operation) *RebaseOperation {
 	operation := &RebaseOperation{}
 	operation.Type = RebaseOperationType(c._type)
 	operation.ID = newOidFromC(&c.id)
@@ -50,15 +50,6 @@ type Rebase struct {
 	ptr *C.git_rebase
 }
 
-// Abort aborts a rebase that is currently in progress, resetting the repository and working directory to their state before rebase began.
-func (rebase *Rebase) Abort() error {
-	err := C.git_rebase_abort(rebase.ptr)
-	if err < 0 {
-		return MakeGitError(err)
-	}
-	return nil
-}
-
 //RebaseInit initializes a rebase operation to rebase the changes in branch relative to upstream onto another branch.
 func (r *Repository) RebaseInit(branch *AnnotatedCommit, upstream *AnnotatedCommit, onto *AnnotatedCommit, opts *RebaseOptions) (*Rebase, error) {
 	runtime.LockOSThread()
@@ -66,7 +57,7 @@ func (r *Repository) RebaseInit(branch *AnnotatedCommit, upstream *AnnotatedComm
 
 	//TODO : use real rebase_options
 	if opts != nil {
-		return nil, errors.New("RebaseOptions Not implemented yet")
+		return nil, errors.New("RebaseOptions Not implemented yet, use nil for default opts")
 	}
 
 	if branch == nil {
@@ -90,6 +81,23 @@ func (r *Repository) RebaseInit(branch *AnnotatedCommit, upstream *AnnotatedComm
 	return newRebaseFromC(ptr), nil
 }
 
+// OperationAt gets the rebase operation specified by the given index.
+func (rebase *Rebase) OperationAt(index uint) *RebaseOperation {
+	operation := C.git_rebase_operation_byindex(rebase.ptr, C.size_t(index))
+	return newRebaseOperationFromC(operation)
+}
+
+// CurrentOperationIndex gets the index of the rebase operation that is currently being applied.
+// If the first operation has not yet been applied then this returns -1 (C.GIT_REBASE_NO_OPERATION).
+func (rebase *Rebase) CurrentOperationIndex() int {
+	return int(C.git_rebase_operation_current(rebase.ptr))
+}
+
+// OperationCount gets the count of rebase operations that are to be applied.
+func (rebase *Rebase) OperationCount() uint {
+	return uint(C.git_rebase_operation_entrycount(rebase.ptr))
+}
+
 // Next performs the next rebase operation and returns the information about it.
 // If the operation is one that applies a patch (which is any operation except GIT_REBASE_OPERATION_EXEC)
 // then the patch will be applied and the index and working directory will be updated with the changes.
@@ -104,7 +112,7 @@ func (rebase *Rebase) Next() (*RebaseOperation, error) {
 		return nil, MakeGitError(err)
 	}
 
-	return rebaseOperationFromC(ptr), nil
+	return newRebaseOperationFromC(ptr), nil
 }
 
 // Commit commits the current patch.
@@ -148,9 +156,16 @@ func (rebase *Rebase) Finish() error {
 	return nil
 }
 
-// OperationCount gets the count of rebase operations that are to be applied.
-func (rebase *Rebase) OperationCount() uint {
-	return uint(C.git_rebase_operation_entrycount(rebase.ptr))
+// Abort aborts a rebase that is currently in progress, resetting the repository and working directory to their state before rebase began.
+func (rebase *Rebase) Abort() error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	err := C.git_rebase_abort(rebase.ptr)
+	if err < 0 {
+		return MakeGitError(err)
+	}
+	return nil
 }
 
 //Free frees the Rebase object and underlying git_rebase C pointer.
@@ -169,7 +184,5 @@ func newRebaseFromC(ptr *C.git_rebase) *Rebase {
 
 int git_rebase_init_options(git_rebase_options *opts, unsigned int version);
 int git_rebase_open(git_rebase **out, git_repository *repo, const git_rebase_options *opts);
-git_rebase_operation * git_rebase_operation_byindex(git_rebase *rebase, size_t idx);
-size_t git_rebase_operation_current(git_rebase *rebase);
 
 */
