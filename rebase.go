@@ -139,6 +139,11 @@ func (rebase *Rebase) Finish() error {
 	return nil
 }
 
+// OperationCount gets the count of rebase operations that are to be applied.
+func (rebase *Rebase) OperationCount() uint {
+	return uint(C.git_rebase_operation_entrycount(rebase.ptr))
+}
+
 //Free frees the Rebase object and underlying git_rebase C pointer.
 func (rebase *Rebase) Free() {
 	runtime.SetFinalizer(rebase, nil)
@@ -150,3 +155,13 @@ func newRebaseFromC(ptr *C.git_rebase) *Rebase {
 	runtime.SetFinalizer(rebase, (*Rebase).Free)
 	return rebase
 }
+
+/* TODO -- Add last wrapper services and manage rebase_options
+
+int git_rebase_abort(git_rebase *rebase);
+int git_rebase_init_options(git_rebase_options *opts, unsigned int version);
+int git_rebase_open(git_rebase **out, git_repository *repo, const git_rebase_options *opts);
+git_rebase_operation * git_rebase_operation_byindex(git_rebase *rebase, size_t idx);
+size_t git_rebase_operation_current(git_rebase *rebase);
+
+*/

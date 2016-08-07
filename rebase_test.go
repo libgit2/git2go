@@ -1,19 +1,142 @@
 package git
 
 import (
+	"errors"
+	"strconv"
 	"testing"
 	"time"
 )
 
+// Tests
+
+func TestRebaseNoConflicts(t *testing.T) {
+	// TEST DATA
+
+	// Inputs
+	branchName := "emile"
+	masterCommit := "something"
+	emileCommits := []string{
+		"fou",
+		"barre",
+		"ouich",
+	}
+
+	// Outputs
+	expectedHistory := []string{
+		"Test rebase onto, Baby! " + emileCommits[2],
+		"Test rebase onto, Baby! " + emileCommits[1],
+		"Test rebase onto, Baby! " + emileCommits[0],
+		"Test rebase onto, Baby! " + masterCommit,
+		"This is a commit\n",
+	}
+
+	// TEST
+	repo := createTestRepo(t)
+	seedTestRepo(t, repo)
+
+	// Setup a repo with 2 branches and a different tree
+	err := setupRepoForRebase(repo, masterCommit, branchName)
+	checkFatal(t, err)
+	defer cleanupTestRepo(t, repo)
+
+	// Create several commits in emile
+	for _, commit := range emileCommits {
+		_, err = commitSomething(repo, commit, commit)
+		checkFatal(t, err)
+	}
+
+	// Rebase onto master
+	err = performRebaseOnto(repo, "master")
+	checkFatal(t, err)
+
+	// Check history is in correct order
+	actualHistory, err := commitMsgsList(repo)
+	checkFatal(t, err)
+	assertStringList(t, expectedHistory, actualHistory)
+
+}
+
+// Utils
+func setupRepoForRebase(repo *Repository, masterCommit, branchName string) error {
+	// Create a new branch from master
+	err := createBranch(repo, branchName)
+	if err != nil {
+		return err
+	}
+
+	// Create a commit in master
+	_, err = commitSomething(repo, masterCommit, masterCommit)
+	if err != nil {
+		return err
+	}
+
+	// Switch to emile
+	err = repo.SetHead("refs/heads/" + branchName)
+	if err != nil {
+		return err
+	}
+
+	// Check master commit is not in emile branch
+	if entryExists(repo, masterCommit) {
+		return errors.New(masterCommit + " entry should not exist in " + branchName + " branch.")
+	}
+
+	return nil
+}
+
+func performRebaseOnto(repo *Repository, branch string) error {
+	master, err := repo.LookupBranch(branch, BranchLocal)
+	if err != nil {
+		return err
+	}
+	defer master.Free()
+
+	onto, err := repo.AnnotatedCommitFromRef(master.Reference)
+	if err != nil {
+		return err
+	}
+	defer onto.Free()
+
+	rebase, err := repo.RebaseInit(nil, nil, onto, nil)
+	if err != nil {
+		return err
+	}
+	defer rebase.Free()
+
+	opCount := int(rebase.OperationCount())
+
+	for op := 0; op < opCount; op++ {
+		operation, err := rebase.Next()
+		if err != nil {
+			return err
+		}
+
+		commit, err := repo.LookupCommit(operation.ID)
+		if err != nil {
+			return err
+		}
+		defer commit.Free()
+
+		err = rebase.Commit(operation.ID, signature(), signature(), commit.Message())
+		if err != nil {
+			return err
+		}
+	}
+
+	err = rebase.Finish()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func createBranch(repo *Repository, branch string) error {
-	head, err := repo.Head()
+	commit, err := headCommit(repo)
 	if err != nil {
 		return err
 	}
-	commit, err := repo.LookupCommit(head.Target())
-	if err != nil {
-		return err
-	}
+	defer commit.Free()
 	_, err = repo.CreateBranch(branch, commit, false)
 	if err != nil {
 		return err
@@ -30,16 +153,42 @@ func signature() *Signature {
 	}
 }
 
-func commitSomething(repo *Repository, something string) (*Oid, error) {
+func headCommit(repo *Repository) (*Commit, error) {
 	head, err := repo.Head()
 	if err != nil {
 		return nil, err
 	}
+	defer head.Free()
 
-	headCommit, err := repo.LookupCommit(head.Target())
+	commit, err := repo.LookupCommit(head.Target())
 	if err != nil {
 		return nil, err
 	}
+
+	return commit, nil
+}
+
+func headTree(repo *Repository) (*Tree, error) {
+	headCommit, err := headCommit(repo)
+	if err != nil {
+		return nil, err
+	}
+	defer headCommit.Free()
+
+	tree, err := headCommit.Tree()
+	if err != nil {
+		return nil, err
+	}
+
+	return tree, nil
+}
+
+func commitSomething(repo *Repository, something, content string) (*Oid, error) {
+	headCommit, err := headCommit(repo)
+	if err != nil {
+		return nil, err
+	}
+	defer headCommit.Free()
 
 	index, err := NewIndex()
 	if err != nil {
@@ -47,7 +196,7 @@ func commitSomething(repo *Repository, something string) (*Oid, error) {
 	}
 	defer index.Free()
 
-	blobOID, err := repo.CreateBlobFromBuffer([]byte("fou"))
+	blobOID, err := repo.CreateBlobFromBuffer([]byte(content))
 	if err != nil {
 		return nil, err
 	}
@@ -71,6 +220,7 @@ func commitSomething(repo *Repository, something string) (*Oid, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer newTree.Free()
 
 	if err != nil {
 		return nil, err
@@ -92,76 +242,47 @@ func commitSomething(repo *Repository, something string) (*Oid, error) {
 }
 
 func entryExists(repo *Repository, file string) bool {
-	head, err := repo.Head()
+	headTree, err := headTree(repo)
 	if err != nil {
 		return false
 	}
-	headCommit, err := repo.LookupCommit(head.Target())
-	if err != nil {
-		return false
-	}
-	headTree, err := headCommit.Tree()
-	if err != nil {
-		return false
-	}
+	defer headTree.Free()
+
 	_, err = headTree.EntryByPath(file)
 
 	return err == nil
 }
 
-func TestRebaseOnto(t *testing.T) {
-	repo := createTestRepo(t)
-	defer cleanupTestRepo(t, repo)
+func commitMsgsList(repo *Repository) ([]string, error) {
+	head, err := headCommit(repo)
+	if err != nil {
+		return nil, err
+	}
+	defer head.Free()
 
-	fileInMaster := "something"
-	fileInEmile := "something else"
+	var commits []string
 
-	// Seed master
-	seedTestRepo(t, repo)
+	parent := head.Parent(0)
+	defer parent.Free()
+	commits = append(commits, head.Message(), parent.Message())
 
-	// Create a new branch from master
-	err := createBranch(repo, "emile")
-	checkFatal(t, err)
-
-	// Create a commit in master
-	_, err = commitSomething(repo, fileInMaster)
-	checkFatal(t, err)
-
-	// Switch to this emile
-	err = repo.SetHead("refs/heads/emile")
-	checkFatal(t, err)
-
-	// Check master commit is not in emile branch
-	if entryExists(repo, fileInMaster) {
-		t.Fatal("something entry should not exist in emile branch")
+	for parent.ParentCount() != 0 {
+		parent = parent.Parent(0)
+		defer parent.Free()
+		commits = append(commits, parent.Message())
 	}
 
-	// Create a commit in emile
-	_, err = commitSomething(repo, fileInEmile)
-	checkFatal(t, err)
+	return commits, nil
+}
 
-	// Rebase onto master
-	master, err := repo.LookupBranch("master", BranchLocal)
-	branch, err := repo.AnnotatedCommitFromRef(master.Reference)
-	checkFatal(t, err)
-
-	rebase, err := repo.RebaseInit(nil, nil, branch, nil)
-	checkFatal(t, err)
-	defer rebase.Free()
-
-	operation, err := rebase.Next()
-	checkFatal(t, err)
-
-	commit, err := repo.LookupCommit(operation.ID)
-	checkFatal(t, err)
-
-	err = rebase.Commit(operation.ID, signature(), signature(), commit.Message())
-	checkFatal(t, err)
-
-	rebase.Finish()
-
-	// Check master commit is now also in emile branch
-	if !entryExists(repo, fileInMaster) {
-		t.Fatal("something entry should now exist in emile branch")
+func assertStringList(t *testing.T, expected, actual []string) {
+	if len(expected) != len(actual) {
+		t.Fatal("Lists are not the same size, expected " + strconv.Itoa(len(expected)) +
+			", got " + strconv.Itoa(len(actual)))
+	}
+	for index, element := range expected {
+		if element != actual[index] {
+			t.Error("Expected element " + strconv.Itoa(index) + " to be " + element + ", got " + actual[index])
+		}
 	}
 }
