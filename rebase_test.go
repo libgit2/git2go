@@ -9,6 +9,58 @@ import (
 
 // Tests
 
+func TestRebaseAbort(t *testing.T) {
+	// TEST DATA
+
+	// Inputs
+	branchName := "emile"
+	masterCommit := "something"
+	emileCommits := []string{
+		"fou",
+		"barre",
+	}
+
+	// Outputs
+	expectedHistory := []string{
+		"Test rebase, Baby! " + emileCommits[1],
+		"Test rebase, Baby! " + emileCommits[0],
+		"This is a commit\n",
+	}
+
+	// TEST
+	repo := createTestRepo(t)
+	seedTestRepo(t, repo)
+
+	// Setup a repo with 2 branches and a different tree
+	err := setupRepoForRebase(repo, masterCommit, branchName)
+	checkFatal(t, err)
+	defer cleanupTestRepo(t, repo)
+
+	// Create several commits in emile
+	for _, commit := range emileCommits {
+		_, err = commitSomething(repo, commit, commit)
+		checkFatal(t, err)
+	}
+
+	// Check history
+	actualHistory, err := commitMsgsList(repo)
+	checkFatal(t, err)
+	assertStringList(t, expectedHistory, actualHistory)
+
+	// Rebase onto master
+	rebase, err := performRebaseOnto(repo, "master")
+	checkFatal(t, err)
+	defer rebase.Free()
+
+	// Abort rebase
+	rebase.Abort()
+
+	// Check history is still the same
+	actualHistory, err = commitMsgsList(repo)
+	checkFatal(t, err)
+	assertStringList(t, expectedHistory, actualHistory)
+}
+
 func TestRebaseNoConflicts(t *testing.T) {
 	// TEST DATA
 
@@ -23,10 +75,10 @@ func TestRebaseNoConflicts(t *testing.T) {
 
 	// Outputs
 	expectedHistory := []string{
-		"Test rebase onto, Baby! " + emileCommits[2],
-		"Test rebase onto, Baby! " + emileCommits[1],
-		"Test rebase onto, Baby! " + emileCommits[0],
-		"Test rebase onto, Baby! " + masterCommit,
+		"Test rebase, Baby! " + emileCommits[2],
+		"Test rebase, Baby! " + emileCommits[1],
+		"Test rebase, Baby! " + emileCommits[0],
+		"Test rebase, Baby! " + masterCommit,
 		"This is a commit\n",
 	}
 
@@ -46,7 +98,12 @@ func TestRebaseNoConflicts(t *testing.T) {
 	}
 
 	// Rebase onto master
-	err = performRebaseOnto(repo, "master")
+	rebase, err := performRebaseOnto(repo, "master")
+	checkFatal(t, err)
+	defer rebase.Free()
+
+	// Finish the rebase properly
+	err = rebase.Finish()
 	checkFatal(t, err)
 
 	// Check history is in correct order
@@ -84,51 +141,45 @@ func setupRepoForRebase(repo *Repository, masterCommit, branchName string) error
 	return nil
 }
 
-func performRebaseOnto(repo *Repository, branch string) error {
+func performRebaseOnto(repo *Repository, branch string) (*Rebase, error) {
 	master, err := repo.LookupBranch(branch, BranchLocal)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer master.Free()
 
 	onto, err := repo.AnnotatedCommitFromRef(master.Reference)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer onto.Free()
 
 	rebase, err := repo.RebaseInit(nil, nil, onto, nil)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	defer rebase.Free()
 
 	opCount := int(rebase.OperationCount())
 
 	for op := 0; op < opCount; op++ {
 		operation, err := rebase.Next()
 		if err != nil {
-			return err
+			return nil, err
 		}
 
 		commit, err := repo.LookupCommit(operation.ID)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		defer commit.Free()
 
 		err = rebase.Commit(operation.ID, signature(), signature(), commit.Message())
 		if err != nil {
-			return err
+			return nil, err
 		}
 	}
 
-	err = rebase.Finish()
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return rebase, nil
 }
 
 func createBranch(repo *Repository, branch string) error {
@@ -225,7 +276,7 @@ func commitSomething(repo *Repository, something, content string) (*Oid, error) 
 	if err != nil {
 		return nil, err
 	}
-	commit, err := repo.CreateCommit("HEAD", signature(), signature(), "Test rebase onto, Baby! "+something, newTree, headCommit)
+	commit, err := repo.CreateCommit("HEAD", signature(), signature(), "Test rebase, Baby! "+something, newTree, headCommit)
 	if err != nil {
 		return nil, err
 	}

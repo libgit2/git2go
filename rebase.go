@@ -50,6 +50,15 @@ type Rebase struct {
 	ptr *C.git_rebase
 }
 
+// Abort aborts a rebase that is currently in progress, resetting the repository and working directory to their state before rebase began.
+func (rebase *Rebase) Abort() error {
+	err := C.git_rebase_abort(rebase.ptr)
+	if err < 0 {
+		return MakeGitError(err)
+	}
+	return nil
+}
+
 //RebaseInit initializes a rebase operation to rebase the changes in branch relative to upstream onto another branch.
 func (r *Repository) RebaseInit(branch *AnnotatedCommit, upstream *AnnotatedCommit, onto *AnnotatedCommit, opts *RebaseOptions) (*Rebase, error) {
 	runtime.LockOSThread()
@@ -158,7 +167,6 @@ func newRebaseFromC(ptr *C.git_rebase) *Rebase {
 
 /* TODO -- Add last wrapper services and manage rebase_options
 
-int git_rebase_abort(git_rebase *rebase);
 int git_rebase_init_options(git_rebase_options *opts, unsigned int version);
 int git_rebase_open(git_rebase **out, git_repository *repo, const git_rebase_options *opts);
 git_rebase_operation * git_rebase_operation_byindex(git_rebase *rebase, size_t idx);
