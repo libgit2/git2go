@@ -171,7 +171,7 @@ func (rebase *Rebase) Abort() error {
 //Free frees the Rebase object and underlying git_rebase C pointer.
 func (rebase *Rebase) Free() {
 	runtime.SetFinalizer(rebase, nil)
-	C.git_reference_free(rebase.ptr)
+	C.git_rebase_free(rebase.ptr)
 }
 
 func newRebaseFromC(ptr *C.git_rebase) *Rebase {
