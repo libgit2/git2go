@@ -6,6 +6,7 @@ import (
 )
 
 func TestMergeWithSelf(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -24,6 +25,7 @@ func TestMergeWithSelf(t *testing.T) {
 }
 
 func TestMergeAnalysisWithSelf(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -46,6 +48,7 @@ func TestMergeAnalysisWithSelf(t *testing.T) {
 }
 
 func TestMergeSameFile(t *testing.T) {
+	t.Parallel()
 	file := MergeFileInput{
 		Path:     "test",
 		Mode:     33188,
@@ -68,6 +71,7 @@ func TestMergeSameFile(t *testing.T) {
 
 }
 func TestMergeTreesWithoutAncestor(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -125,6 +129,7 @@ func appendCommit(t *testing.T, repo *Repository) (*Oid, *Oid) {
 }
 
 func TestMergeBase(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 

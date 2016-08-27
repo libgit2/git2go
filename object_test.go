@@ -5,6 +5,7 @@ import (
 )
 
 func TestObjectPoymorphism(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -88,6 +89,7 @@ func checkOwner(t *testing.T, repo *Repository, obj Object) {
 }
 
 func TestObjectOwner(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -104,6 +106,7 @@ func TestObjectOwner(t *testing.T) {
 }
 
 func TestObjectPeel(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 

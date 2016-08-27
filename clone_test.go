@@ -10,6 +10,7 @@ const (
 )
 
 func TestClone(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -35,6 +36,7 @@ func TestClone(t *testing.T) {
 }
 
 func TestCloneWithCallback(t *testing.T) {
+	t.Parallel()
 	testPayload := 0
 
 	repo := createTestRepo(t)

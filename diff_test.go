@@ -7,6 +7,7 @@ import (
 )
 
 func TestFindSimilar(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -61,7 +62,7 @@ func TestFindSimilar(t *testing.T) {
 }
 
 func TestDiffTreeToTree(t *testing.T) {
-
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -189,6 +190,7 @@ func createTestTrees(t *testing.T, repo *Repository) (originalTree *Tree, newTre
 }
 
 func TestDiffBlobs(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 

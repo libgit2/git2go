@@ -3,6 +3,7 @@ package git
 import "testing"
 
 func TestTreeEntryById(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -22,6 +23,7 @@ func TestTreeEntryById(t *testing.T) {
 }
 
 func TestTreeBuilderInsert(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
