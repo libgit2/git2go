@@ -8,6 +8,7 @@ import (
 )
 
 func TestCreateRepoAndStage(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -24,6 +25,7 @@ func TestCreateRepoAndStage(t *testing.T) {
 }
 
 func TestIndexReadTree(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -53,6 +55,7 @@ func TestIndexReadTree(t *testing.T) {
 }
 
 func TestIndexWriteTreeTo(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -72,6 +75,7 @@ func TestIndexWriteTreeTo(t *testing.T) {
 }
 
 func TestIndexAddAndWriteTreeTo(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -106,6 +110,7 @@ func TestIndexAddAndWriteTreeTo(t *testing.T) {
 }
 
 func TestIndexAddAllNoCallback(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -127,6 +132,7 @@ func TestIndexAddAllNoCallback(t *testing.T) {
 }
 
 func TestIndexAddAllCallback(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -155,6 +161,7 @@ func TestIndexAddAllCallback(t *testing.T) {
 }
 
 func TestIndexOpen(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 

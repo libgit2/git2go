@@ -113,6 +113,7 @@ func updateReadme(t *testing.T, repo *Repository, content string) (*Oid, *Oid) {
 }
 
 func TestOidZero(t *testing.T) {
+	t.Parallel()
 	var zeroId Oid
 
 	if !zeroId.IsZero() {
@@ -121,6 +122,7 @@ func TestOidZero(t *testing.T) {
 }
 
 func TestEmptyOid(t *testing.T) {
+	t.Parallel()
 	_, err := NewOid("")
 	if err == nil || !IsErrorCode(err, ErrGeneric) {
 		t.Fatal("Should have returned invalid error")

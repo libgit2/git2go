@@ -7,6 +7,7 @@ import (
 )
 
 func TestOdbReadHeader(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -35,6 +36,7 @@ func TestOdbReadHeader(t *testing.T) {
 }
 
 func TestOdbStream(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -64,7 +66,7 @@ func TestOdbStream(t *testing.T) {
 }
 
 func TestOdbHash(t *testing.T) {
-
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -92,6 +94,7 @@ Initial commit.`
 }
 
 func TestOdbForeach(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 

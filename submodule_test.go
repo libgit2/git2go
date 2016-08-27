@@ -5,6 +5,7 @@ import (
 )
 
 func TestSubmoduleForeach(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 

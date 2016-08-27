@@ -6,6 +6,7 @@ import (
 )
 
 func TestListRemotes(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -33,6 +34,7 @@ func assertHostname(cert *Certificate, valid bool, hostname string, t *testing.T
 }
 
 func TestCertificateCheck(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -52,6 +54,7 @@ func TestCertificateCheck(t *testing.T) {
 }
 
 func TestRemoteConnect(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -63,6 +66,7 @@ func TestRemoteConnect(t *testing.T) {
 }
 
 func TestRemoteLs(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -81,6 +85,7 @@ func TestRemoteLs(t *testing.T) {
 }
 
 func TestRemoteLsFiltering(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -107,6 +112,7 @@ func TestRemoteLsFiltering(t *testing.T) {
 }
 
 func TestRemotePruneRefs(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -129,6 +135,7 @@ func TestRemotePruneRefs(t *testing.T) {
 }
 
 func TestRemotePrune(t *testing.T) {
+	t.Parallel()
 	remoteRepo := createTestRepo(t)
 	defer cleanupTestRepo(t, remoteRepo)
 

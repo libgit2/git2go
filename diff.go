@@ -220,6 +220,33 @@ func (stats *DiffStats) FilesChanged() int {
 	return int(C.git_diff_stats_files_changed(stats.ptr))
 }
 
+type DiffStatsFormat int
+
+const (
+	DiffStatsNone           DiffStatsFormat = C.GIT_DIFF_STATS_NONE
+	DiffStatsFull           DiffStatsFormat = C.GIT_DIFF_STATS_FULL
+	DiffStatsShort          DiffStatsFormat = C.GIT_DIFF_STATS_SHORT
+	DiffStatsNumber         DiffStatsFormat = C.GIT_DIFF_STATS_NUMBER
+	DiffStatsIncludeSummary DiffStatsFormat = C.GIT_DIFF_STATS_INCLUDE_SUMMARY
+)
+
+func (stats *DiffStats) String(format DiffStatsFormat,
+	width uint) (string, error) {
+	buf := C.git_buf{}
+	defer C.git_buf_free(&buf)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_diff_stats_to_buf(&buf,
+		stats.ptr, C.git_diff_stats_format_t(format), C.size_t(width))
+	if ret < 0 {
+		return "", MakeGitError(ret)
+	}
+
+	return C.GoString(buf.ptr), nil
+}
+
 func (diff *Diff) Stats() (*DiffStats, error) {
 	stats := new(DiffStats)
 
@@ -616,6 +643,36 @@ func (v *Repository) DiffTreeToWorkdir(oldTree *Tree, opts *DiffOptions) (*Diff,
 	defer runtime.UnlockOSThread()
 
 	ecode := C.git_diff_tree_to_workdir(&diffPtr, v.ptr, oldPtr, copts)
+	if ecode < 0 {
+		return nil, MakeGitError(ecode)
+	}
+
+	if notifyData != nil && notifyData.Diff != nil {
+		return notifyData.Diff, nil
+	}
+	return newDiffFromC(diffPtr), nil
+}
+
+func (v *Repository) DiffTreeToIndex(oldTree *Tree, index *Index, opts *DiffOptions) (*Diff, error) {
+	var diffPtr *C.git_diff
+	var oldPtr *C.git_tree
+	var indexPtr *C.git_index
+
+	if oldTree != nil {
+		oldPtr = oldTree.cast_ptr
+	}
+
+	if index != nil {
+		indexPtr = index.ptr
+	}
+
+	copts, notifyData := diffOptionsToC(opts)
+	defer freeDiffOptions(copts)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C.git_diff_tree_to_index(&diffPtr, v.ptr, oldPtr, indexPtr, copts)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}

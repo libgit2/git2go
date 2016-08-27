@@ -88,6 +88,7 @@ var tests = []TestRunner{
 }
 
 func TestConfigLookups(t *testing.T) {
+	t.Parallel()
 	var (
 		err error
 		c   *Config

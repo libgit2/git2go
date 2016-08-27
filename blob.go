@@ -35,15 +35,24 @@ func (repo *Repository) CreateBlobFromBuffer(data []byte) (*Oid, error) {
 	defer runtime.UnlockOSThread()
 
 	var id C.git_oid
-	var ptr unsafe.Pointer
+	var size C.size_t
 
+	// Go 1.6 added some increased checking of passing pointer to
+	// C, but its check depends on its expectations of waht we
+	// pass to the C function, so unless we take the address of
+	// its contents at the call site itself, it can fail when
+	// 'data' is a slice of a slice.
+	//
+	// When we're given an empty slice, create a dummy one where 0
+	// isn't out of bounds.
 	if len(data) > 0 {
-		ptr = unsafe.Pointer(&data[0])
+		size = C.size_t(len(data))
 	} else {
-		ptr = unsafe.Pointer(nil)
+		data = []byte{0}
+		size = C.size_t(0)
 	}
 
-	ecode := C.git_blob_create_frombuffer(&id, repo.ptr, ptr, C.size_t(len(data)))
+	ecode := C.git_blob_create_frombuffer(&id, repo.ptr, unsafe.Pointer(&data[0]), size)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}

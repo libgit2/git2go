@@ -8,6 +8,7 @@ import (
 )
 
 func TestCreateNote(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -27,6 +28,7 @@ func TestCreateNote(t *testing.T) {
 }
 
 func TestNoteIterator(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -63,6 +65,7 @@ func TestNoteIterator(t *testing.T) {
 }
 
 func TestRemoveNote(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -86,6 +89,7 @@ func TestRemoveNote(t *testing.T) {
 }
 
 func TestDefaultNoteRef(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
