@@ -6,6 +6,7 @@ import (
 )
 
 func TestPatch(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 

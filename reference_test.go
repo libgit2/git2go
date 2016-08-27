@@ -8,6 +8,7 @@ import (
 )
 
 func TestRefModification(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -53,6 +54,7 @@ func TestRefModification(t *testing.T) {
 }
 
 func TestReferenceIterator(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -131,6 +133,7 @@ func TestReferenceIterator(t *testing.T) {
 }
 
 func TestReferenceOwner(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -150,6 +153,7 @@ func TestReferenceOwner(t *testing.T) {
 }
 
 func TestUtil(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -177,6 +181,7 @@ func TestUtil(t *testing.T) {
 }
 
 func TestIsNote(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -210,6 +215,7 @@ func TestIsNote(t *testing.T) {
 }
 
 func TestReferenceIsValidName(t *testing.T) {
+	t.Parallel()
 	if !ReferenceIsValidName("HEAD") {
 		t.Errorf("HEAD should be a valid reference name")
 	}

@@ -5,6 +5,7 @@ import (
 )
 
 func TestCreateBlobFromBuffer(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 

@@ -5,6 +5,7 @@ import (
 )
 
 func TestRevparse(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -17,6 +18,7 @@ func TestRevparse(t *testing.T) {
 }
 
 func TestRevparseSingle(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -29,6 +31,7 @@ func TestRevparseSingle(t *testing.T) {
 }
 
 func TestRevparseExt(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 

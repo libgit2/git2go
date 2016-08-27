@@ -7,6 +7,7 @@ import (
 )
 
 func TestCreateTag(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -26,6 +27,7 @@ func TestCreateTag(t *testing.T) {
 }
 
 func TestCreateTagLightweight(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -50,6 +52,7 @@ func TestCreateTagLightweight(t *testing.T) {
 }
 
 func TestListTags(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -79,6 +82,7 @@ func TestListTags(t *testing.T) {
 }
 
 func TestListTagsWithMatch(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -116,6 +120,7 @@ func TestListTagsWithMatch(t *testing.T) {
 }
 
 func TestTagForeach(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 

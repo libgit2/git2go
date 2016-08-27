@@ -6,6 +6,7 @@ import (
 )
 
 func TestResetToCommit(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	seedTestRepo(t, repo)
 	// create commit to reset to

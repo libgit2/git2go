@@ -7,6 +7,7 @@ import (
 )
 
 func TestStatusFile(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -27,6 +28,7 @@ func TestStatusFile(t *testing.T) {
 }
 
 func TestStatusList(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
