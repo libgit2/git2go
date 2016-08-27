@@ -28,16 +28,14 @@ func TestCreateBlobFromBuffer(t *testing.T) {
 	}
 
 	for _, data := range []([]byte){[]byte("hello there"), doublePointerBytes()} {
-		expected := make([]byte, len(data))
-		copy(expected, data)
 		id, err = repo.CreateBlobFromBuffer(data)
 		checkFatal(t, err)
 
 		blob, err := repo.LookupBlob(id)
 		checkFatal(t, err)
-		if !bytes.Equal(blob.Contents(), expected) {
+		if !bytes.Equal(blob.Contents(), data) {
 			t.Fatal("Loaded bytes don't match original bytes:",
-				blob.Contents(), "!=", expected)
+				blob.Contents(), "!=", data)
 		}
 	}
 }
