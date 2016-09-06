@@ -81,6 +81,25 @@ func (r *Repository) RebaseInit(branch *AnnotatedCommit, upstream *AnnotatedComm
 	return newRebaseFromC(ptr), nil
 }
 
+//RebaseOpen opens an existing rebase that was previously started by either an invocation of git_rebase_init or by another client.
+func (r *Repository) RebaseOpen(opts *RebaseOptions) (*Rebase, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	//TODO : use real rebase_options
+	if opts != nil {
+		return nil, errors.New("RebaseOptions Not implemented yet, use nil for default opts")
+	}
+
+	var ptr *C.git_rebase
+	err := C.git_rebase_open(&ptr, r.ptr, nil)
+	if err < 0 {
+		return nil, MakeGitError(err)
+	}
+
+	return newRebaseFromC(ptr), nil
+}
+
 // OperationAt gets the rebase operation specified by the given index.
 func (rebase *Rebase) OperationAt(index uint) *RebaseOperation {
 	operation := C.git_rebase_operation_byindex(rebase.ptr, C.size_t(index))
@@ -183,6 +202,5 @@ func newRebaseFromC(ptr *C.git_rebase) *Rebase {
 /* TODO -- Add last wrapper services and manage rebase_options
 
 int git_rebase_init_options(git_rebase_options *opts, unsigned int version);
-int git_rebase_open(git_rebase **out, git_repository *repo, const git_rebase_options *opts);
 
 */

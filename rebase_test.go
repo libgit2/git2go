@@ -87,8 +87,14 @@ func TestRebaseNoConflicts(t *testing.T) {
 	defer cleanupTestRepo(t, repo)
 	seedTestRepo(t, repo)
 
+	// Try to open existing rebase
+	oRebase, err := repo.RebaseOpen(nil)
+	if err == nil {
+		t.Fatal("Did not expect to find a rebase in progress")
+	}
+
 	// Setup a repo with 2 branches and a different tree
-	err := setupRepoForRebase(repo, masterCommit, branchName)
+	err = setupRepoForRebase(repo, masterCommit, branchName)
 	checkFatal(t, err)
 
 	// Create several commits in emile
@@ -101,6 +107,14 @@ func TestRebaseNoConflicts(t *testing.T) {
 	rebase, err := performRebaseOnto(repo, "master")
 	checkFatal(t, err)
 	defer rebase.Free()
+
+	// Open existing rebase
+	oRebase, err = repo.RebaseOpen(nil)
+	checkFatal(t, err)
+	defer oRebase.Free()
+	if oRebase == nil {
+		t.Fatal("Expected to find an existing rebase in progress")
+	}
 
 	// Finish the rebase properly
 	err = rebase.Finish()
