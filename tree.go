@@ -22,6 +22,13 @@ const (
 	FilemodeCommit         Filemode = C.GIT_FILEMODE_COMMIT
 )
 
+type TreeWalkMode int
+
+const (
+	TreeWalkModePre  TreeWalkMode = C.GIT_TREEWALK_PRE
+	TreeWalkModePost TreeWalkMode = C.GIT_TREEWALK_POST
+)
+
 type Tree struct {
 	Object
 	cast_ptr *C.git_tree
@@ -117,6 +124,26 @@ func CallbackGitTreeWalk(_root *C.char, _entry unsafe.Pointer, ptr unsafe.Pointe
 	} else {
 		panic("invalid treewalk callback")
 	}
+}
+
+func (t Tree) WalkWithMode(callback TreeWalkCallback, mode TreeWalkMode) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ptr := pointerHandles.Track(callback)
+	defer pointerHandles.Untrack(ptr)
+
+	err := C._go_git_treewalk(
+		t.cast_ptr,
+		C.git_treewalk_mode(mode),
+		ptr,
+	)
+
+	if err < 0 {
+		return MakeGitError(err)
+	}
+
+	return nil
 }
 
 func (t Tree) Walk(callback TreeWalkCallback) error {
