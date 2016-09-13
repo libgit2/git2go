@@ -5,7 +5,6 @@ package git
 */
 import "C"
 import (
-	"errors"
 	"runtime"
 	"unsafe"
 )
@@ -43,7 +42,53 @@ func newRebaseOperationFromC(c *C.git_rebase_operation) *RebaseOperation {
 }
 
 // RebaseOptions are used to tell the rebase machinery how to operate
-type RebaseOptions struct{}
+type RebaseOptions struct {
+	Version         uint
+	Quiet           int
+	InMemory        int
+	RewriteNotesRef string
+	MergeOptions    MergeOptions
+	CheckoutOptions CheckoutOpts
+}
+
+// DefaultRebaseOptions returns a RebaseOptions with default values.
+func DefaultRebaseOptions() (RebaseOptions, error) {
+	opts := C.git_rebase_options{}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C.git_rebase_init_options(&opts, C.GIT_REBASE_OPTIONS_VERSION)
+	if ecode < 0 {
+		return RebaseOptions{}, MakeGitError(ecode)
+	}
+	return rebaseOptionsFromC(&opts), nil
+}
+
+func rebaseOptionsFromC(opts *C.git_rebase_options) RebaseOptions {
+	return RebaseOptions{
+		Version:         uint(opts.version),
+		Quiet:           int(opts.quiet),
+		InMemory:        int(opts.inmemory),
+		RewriteNotesRef: C.GoString(opts.rewrite_notes_ref),
+		MergeOptions:    mergeOptionsFromC(&opts.merge_options),
+		CheckoutOptions: checkoutOptionsFromC(&opts.checkout_options),
+	}
+}
+
+func (ro *RebaseOptions) toC() *C.git_rebase_options {
+	if ro == nil {
+		return nil
+	}
+	return &C.git_rebase_options{
+		version:           C.uint(ro.Version),
+		quiet:             C.int(ro.Quiet),
+		inmemory:          C.int(ro.InMemory),
+		rewrite_notes_ref: C.CString(ro.RewriteNotesRef),
+		merge_options:     *ro.MergeOptions.toC(),
+		checkout_options:  *ro.CheckoutOptions.toC(),
+	}
+}
 
 // Rebase object wrapper for C pointer
 type Rebase struct {
@@ -54,11 +99,6 @@ type Rebase struct {
 func (r *Repository) RebaseInit(branch *AnnotatedCommit, upstream *AnnotatedCommit, onto *AnnotatedCommit, opts *RebaseOptions) (*Rebase, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-
-	//TODO : use real rebase_options
-	if opts != nil {
-		return nil, errors.New("RebaseOptions Not implemented yet, use nil for default opts")
-	}
 
 	if branch == nil {
 		branch = &AnnotatedCommit{ptr: nil}
@@ -73,7 +113,7 @@ func (r *Repository) RebaseInit(branch *AnnotatedCommit, upstream *AnnotatedComm
 	}
 
 	var ptr *C.git_rebase
-	err := C.git_rebase_init(&ptr, r.ptr, branch.ptr, upstream.ptr, onto.ptr, nil)
+	err := C.git_rebase_init(&ptr, r.ptr, branch.ptr, upstream.ptr, onto.ptr, opts.toC())
 	if err < 0 {
 		return nil, MakeGitError(err)
 	}
@@ -86,13 +126,8 @@ func (r *Repository) RebaseOpen(opts *RebaseOptions) (*Rebase, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	//TODO : use real rebase_options
-	if opts != nil {
-		return nil, errors.New("RebaseOptions Not implemented yet, use nil for default opts")
-	}
-
 	var ptr *C.git_rebase
-	err := C.git_rebase_open(&ptr, r.ptr, nil)
+	err := C.git_rebase_open(&ptr, r.ptr, opts.toC())
 	if err < 0 {
 		return nil, MakeGitError(err)
 	}
@@ -198,9 +233,3 @@ func newRebaseFromC(ptr *C.git_rebase) *Rebase {
 	runtime.SetFinalizer(rebase, (*Rebase).Free)
 	return rebase
 }
-
-/* TODO -- Add last wrapper services and manage rebase_options
-
-int git_rebase_init_options(git_rebase_options *opts, unsigned int version);
-
-*/
