@@ -84,10 +84,17 @@ func (ro *RebaseOptions) toC() *C.git_rebase_options {
 		version:           C.uint(ro.Version),
 		quiet:             C.int(ro.Quiet),
 		inmemory:          C.int(ro.InMemory),
-		rewrite_notes_ref: C.CString(ro.RewriteNotesRef),
+		rewrite_notes_ref: rewriteNotesRefToC(ro.RewriteNotesRef),
 		merge_options:     *ro.MergeOptions.toC(),
 		checkout_options:  *ro.CheckoutOptions.toC(),
 	}
+}
+
+func rewriteNotesRefToC(ref string) *C.char {
+	if ref == "" {
+		return nil
+	}
+	return C.CString(ref)
 }
 
 // Rebase object wrapper for C pointer

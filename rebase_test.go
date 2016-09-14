@@ -143,6 +143,12 @@ func TestRebaseNoConflicts(t *testing.T) {
 	err = rebase.Finish()
 	checkFatal(t, err)
 
+	// Check no more rebase is in progress
+	oRebase, err = repo.RebaseOpen(nil)
+	if err == nil {
+		t.Fatal("Did not expect to find a rebase in progress")
+	}
+
 	// Check history is in correct order
 	actualHistory, err := commitMsgsList(repo)
 	checkFatal(t, err)
