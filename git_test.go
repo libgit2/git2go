@@ -58,6 +58,8 @@ func seedTestRepo(t *testing.T, repo *Repository) (*Oid, *Oid) {
 	checkFatal(t, err)
 	err = idx.AddByPath("README")
 	checkFatal(t, err)
+	err = idx.Write()
+	checkFatal(t, err)
 	treeId, err := idx.WriteTree()
 	checkFatal(t, err)
 
