@@ -9,6 +9,7 @@ extern void _go_git_refdb_backend_free(git_refdb_backend *backend);
 import "C"
 import (
 	"runtime"
+	"unsafe"
 )
 
 type Refdb struct {
@@ -34,8 +35,8 @@ func (v *Repository) NewRefdb() (refdb *Refdb, err error) {
 	return refdb, nil
 }
 
-func NewRefdbBackendFromC(ptr *C.git_refdb_backend) (backend *RefdbBackend) {
-	backend = &RefdbBackend{ptr}
+func NewRefdbBackendFromC(ptr unsafe.Pointer) (backend *RefdbBackend) {
+	backend = &RefdbBackend{(*C.git_refdb_backend)(ptr)}
 	return backend
 }
 
