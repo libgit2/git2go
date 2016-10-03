@@ -44,17 +44,35 @@ func NewCredUserpassPlaintext(username string, password string) (int, Cred) {
 	return int(ret), cred
 }
 
-func NewCredSshKey(username string, publickey string, privatekey string, passphrase string) (int, Cred) {
+// NewCredSshKey creates new ssh credentials reading the public and private keys
+// from the file system.
+func NewCredSshKey(username string, publicKeyPath string, privateKeyPath string, passphrase string) (int, Cred) {
 	cred := Cred{}
 	cusername := C.CString(username)
 	defer C.free(unsafe.Pointer(cusername))
-	cpublickey := C.CString(publickey)
+	cpublickey := C.CString(publicKeyPath)
 	defer C.free(unsafe.Pointer(cpublickey))
-	cprivatekey := C.CString(privatekey)
+	cprivatekey := C.CString(privateKeyPath)
 	defer C.free(unsafe.Pointer(cprivatekey))
 	cpassphrase := C.CString(passphrase)
 	defer C.free(unsafe.Pointer(cpassphrase))
 	ret := C.git_cred_ssh_key_new(&cred.ptr, cusername, cpublickey, cprivatekey, cpassphrase)
+	return int(ret), cred
+}
+
+// NewCredSshKeyFromMemory creates new ssh credentials using the publicKey and privateKey
+// arguments as the values for the public and private keys.
+func NewCredSshKeyFromMemory(username string, publicKey string, privateKey string, passphrase string) (int, Cred) {
+	cred := Cred{}
+	cusername := C.CString(username)
+	defer C.free(unsafe.Pointer(cusername))
+	cpublickey := C.CString(publicKey)
+	defer C.free(unsafe.Pointer(cpublickey))
+	cprivatekey := C.CString(privateKey)
+	defer C.free(unsafe.Pointer(cprivatekey))
+	cpassphrase := C.CString(passphrase)
+	defer C.free(unsafe.Pointer(cpassphrase))
+	ret := C.git_cred_ssh_key_memory_new(&cred.ptr, cusername, cpublickey, cprivatekey, cpassphrase)
 	return int(ret), cred
 }
 
