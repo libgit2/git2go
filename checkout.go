@@ -2,6 +2,8 @@ package git
 
 /*
 #include <git2.h>
+
+extern void _go_git_populate_checkout_cb(git_checkout_options *opts);
 */
 import "C"
 import (
@@ -10,9 +12,18 @@ import (
 	"unsafe"
 )
 
+type CheckoutNotifyType uint
 type CheckoutStrategy uint
 
 const (
+	CheckoutNotifyNone      CheckoutNotifyType = C.GIT_CHECKOUT_NOTIFY_NONE
+	CheckoutNotifyConflict  CheckoutNotifyType = C.GIT_CHECKOUT_NOTIFY_CONFLICT
+	CheckoutNotifyDirty     CheckoutNotifyType = C.GIT_CHECKOUT_NOTIFY_DIRTY
+	CheckoutNotifyUpdated   CheckoutNotifyType = C.GIT_CHECKOUT_NOTIFY_UPDATED
+	CheckoutNotifyUntracked CheckoutNotifyType = C.GIT_CHECKOUT_NOTIFY_UNTRACKED
+	CheckoutNotifyIgnored   CheckoutNotifyType = C.GIT_CHECKOUT_NOTIFY_IGNORED
+	CheckoutNotifyAll       CheckoutNotifyType = C.GIT_CHECKOUT_NOTIFY_ALL
+
 	CheckoutNone                      CheckoutStrategy = C.GIT_CHECKOUT_NONE                         // Dry run, no actual updates
 	CheckoutSafe                      CheckoutStrategy = C.GIT_CHECKOUT_SAFE                         // Allow safe updates that cannot overwrite uncommitted data
 	CheckoutForce                     CheckoutStrategy = C.GIT_CHECKOUT_FORCE                        // Allow all updates to force working directory to look like index
@@ -37,15 +48,21 @@ const (
 	CheckoutUpdateSubmodulesIfChanged CheckoutStrategy = C.GIT_CHECKOUT_UPDATE_SUBMODULES_IF_CHANGED // Recursively checkout submodules if HEAD moved in super repo (NOT IMPLEMENTED)
 )
 
+type CheckoutNotifyCallback func(why CheckoutNotifyType, path string, baseline, target, workdir DiffFile) ErrorCode
+type CheckoutProgressCallback func(path string, completed, total uint) ErrorCode
+
 type CheckoutOpts struct {
-	Strategy        CheckoutStrategy // Default will be a dry run
-	DisableFilters  bool             // Don't apply filters like CRLF conversion
-	DirMode         os.FileMode      // Default is 0755
-	FileMode        os.FileMode      // Default is 0644 or 0755 as dictated by blob
-	FileOpenFlags   int              // Default is O_CREAT | O_TRUNC | O_WRONLY
-	TargetDirectory string           // Alternative checkout path to workdir
-	Paths           []string
-	Baseline        *Tree
+	Strategy         CheckoutStrategy   // Default will be a dry run
+	DisableFilters   bool               // Don't apply filters like CRLF conversion
+	DirMode          os.FileMode        // Default is 0755
+	FileMode         os.FileMode        // Default is 0644 or 0755 as dictated by blob
+	FileOpenFlags    int                // Default is O_CREAT | O_TRUNC | O_WRONLY
+	NotifyFlags      CheckoutNotifyType // Default will be none
+	NotifyCallback   CheckoutNotifyCallback
+	ProgressCallback CheckoutProgressCallback
+	TargetDirectory  string // Alternative checkout path to workdir
+	Paths            []string
+	Baseline         *Tree
 }
 
 func checkoutOptionsFromC(c *C.git_checkout_options) CheckoutOpts {
@@ -55,6 +72,13 @@ func checkoutOptionsFromC(c *C.git_checkout_options) CheckoutOpts {
 	opts.DirMode = os.FileMode(c.dir_mode)
 	opts.FileMode = os.FileMode(c.file_mode)
 	opts.FileOpenFlags = int(c.file_open_flags)
+	opts.NotifyFlags = CheckoutNotifyType(c.notify_flags)
+	if c.notify_payload != nil {
+		opts.NotifyCallback = pointerHandles.Get(c.notify_payload).(*CheckoutOpts).NotifyCallback
+	}
+	if c.progress_payload != nil {
+		opts.ProgressCallback = pointerHandles.Get(c.progress_payload).(*CheckoutOpts).ProgressCallback
+	}
 	if c.target_directory != nil {
 		opts.TargetDirectory = C.GoString(c.target_directory)
 	}
@@ -70,6 +94,38 @@ func (opts *CheckoutOpts) toC() *C.git_checkout_options {
 	return &c
 }
 
+//export checkoutNotifyCallback
+func checkoutNotifyCallback(why C.git_checkout_notify_t, cpath *C.char, cbaseline, ctarget, cworkdir, data unsafe.Pointer) int {
+	if data == nil {
+		return 0
+	}
+	path := C.GoString(cpath)
+	var baseline, target, workdir DiffFile
+	if cbaseline != nil {
+		baseline = diffFileFromC((*C.git_diff_file)(cbaseline))
+	}
+	if ctarget != nil {
+		target = diffFileFromC((*C.git_diff_file)(ctarget))
+	}
+	if cworkdir != nil {
+		workdir = diffFileFromC((*C.git_diff_file)(cworkdir))
+	}
+	opts := pointerHandles.Get(data).(*CheckoutOpts)
+	if opts.NotifyCallback == nil {
+		return 0
+	}
+	return int(opts.NotifyCallback(CheckoutNotifyType(why), path, baseline, target, workdir))
+}
+
+//export checkoutProgressCallback
+func checkoutProgressCallback(path *C.char, completed_steps, total_steps C.size_t, data unsafe.Pointer) int {
+	opts := pointerHandles.Get(data).(*CheckoutOpts)
+	if opts.ProgressCallback == nil {
+		return 0
+	}
+	return int(opts.ProgressCallback(C.GoString(path), uint(completed_steps), uint(total_steps)))
+}
+
 // Convert the CheckoutOpts struct to the corresponding
 // C-struct. Returns a pointer to ptr, or nil if opts is nil, in order
 // to help with what to pass.
@@ -83,6 +139,17 @@ func populateCheckoutOpts(ptr *C.git_checkout_options, opts *CheckoutOpts) *C.gi
 	ptr.disable_filters = cbool(opts.DisableFilters)
 	ptr.dir_mode = C.uint(opts.DirMode.Perm())
 	ptr.file_mode = C.uint(opts.FileMode.Perm())
+	ptr.notify_flags = C.uint(opts.NotifyFlags)
+	if opts.NotifyCallback != nil || opts.ProgressCallback != nil {
+		C._go_git_populate_checkout_cb(ptr)
+	}
+	payload := pointerHandles.Track(opts)
+	if opts.NotifyCallback != nil {
+		ptr.notify_payload = payload
+	}
+	if opts.ProgressCallback != nil {
+		ptr.progress_payload = payload
+	}
 	if opts.TargetDirectory != "" {
 		ptr.target_directory = C.CString(opts.TargetDirectory)
 	}
@@ -105,6 +172,9 @@ func freeCheckoutOpts(ptr *C.git_checkout_options) {
 	C.free(unsafe.Pointer(ptr.target_directory))
 	if ptr.paths.count > 0 {
 		freeStrarray(&ptr.paths)
+	}
+	if ptr.notify_payload != nil {
+		pointerHandles.Untrack(ptr.notify_payload)
 	}
 }
 

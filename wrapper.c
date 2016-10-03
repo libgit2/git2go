@@ -10,6 +10,12 @@ void _go_git_populate_remote_cb(git_clone_options *opts)
 	opts->remote_cb = (git_remote_create_cb)remoteCreateCallback;
 }
 
+void _go_git_populate_checkout_cb(git_checkout_options *opts)
+{
+	opts->notify_cb = (git_checkout_notify_cb)checkoutNotifyCallback;
+	opts->progress_cb = (git_checkout_progress_cb)checkoutProgressCallback;
+}
+
 int _go_git_visit_submodule(git_repository *repo, void *fct)
 {
 	  return git_submodule_foreach(repo, (gogit_submodule_cbk)&SubmoduleVisitor, fct);
