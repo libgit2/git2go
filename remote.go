@@ -467,10 +467,11 @@ func (c *RemoteCollection) Rename(remote, newname string) ([]string, error) {
 
 	ret := C.git_remote_rename(&cproblems, c.repo.ptr, cremote, cnewname)
 	if ret < 0 {
-		problems := makeStringsFromCStrings(cproblems.strings, int(cproblems.count))
-		return problems, MakeGitError(ret)
+		return []string{}, MakeGitError(ret)
 	}
-	return []string{}, nil
+
+	problems := makeStringsFromCStrings(cproblems.strings, int(cproblems.count))
+	return problems, nil
 }
 
 func (c *RemoteCollection) SetUrl(remote, url string) error {
