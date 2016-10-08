@@ -5,6 +5,7 @@ import (
 )
 
 func TestBranchIterator(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
@@ -27,6 +28,7 @@ func TestBranchIterator(t *testing.T) {
 }
 
 func TestBranchIteratorEach(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 

@@ -5,6 +5,7 @@ import (
 )
 
 func TestRemotePush(t *testing.T) {
+	t.Parallel()
 	repo := createBareTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 

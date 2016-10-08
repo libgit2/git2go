@@ -33,6 +33,7 @@ func readReadme(t *testing.T, repo *Repository) string {
 }
 
 func TestCherrypick(t *testing.T) {
+	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 

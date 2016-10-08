@@ -13,6 +13,7 @@ import (
 type BranchType uint
 
 const (
+	BranchAll    BranchType = C.GIT_BRANCH_ALL
 	BranchLocal  BranchType = C.GIT_BRANCH_LOCAL
 	BranchRemote BranchType = C.GIT_BRANCH_REMOTE
 )
@@ -70,6 +71,10 @@ func (i *BranchIterator) ForEach(f BranchIteratorFunc) error {
 		if err == nil {
 			b, t, err = i.Next()
 		}
+	}
+
+	if err != nil && IsErrorCode(err, ErrIterOver) {
+		return nil
 	}
 
 	return err
