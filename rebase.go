@@ -28,14 +28,14 @@ const (
 // RebaseOperation describes a single instruction/operation to be performed during the rebase.
 type RebaseOperation struct {
 	Type RebaseOperationType
-	ID   *Oid
+	Id   *Oid
 	Exec string
 }
 
 func newRebaseOperationFromC(c *C.git_rebase_operation) *RebaseOperation {
 	operation := &RebaseOperation{}
 	operation.Type = RebaseOperationType(c._type)
-	operation.ID = newOidFromC(&c.id)
+	operation.Id = newOidFromC(&c.id)
 	operation.Exec = C.GoString(c.exec)
 
 	return operation
@@ -84,26 +84,26 @@ func (ro *RebaseOptions) toC() *C.git_rebase_options {
 		version:           C.uint(ro.Version),
 		quiet:             C.int(ro.Quiet),
 		inmemory:          C.int(ro.InMemory),
-		rewrite_notes_ref: rewriteNotesRefToC(ro.RewriteNotesRef),
+		rewrite_notes_ref: mapEmptyStringToNull(ro.RewriteNotesRef),
 		merge_options:     *ro.MergeOptions.toC(),
 		checkout_options:  *ro.CheckoutOptions.toC(),
 	}
 }
 
-func rewriteNotesRefToC(ref string) *C.char {
+func mapEmptyStringToNull(ref string) *C.char {
 	if ref == "" {
 		return nil
 	}
 	return C.CString(ref)
 }
 
-// Rebase object wrapper for C pointer
+// Rebase is the struct representing a Rebase object.
 type Rebase struct {
 	ptr *C.git_rebase
 }
 
-//RebaseInit initializes a rebase operation to rebase the changes in branch relative to upstream onto another branch.
-func (r *Repository) RebaseInit(branch *AnnotatedCommit, upstream *AnnotatedCommit, onto *AnnotatedCommit, opts *RebaseOptions) (*Rebase, error) {
+// InitRebase initializes a rebase operation to rebase the changes in branch relative to upstream onto another branch.
+func (r *Repository) InitRebase(branch *AnnotatedCommit, upstream *AnnotatedCommit, onto *AnnotatedCommit, opts *RebaseOptions) (*Rebase, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -128,8 +128,8 @@ func (r *Repository) RebaseInit(branch *AnnotatedCommit, upstream *AnnotatedComm
 	return newRebaseFromC(ptr), nil
 }
 
-//RebaseOpen opens an existing rebase that was previously started by either an invocation of git_rebase_init or by another client.
-func (r *Repository) RebaseOpen(opts *RebaseOptions) (*Rebase, error) {
+// OpenRebase opens an existing rebase that was previously started by either an invocation of InitRebase or by another client.
+func (r *Repository) OpenRebase(opts *RebaseOptions) (*Rebase, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -149,9 +149,13 @@ func (rebase *Rebase) OperationAt(index uint) *RebaseOperation {
 }
 
 // CurrentOperationIndex gets the index of the rebase operation that is currently being applied.
-// If the first operation has not yet been applied then this returns -1 (C.GIT_REBASE_NO_OPERATION).
-func (rebase *Rebase) CurrentOperationIndex() int {
-	return int(C.git_rebase_operation_current(rebase.ptr))
+// Returns an error if no rebase operation is currently applied.
+func (rebase *Rebase) CurrentOperationIndex() (uint, error) {
+	operationIndex := int(C.git_rebase_operation_current(rebase.ptr))
+	if operationIndex == C.GIT_REBASE_NO_OPERATION {
+		return 0, MakeGitError(C.GIT_REBASE_NO_OPERATION)
+	}
+	return uint(operationIndex), nil
 }
 
 // OperationCount gets the count of rebase operations that are to be applied.
@@ -160,7 +164,7 @@ func (rebase *Rebase) OperationCount() uint {
 }
 
 // Next performs the next rebase operation and returns the information about it.
-// If the operation is one that applies a patch (which is any operation except GIT_REBASE_OPERATION_EXEC)
+// If the operation is one that applies a patch (which is any operation except RebaseOperationExec)
 // then the patch will be applied and the index and working directory will be updated with the changes.
 // If there are conflicts, you will need to address those before committing the changes.
 func (rebase *Rebase) Next() (*RebaseOperation, error) {
@@ -177,7 +181,7 @@ func (rebase *Rebase) Next() (*RebaseOperation, error) {
 }
 
 // Commit commits the current patch.
-// You must have resolved any conflicts that were introduced during the patch application from the git_rebase_next invocation.
+// You must have resolved any conflicts that were introduced during the patch application from the Next() invocation.
 func (rebase *Rebase) Commit(ID *Oid, author, committer *Signature, message string) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -192,6 +196,7 @@ func (rebase *Rebase) Commit(ID *Oid, author, committer *Signature, message stri
 	if err != nil {
 		return err
 	}
+	defer C.git_signature_free(committerSig)
 
 	cmsg := C.CString(message)
 	defer C.free(unsafe.Pointer(cmsg))
@@ -229,7 +234,7 @@ func (rebase *Rebase) Abort() error {
 	return nil
 }
 
-//Free frees the Rebase object and underlying git_rebase C pointer.
+// Free frees the Rebase object.
 func (rebase *Rebase) Free() {
 	runtime.SetFinalizer(rebase, nil)
 	C.git_rebase_free(rebase.ptr)

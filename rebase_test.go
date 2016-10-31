@@ -111,7 +111,7 @@ func TestRebaseNoConflicts(t *testing.T) {
 	seedTestRepo(t, repo)
 
 	// Try to open existing rebase
-	oRebase, err := repo.RebaseOpen(nil)
+	oRebase, err := repo.OpenRebase(nil)
 	if err == nil {
 		t.Fatal("Did not expect to find a rebase in progress")
 	}
@@ -132,7 +132,7 @@ func TestRebaseNoConflicts(t *testing.T) {
 	defer rebase.Free()
 
 	// Open existing rebase
-	oRebase, err = repo.RebaseOpen(nil)
+	oRebase, err = repo.OpenRebase(nil)
 	checkFatal(t, err)
 	defer oRebase.Free()
 	if oRebase == nil {
@@ -144,7 +144,7 @@ func TestRebaseNoConflicts(t *testing.T) {
 	checkFatal(t, err)
 
 	// Check no more rebase is in progress
-	oRebase, err = repo.RebaseOpen(nil)
+	oRebase, err = repo.OpenRebase(nil)
 	if err == nil {
 		t.Fatal("Did not expect to find a rebase in progress")
 	}
@@ -198,13 +198,14 @@ func performRebaseOnto(repo *Repository, branch string) (*Rebase, error) {
 	defer onto.Free()
 
 	// Init rebase
-	rebase, err := repo.RebaseInit(nil, nil, onto, nil)
+	rebase, err := repo.InitRebase(nil, nil, onto, nil)
 	if err != nil {
 		return nil, err
 	}
 
 	// Check no operation has been started yet
-	if rebase.CurrentOperationIndex() != -1 { // -1 == GIT_REBASE_NO_OPERATION
+	rebaseOperationIndex, err := rebase.CurrentOperationIndex()
+	if err == nil {
 		return nil, errors.New("No operation should have been started yet")
 	}
 
@@ -217,7 +218,8 @@ func performRebaseOnto(repo *Repository, branch string) (*Rebase, error) {
 		}
 
 		// Check operation index is correct
-		if rebase.CurrentOperationIndex() != op {
+		rebaseOperationIndex, err = rebase.CurrentOperationIndex()
+		if int(rebaseOperationIndex) != op {
 			return nil, errors.New("Bad operation index")
 		}
 		if !operationsAreEqual(rebase.OperationAt(uint(op)), operation) {
@@ -225,14 +227,14 @@ func performRebaseOnto(repo *Repository, branch string) (*Rebase, error) {
 		}
 
 		// Get current rebase operation created commit
-		commit, err := repo.LookupCommit(operation.ID)
+		commit, err := repo.LookupCommit(operation.Id)
 		if err != nil {
 			return nil, err
 		}
 		defer commit.Free()
 
 		// Apply commit
-		err = rebase.Commit(operation.ID, signature(), signature(), commit.Message())
+		err = rebase.Commit(operation.Id, signature(), signature(), commit.Message())
 		if err != nil {
 			return nil, err
 		}
@@ -242,7 +244,7 @@ func performRebaseOnto(repo *Repository, branch string) (*Rebase, error) {
 }
 
 func operationsAreEqual(l, r *RebaseOperation) bool {
-	return l.Exec == r.Exec && l.Type == r.Type && l.ID.String() == r.ID.String()
+	return l.Exec == r.Exec && l.Type == r.Type && l.Id.String() == r.Id.String()
 }
 
 func createBranch(repo *Repository, branch string) error {

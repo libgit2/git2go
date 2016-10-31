@@ -50,6 +50,7 @@ const (
 	ErrClassFilter     ErrorClass = C.GITERR_FILTER
 	ErrClassRevert     ErrorClass = C.GITERR_REVERT
 	ErrClassCallback   ErrorClass = C.GITERR_CALLBACK
+	ErrClassRebase     ErrorClass = C.GITERR_REBASE
 )
 
 type ErrorCode int
