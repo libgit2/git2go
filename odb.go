@@ -36,8 +36,8 @@ func NewOdb() (odb *Odb, err error) {
 	return odb, nil
 }
 
-func NewOdbBackendFromC(ptr *C.git_odb_backend) (backend *OdbBackend) {
-	backend = &OdbBackend{ptr}
+func NewOdbBackendFromC(ptr unsafe.Pointer) (backend *OdbBackend) {
+	backend = &OdbBackend{(*C.git_odb_backend)(ptr)}
 	return backend
 }
 
