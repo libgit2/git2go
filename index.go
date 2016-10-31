@@ -278,6 +278,22 @@ func (v *Index) RemoveByPath(path string) error {
 	return nil
 }
 
+// RemoveDirectory removes all entries from the index under a given directory.
+func (v *Index) RemoveDirectory(dir string, stage int) error {
+	cstr := C.CString(dir)
+	defer C.free(unsafe.Pointer(cstr))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_index_remove_directory(v.ptr, cstr, C.int(stage))
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+
+	return nil
+}
+
 func (v *Index) WriteTreeTo(repo *Repository) (*Oid, error) {
 	oid := new(Oid)
 

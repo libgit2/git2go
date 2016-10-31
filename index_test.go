@@ -109,6 +109,46 @@ func TestIndexAddAndWriteTreeTo(t *testing.T) {
 	}
 }
 
+func TestIndexRemoveDirectory(t *testing.T) {
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	odb, err := repo.Odb()
+	checkFatal(t, err)
+
+	blobID, err := odb.Write([]byte("fou\n"), ObjectBlob)
+	checkFatal(t, err)
+
+	idx, err := NewIndex()
+	checkFatal(t, err)
+
+	entryCount := idx.EntryCount()
+	if entryCount != 0 {
+		t.Fatal("Index should count 0 entry")
+	}
+
+	entry := IndexEntry{
+		Path: "path/to/LISEZ_MOI",
+		Id:   blobID,
+		Mode: FilemodeBlob,
+	}
+
+	err = idx.Add(&entry)
+	checkFatal(t, err)
+
+	entryCount = idx.EntryCount()
+	if entryCount != 1 {
+		t.Fatal("Index should count 1 entry")
+	}
+
+	err = idx.RemoveDirectory("path", 0)
+
+	entryCount = idx.EntryCount()
+	if entryCount != 0 {
+		t.Fatal("Index should count 0 entry")
+	}
+}
+
 func TestIndexAddAllNoCallback(t *testing.T) {
 	t.Parallel()
 	repo := createTestRepo(t)
