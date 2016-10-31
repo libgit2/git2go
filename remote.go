@@ -215,7 +215,7 @@ func completionCallback(completion_type C.git_remote_completion_type, data unsaf
 func credentialsCallback(_cred **C.git_cred, _url *C.char, _username_from_url *C.char, allowed_types uint, data unsafe.Pointer) int {
 	callbacks, _ := pointerHandles.Get(data).(*RemoteCallbacks)
 	if callbacks.CredentialsCallback == nil {
-		return 0
+		return C.GIT_PASSTHROUGH
 	}
 	url := C.GoString(_url)
 	username_from_url := C.GoString(_username_from_url)
@@ -454,6 +454,26 @@ func (o *Remote) PushUrl() string {
 	return C.GoString(C.git_remote_pushurl(o.ptr))
 }
 
+func (c *RemoteCollection) Rename(remote, newname string) ([]string, error) {
+	cproblems := C.git_strarray{}
+	defer freeStrarray(&cproblems)
+	cnewname := C.CString(newname)
+	defer C.free(unsafe.Pointer(cnewname))
+	cremote := C.CString(remote)
+	defer C.free(unsafe.Pointer(cremote))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_remote_rename(&cproblems, c.repo.ptr, cremote, cnewname)
+	if ret < 0 {
+		return []string{}, MakeGitError(ret)
+	}
+
+	problems := makeStringsFromCStrings(cproblems.strings, int(cproblems.count))
+	return problems, nil
+}
+
 func (c *RemoteCollection) SetUrl(remote, url string) error {
 	curl := C.CString(url)
 	defer C.free(unsafe.Pointer(curl))
@@ -685,6 +705,13 @@ func (o *Remote) Connect(direction ConnectDirection, callbacks *RemoteCallbacks,
 		return MakeGitError(ret)
 	}
 	return nil
+}
+
+func (o *Remote) Disconnect() {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	C.git_remote_disconnect(o.ptr)
 }
 
 func (o *Remote) Ls(filterRefs ...string) ([]RemoteHead, error) {
