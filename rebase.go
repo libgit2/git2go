@@ -145,16 +145,21 @@ func (r *Repository) OpenRebase(opts *RebaseOptions) (*Rebase, error) {
 // OperationAt gets the rebase operation specified by the given index.
 func (rebase *Rebase) OperationAt(index uint) *RebaseOperation {
 	operation := C.git_rebase_operation_byindex(rebase.ptr, C.size_t(index))
+	
 	return newRebaseOperationFromC(operation)
 }
 
 // CurrentOperationIndex gets the index of the rebase operation that is currently being applied.
 // Returns an error if no rebase operation is currently applied.
 func (rebase *Rebase) CurrentOperationIndex() (uint, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	operationIndex := int(C.git_rebase_operation_current(rebase.ptr))
 	if operationIndex == C.GIT_REBASE_NO_OPERATION {
 		return 0, MakeGitError(C.GIT_REBASE_NO_OPERATION)
 	}
+
 	return uint(operationIndex), nil
 }
 

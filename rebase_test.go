@@ -9,29 +9,6 @@ import (
 
 // Tests
 
-func TestDefaultRebaseOptions(t *testing.T) {
-	opts, err := DefaultRebaseOptions()
-	checkFatal(t, err)
-
-	if opts.Version != 1 {
-		t.Error("Expected opts Version to equal 1, got ", opts.Version)
-	}
-	if opts.Quiet != 0 {
-		t.Error("Expected opts Quiet to equal 1, got ", opts.Quiet)
-	}
-	if opts.InMemory != 0 {
-		t.Error("Expected opts InMemory to equal 1, got ", opts.InMemory)
-	}
-	if opts.RewriteNotesRef != "" {
-		t.Error("Expected opts RewriteNotesRef to equal 1, got ", opts.RewriteNotesRef)
-	}
-
-	copts := opts.toC()
-	if copts == nil {
-		t.Error("Copts should not be nil")
-	}
-}
-
 func TestRebaseAbort(t *testing.T) {
 	// TEST DATA
 
