@@ -152,3 +152,37 @@ func TestOdbForeach(t *testing.T) {
 		t.Fatalf("Odb.ForEach() did not return the expected error, got %v", err)
 	}
 }
+
+func TestOdbWritepack(t *testing.T) {
+	t.Parallel()
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	_, _ = seedTestRepo(t, repo)
+
+	odb, err := repo.Odb()
+	checkFatal(t, err)
+
+	var finalStats TransferProgress
+	writepack, err := odb.NewWritePack(func(stats TransferProgress) ErrorCode {
+		finalStats = stats
+		return ErrOk
+	})
+	checkFatal(t, err)
+	defer writepack.Free()
+
+	_, err = writepack.Write(outOfOrderPack)
+	checkFatal(t, err)
+	err = writepack.Commit()
+	checkFatal(t, err)
+
+	if finalStats.TotalObjects != 3 {
+		t.Errorf("mismatched transferred objects, expected 3, got %v", finalStats.TotalObjects)
+	}
+	if finalStats.ReceivedObjects != 3 {
+		t.Errorf("mismatched received objects, expected 3, got %v", finalStats.ReceivedObjects)
+	}
+	if finalStats.IndexedObjects != 3 {
+		t.Errorf("mismatched indexed objects, expected 3, got %v", finalStats.IndexedObjects)
+	}
+}
