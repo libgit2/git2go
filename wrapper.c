@@ -174,4 +174,9 @@ void _go_git_writestream_free(git_writestream *stream)
 	stream->free(stream);
 }
 
+int _go_git_indexer_new(git_indexer **out, const char *path, unsigned int mode, git_odb *odb, void *progress_cb_payload)
+{
+	return git_indexer_new(out, path, mode, odb, (git_transfer_progress_cb)&indexerTransferProgress, progress_cb_payload);
+}
+
 /* EOF */

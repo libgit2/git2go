@@ -3,6 +3,7 @@ package git
 /*
 #include <git2.h>
 
+extern int git_odb_backend_one_pack(git_odb_backend **out, const char *index_file);
 extern int _go_git_odb_foreach(git_odb *db, void *payload);
 extern void _go_git_odb_backend_free(git_odb_backend *backend);
 */
@@ -41,8 +42,19 @@ func NewOdbBackendFromC(ptr *C.git_odb_backend) (backend *OdbBackend) {
 	return backend
 }
 
-func (v *Odb) AddBackend(backend *OdbBackend, priority int) (err error) {
+func (v *Odb) AddAlternate(backend *OdbBackend, priority int) (err error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
+	ret := C.git_odb_add_alternate(v.ptr, backend.ptr, C.int(priority))
+	if ret < 0 {
+		backend.Free()
+		return MakeGitError(ret)
+	}
+	return nil
+}
+
+func (v *Odb) AddBackend(backend *OdbBackend, priority int) (err error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -54,12 +66,24 @@ func (v *Odb) AddBackend(backend *OdbBackend, priority int) (err error) {
 	return nil
 }
 
+func NewOdbBackendOnePack(packfileIndexPath string) (backend *OdbBackend, err error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var odbOnePack *C.git_odb_backend = nil
+	ret := C.git_odb_backend_one_pack(&odbOnePack, C.CString(packfileIndexPath))
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+	return NewOdbBackendFromC(odbOnePack), nil
+}
+
 func (v *Odb) ReadHeader(oid *Oid) (uint64, ObjectType, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-	
+
 	var sz C.size_t
-	var cotype C.git_otype 
+	var cotype C.git_otype
 
 	ret := C.git_odb_read_header(&sz, &cotype, v.ptr, oid.toC())
 	if ret < 0 {
@@ -68,7 +92,7 @@ func (v *Odb) ReadHeader(oid *Oid) (uint64, ObjectType, error) {
 
 	return uint64(sz), ObjectType(cotype), nil
 }
-	
+
 func (v *Odb) Exists(oid *Oid) bool {
 	ret := C.git_odb_exists(v.ptr, oid.toC())
 	return ret != 0
