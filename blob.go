@@ -4,15 +4,13 @@ package git
 #include <git2.h>
 #include <string.h>
 
-extern int _go_git_blob_create_fromchunks(git_oid *id,
-	git_repository *repo,
-	const char *hintpath,
-	void *payload);
-
+int _go_git_writestream_write(git_writestream *stream, const char *buffer, size_t len);
+void _go_git_writestream_free(git_writestream *stream);
 */
 import "C"
 import (
 	"io"
+	"reflect"
 	"runtime"
 	"unsafe"
 )
@@ -87,27 +85,71 @@ func blobChunkCb(buffer *C.char, maxLen C.size_t, handle unsafe.Pointer) int {
 	return len(goBuf)
 }
 
-func (repo *Repository) CreateBlobFromChunks(hintPath string, callback BlobChunkCallback) (*Oid, error) {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
+func (repo *Repository) CreateFromStream(hintPath string) (*BlobWriteStream, error) {
 	var chintPath *C.char = nil
+	var stream *C.git_writestream
+
 	if len(hintPath) > 0 {
 		chintPath = C.CString(hintPath)
 		defer C.free(unsafe.Pointer(chintPath))
 	}
-	oid := C.git_oid{}
 
-	payload := &BlobCallbackData{Callback: callback}
-	handle := pointerHandles.Track(payload)
-	defer pointerHandles.Untrack(handle)
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
-	ecode := C._go_git_blob_create_fromchunks(&oid, repo.ptr, chintPath, handle)
-	if payload.Error != nil {
-		return nil, payload.Error
-	}
+	ecode := C.git_blob_create_fromstream(&stream, repo.ptr, chintPath)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
+
+	return newBlobWriteStreamFromC(stream), nil
+}
+
+type BlobWriteStream struct {
+	ptr *C.git_writestream
+}
+
+func newBlobWriteStreamFromC(ptr *C.git_writestream) *BlobWriteStream {
+	stream := &BlobWriteStream{
+		ptr: ptr,
+	}
+
+	runtime.SetFinalizer(stream, (*BlobWriteStream).Free)
+	return stream
+}
+
+// Implement io.Writer
+func (stream *BlobWriteStream) Write(p []byte) (int, error) {
+	header := (*reflect.SliceHeader)(unsafe.Pointer(&p))
+	ptr := (*C.char)(unsafe.Pointer(header.Data))
+	size := C.size_t(header.Len)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C._go_git_writestream_write(stream.ptr, ptr, size)
+	if ecode < 0 {
+		return 0, MakeGitError(ecode)
+	}
+
+	return len(p), nil
+}
+
+func (stream *BlobWriteStream) Free() {
+	runtime.SetFinalizer(stream, nil)
+	C._go_git_writestream_free(stream.ptr)
+}
+
+func (stream *BlobWriteStream) Commit() (*Oid, error) {
+	oid := C.git_oid{}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C.git_blob_create_fromstream_commit(&oid, stream.ptr)
+	if ecode < 0 {
+		return nil, MakeGitError(ecode)
+	}
+
 	return newOidFromC(&oid), nil
 }

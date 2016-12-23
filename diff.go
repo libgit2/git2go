@@ -20,6 +20,7 @@ const (
 	DiffFlagBinary    DiffFlag = C.GIT_DIFF_FLAG_BINARY
 	DiffFlagNotBinary DiffFlag = C.GIT_DIFF_FLAG_NOT_BINARY
 	DiffFlagValidOid  DiffFlag = C.GIT_DIFF_FLAG_VALID_ID
+	DiffFlagExists    DiffFlag = C.GIT_DIFF_FLAG_EXISTS
 )
 
 type Delta int
@@ -34,6 +35,8 @@ const (
 	DeltaIgnored    Delta = C.GIT_DELTA_IGNORED
 	DeltaUntracked  Delta = C.GIT_DELTA_UNTRACKED
 	DeltaTypeChange Delta = C.GIT_DELTA_TYPECHANGE
+	DeltaUnreadable Delta = C.GIT_DELTA_UNREADABLE
+	DeltaConflicted Delta = C.GIT_DELTA_CONFLICTED
 )
 
 type DiffLineType int
@@ -399,6 +402,7 @@ const (
 	DiffIgnoreFilemode         DiffOptionsFlag = C.GIT_DIFF_IGNORE_FILEMODE
 	DiffIgnoreSubmodules       DiffOptionsFlag = C.GIT_DIFF_IGNORE_SUBMODULES
 	DiffIgnoreCase             DiffOptionsFlag = C.GIT_DIFF_IGNORE_CASE
+	DiffIncludeCaseChange      DiffOptionsFlag = C.GIT_DIFF_INCLUDE_CASECHANGE
 
 	DiffDisablePathspecMatch    DiffOptionsFlag = C.GIT_DIFF_DISABLE_PATHSPEC_MATCH
 	DiffSkipBinaryCheck         DiffOptionsFlag = C.GIT_DIFF_SKIP_BINARY_CHECK
