@@ -17,4 +17,5 @@ matrix:
 branches:
   only:
   - master
+  - /v\d+/
   - next
