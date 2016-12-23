@@ -13,7 +13,7 @@ if [ "x$TRAVIS_BRANCH" = "xnext" ]; then
 fi
 
 cd "${HOME}"
-LG2VER="0.24.0"
+LG2VER="0.25.0"
 wget -O libgit2-${LG2VER}.tar.gz https://github.com/libgit2/libgit2/archive/v${LG2VER}.tar.gz
 tar -xzvf libgit2-${LG2VER}.tar.gz
 cd libgit2-${LG2VER} && mkdir build && cd build
