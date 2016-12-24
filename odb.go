@@ -379,6 +379,7 @@ func odbWritepackTransferProgress(_stats *C.git_transfer_progress, ptr unsafe.Po
 	return C.int(callback(newTransferProgressFromC(_stats)))
 }
 
+// OdbWritepack is a stream to write a packfile to the ODB.
 type OdbWritepack struct {
 	ptr             *C.git_odb_writepack
 	stats           C.git_transfer_progress

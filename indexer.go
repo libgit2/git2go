@@ -16,6 +16,8 @@ import (
 	"unsafe"
 )
 
+// Indexer can post-process packfiles and create an .idx file for efficient
+// lookup.
 type Indexer struct {
 	ptr             *C.git_indexer
 	stats           C.git_transfer_progress
@@ -23,6 +25,7 @@ type Indexer struct {
 	callbacksHandle unsafe.Pointer
 }
 
+// NewIndexer creates a new indexer instance.
 func NewIndexer(packfilePath string, odb *Odb, callback TransferProgressCallback) (indexer *Indexer, err error) {
 	indexer = new(Indexer)
 
@@ -47,6 +50,7 @@ func NewIndexer(packfilePath string, odb *Odb, callback TransferProgressCallback
 	return indexer, nil
 }
 
+// Write adds data to the indexer.
 func (indexer *Indexer) Write(data []byte) (int, error) {
 	header := (*reflect.SliceHeader)(unsafe.Pointer(&data))
 	ptr := unsafe.Pointer(header.Data)
@@ -63,6 +67,11 @@ func (indexer *Indexer) Write(data []byte) (int, error) {
 	return len(data), nil
 }
 
+// Commit finalizes the pack and index. It resolves any pending deltas and
+// writes out the index file.
+//
+// It also returns the packfile's hash. A packfile's name is derived from the
+// sorted hashing of all object names.
 func (indexer *Indexer) Commit() (*Oid, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -75,6 +84,7 @@ func (indexer *Indexer) Commit() (*Oid, error) {
 	return newOidFromC(C.git_indexer_hash(indexer.ptr)), nil
 }
 
+// Free frees the indexer and its resources.
 func (indexer *Indexer) Free() {
 	pointerHandles.Untrack(indexer.callbacksHandle)
 	runtime.SetFinalizer(indexer, nil)
