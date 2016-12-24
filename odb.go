@@ -371,14 +371,6 @@ func (stream *OdbWriteStream) Free() {
 	C.git_odb_stream_free(stream.ptr)
 }
 
-func odbWritepackTransferProgress(_stats *C.git_transfer_progress, ptr unsafe.Pointer) C.int {
-	callback, ok := pointerHandles.Get(ptr).(TransferProgressCallback)
-	if !ok {
-		return 0
-	}
-	return C.int(callback(newTransferProgressFromC(_stats)))
-}
-
 // OdbWritepack is a stream to write a packfile to the ODB.
 type OdbWritepack struct {
 	ptr             *C.git_odb_writepack
