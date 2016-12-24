@@ -6,6 +6,10 @@ package git
 extern int git_odb_backend_one_pack(git_odb_backend **out, const char *index_file);
 extern int _go_git_odb_foreach(git_odb *db, void *payload);
 extern void _go_git_odb_backend_free(git_odb_backend *backend);
+extern int _go_git_odb_write_pack(git_odb_writepack **out, git_odb *db, void *progress_payload);
+extern int _go_git_odb_writepack_append(git_odb_writepack *writepack, const void *, size_t, git_transfer_progress *);
+extern int _go_git_odb_writepack_commit(git_odb_writepack *writepack, git_transfer_progress *);
+extern void _go_git_odb_writepack_free(git_odb_writepack *writepack);
 */
 import "C"
 import (
@@ -229,6 +233,30 @@ func (v *Odb) NewWriteStream(size int64, otype ObjectType) (*OdbWriteStream, err
 	return stream, nil
 }
 
+// NewWritePack opens a stream for writing a pack file to the ODB. If the ODB
+// layer understands pack files, then the given packfile will likely be
+// streamed directly to disk (and a corresponding index created). If the ODB
+// layer does not understand pack files, the objects will be stored in whatever
+// format the ODB layer uses.
+func (v *Odb) NewWritePack(callback TransferProgressCallback) (*OdbWritepack, error) {
+	writepack := new(OdbWritepack)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	writepack.callbacks.TransferProgressCallback = callback
+	writepack.callbacksHandle = pointerHandles.Track(&writepack.callbacks)
+
+	ret := C._go_git_odb_write_pack(&writepack.ptr, v.ptr, writepack.callbacksHandle)
+	if ret < 0 {
+		pointerHandles.Untrack(writepack.callbacksHandle)
+		return nil, MakeGitError(ret)
+	}
+
+	runtime.SetFinalizer(writepack, (*OdbWritepack).Free)
+	return writepack, nil
+}
+
 func (v *OdbBackend) Free() {
 	C._go_git_odb_backend_free(v.ptr)
 }
@@ -341,4 +369,53 @@ func (stream *OdbWriteStream) Close() error {
 func (stream *OdbWriteStream) Free() {
 	runtime.SetFinalizer(stream, nil)
 	C.git_odb_stream_free(stream.ptr)
+}
+
+func odbWritepackTransferProgress(_stats *C.git_transfer_progress, ptr unsafe.Pointer) C.int {
+	callback, ok := pointerHandles.Get(ptr).(TransferProgressCallback)
+	if !ok {
+		return 0
+	}
+	return C.int(callback(newTransferProgressFromC(_stats)))
+}
+
+type OdbWritepack struct {
+	ptr             *C.git_odb_writepack
+	stats           C.git_transfer_progress
+	callbacks       RemoteCallbacks
+	callbacksHandle unsafe.Pointer
+}
+
+func (writepack *OdbWritepack) Write(data []byte) (int, error) {
+	header := (*reflect.SliceHeader)(unsafe.Pointer(&data))
+	ptr := unsafe.Pointer(header.Data)
+	size := C.size_t(header.Len)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C._go_git_odb_writepack_append(writepack.ptr, ptr, size, &writepack.stats)
+	if ret < 0 {
+		return 0, MakeGitError(ret)
+	}
+
+	return len(data), nil
+}
+
+func (writepack *OdbWritepack) Commit() error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C._go_git_odb_writepack_commit(writepack.ptr, &writepack.stats)
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+
+	return nil
+}
+
+func (writepack *OdbWritepack) Free() {
+	pointerHandles.Untrack(writepack.callbacksHandle)
+	runtime.SetFinalizer(writepack, nil)
+	C._go_git_odb_writepack_free(writepack.ptr)
 }

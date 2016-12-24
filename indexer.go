@@ -16,19 +16,11 @@ import (
 	"unsafe"
 )
 
-//export indexerTransferProgress
-func indexerTransferProgress(_stats *C.git_transfer_progress, ptr unsafe.Pointer) C.int {
-	callback, ok := pointerHandles.Get(ptr).(TransferProgressCallback)
-	if !ok {
-		return 0
-	}
-	return C.int(callback(newTransferProgressFromC(_stats)))
-}
-
 type Indexer struct {
-	ptr      *C.git_indexer
-	stats    C.git_transfer_progress
-	callback unsafe.Pointer
+	ptr             *C.git_indexer
+	stats           C.git_transfer_progress
+	callbacks       RemoteCallbacks
+	callbacksHandle unsafe.Pointer
 }
 
 func NewIndexer(packfilePath string, odb *Odb, callback TransferProgressCallback) (indexer *Indexer, err error) {
@@ -42,15 +34,12 @@ func NewIndexer(packfilePath string, odb *Odb, callback TransferProgressCallback
 		odbPtr = odb.ptr
 	}
 
-	if callback != nil {
-		indexer.callback = pointerHandles.Track(callback)
-	}
+	indexer.callbacks.TransferProgressCallback = callback
+	indexer.callbacksHandle = pointerHandles.Track(&indexer.callbacks)
 
-	ret := C._go_git_indexer_new(&indexer.ptr, C.CString(packfilePath), 0, odbPtr, indexer.callback)
+	ret := C._go_git_indexer_new(&indexer.ptr, C.CString(packfilePath), 0, odbPtr, indexer.callbacksHandle)
 	if ret < 0 {
-		if indexer.callback != nil {
-			pointerHandles.Untrack(indexer.callback)
-		}
+		pointerHandles.Untrack(indexer.callbacksHandle)
 		return nil, MakeGitError(ret)
 	}
 
@@ -87,8 +76,7 @@ func (indexer *Indexer) Commit() (*Oid, error) {
 }
 
 func (indexer *Indexer) Free() {
-	if indexer.callback != nil {
-		pointerHandles.Untrack(indexer.callback)
-	}
+	pointerHandles.Untrack(indexer.callbacksHandle)
+	runtime.SetFinalizer(indexer, nil)
 	C.git_indexer_free(indexer.ptr)
 }

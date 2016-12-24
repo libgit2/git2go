@@ -174,9 +174,29 @@ void _go_git_writestream_free(git_writestream *stream)
 	stream->free(stream);
 }
 
+int _go_git_odb_write_pack(git_odb_writepack **out, git_odb *db, void *progress_payload)
+{
+	return git_odb_write_pack(out, db, (git_transfer_progress_cb)transferProgressCallback, progress_payload);
+}
+
+int _go_git_odb_writepack_append(git_odb_writepack *writepack, const void *data, size_t size, git_transfer_progress *stats)
+{
+	return writepack->append(writepack, data, size, stats);
+}
+
+int _go_git_odb_writepack_commit(git_odb_writepack *writepack, git_transfer_progress *stats)
+{
+	return writepack->commit(writepack, stats);
+}
+
+void _go_git_odb_writepack_free(git_odb_writepack *writepack)
+{
+	writepack->free(writepack);
+}
+
 int _go_git_indexer_new(git_indexer **out, const char *path, unsigned int mode, git_odb *odb, void *progress_cb_payload)
 {
-	return git_indexer_new(out, path, mode, odb, (git_transfer_progress_cb)&indexerTransferProgress, progress_cb_payload);
+	return git_indexer_new(out, path, mode, odb, (git_transfer_progress_cb)transferProgressCallback, progress_cb_payload);
 }
 
 /* EOF */
