@@ -30,6 +30,9 @@ type Repository struct {
 	// Tags represents the collection of tags and can be used to create,
 	// list, iterate and remove tags in this repository.
 	Tags TagsCollection
+	// Stashes represents the collection of stashes and can be used to
+	// save, apply and iterate over stash states in this repository.
+	Stashes StashCollection
 }
 
 func newRepositoryFromC(ptr *C.git_repository) *Repository {
@@ -40,6 +43,7 @@ func newRepositoryFromC(ptr *C.git_repository) *Repository {
 	repo.References.repo = repo
 	repo.Notes.repo = repo
 	repo.Tags.repo = repo
+	repo.Stashes.repo = repo
 
 	runtime.SetFinalizer(repo, (*Repository).Free)
 
@@ -261,6 +265,40 @@ func (v *Repository) IsHeadDetached() (bool, error) {
 		return false, MakeGitError(ret)
 	}
 
+	return ret != 0, nil
+}
+
+func (v *Repository) IsHeadUnborn() (bool, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_repository_head_unborn(v.ptr)
+	if ret < 0 {
+		return false, MakeGitError(ret)
+	}
+	return ret != 0, nil
+}
+
+func (v *Repository) IsEmpty() (bool, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_repository_is_empty(v.ptr)
+	if ret < 0 {
+		return false, MakeGitError(ret)
+	}
+
+	return ret != 0, nil
+}
+
+func (v *Repository) IsShallow() (bool, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_repository_is_shallow(v.ptr)
+	if ret < 0 {
+		return false, MakeGitError(ret)
+	}
 	return ret != 0, nil
 }
 

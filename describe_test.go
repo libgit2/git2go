@@ -93,14 +93,16 @@ func TestDescribeCommit(t *testing.T) {
 func checkDescribeNoRefsFound(t *testing.T, err error) {
 	// The failure happens at wherever we were called, not here
 	_, file, line, ok := runtime.Caller(1)
+	expectedString := "no reference found, cannot describe anything"
 	if !ok {
 		t.Fatalf("Unable to get caller")
 	}
-	if err == nil || !strings.Contains(err.Error(), "No reference found, cannot describe anything") {
+	if err == nil || !strings.Contains(err.Error(), expectedString) {
 		t.Fatalf(
-			"%s:%v: was expecting error 'No reference found, cannot describe anything', got %v",
+			"%s:%v: was expecting error %v, got %v",
 			path.Base(file),
 			line,
+			expectedString,
 			err,
 		)
 	}

@@ -61,7 +61,7 @@ func TestRemoteConnect(t *testing.T) {
 	remote, err := repo.Remotes.Create("origin", "https://github.com/libgit2/TestGitRepository")
 	checkFatal(t, err)
 
-	err = remote.ConnectFetch(nil, nil)
+	err = remote.ConnectFetch(nil, nil, nil)
 	checkFatal(t, err)
 }
 
@@ -73,7 +73,7 @@ func TestRemoteLs(t *testing.T) {
 	remote, err := repo.Remotes.Create("origin", "https://github.com/libgit2/TestGitRepository")
 	checkFatal(t, err)
 
-	err = remote.ConnectFetch(nil, nil)
+	err = remote.ConnectFetch(nil, nil, nil)
 	checkFatal(t, err)
 
 	heads, err := remote.Ls()
@@ -92,7 +92,7 @@ func TestRemoteLsFiltering(t *testing.T) {
 	remote, err := repo.Remotes.Create("origin", "https://github.com/libgit2/TestGitRepository")
 	checkFatal(t, err)
 
-	err = remote.ConnectFetch(nil, nil)
+	err = remote.ConnectFetch(nil, nil, nil)
 	checkFatal(t, err)
 
 	heads, err := remote.Ls("master")
@@ -173,7 +173,7 @@ func TestRemotePrune(t *testing.T) {
 	rr, err := repo.Remotes.Lookup("origin")
 	checkFatal(t, err)
 
-	err = rr.ConnectFetch(nil, nil)
+	err = rr.ConnectFetch(nil, nil, nil)
 	checkFatal(t, err)
 
 	err = rr.Prune(nil)
