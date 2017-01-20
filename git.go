@@ -3,7 +3,6 @@ package git
 /*
 #include <git2.h>
 #include <git2/sys/openssl.h>
-#cgo pkg-config: libgit2
 
 #if LIBGIT2_VER_MAJOR != 0 || LIBGIT2_VER_MINOR != 25
 # error "Invalid libgit2 version; this git2go supports libgit2 v0.25"
