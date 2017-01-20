@@ -22,6 +22,10 @@ func (c Commit) Message() string {
 	return C.GoString(C.git_commit_message(c.cast_ptr))
 }
 
+func (c Commit) RawMessage() string {
+	return C.GoString(C.git_commit_message_raw(c.cast_ptr))
+}
+
 func (c Commit) Summary() string {
 	return C.GoString(C.git_commit_summary(c.cast_ptr))
 }

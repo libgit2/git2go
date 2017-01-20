@@ -117,6 +117,30 @@ type FetchOptions struct {
 	Headers []string
 }
 
+type ProxyType uint
+
+const (
+	// Do not attempt to connect through a proxy
+	//
+	// If built against lbicurl, it itself may attempt to connect
+	// to a proxy if the environment variables specify it.
+	ProxyTypeNone ProxyType = C.GIT_PROXY_NONE
+
+	// Try to auto-detect the proxy from the git configuration.
+	ProxyTypeAuto ProxyType = C.GIT_PROXY_AUTO
+
+	// Connect via the URL given in the options
+	ProxyTypeSpecified ProxyType = C.GIT_PROXY_SPECIFIED
+)
+
+type ProxyOptions struct {
+	// The type of proxy to use (or none)
+	Type ProxyType
+
+	// The proxy's URL
+	Url string
+}
+
 type Remote struct {
 	ptr       *C.git_remote
 	callbacks RemoteCallbacks
@@ -318,6 +342,20 @@ func pushUpdateReferenceCallback(refname, status *C.char, data unsafe.Pointer) i
 	}
 
 	return int(callbacks.PushUpdateReferenceCallback(C.GoString(refname), C.GoString(status)))
+}
+
+func populateProxyOptions(ptr *C.git_proxy_options, opts *ProxyOptions) {
+	C.git_proxy_init_options(ptr, C.GIT_PROXY_OPTIONS_VERSION)
+	if opts == nil {
+		return
+	}
+
+	ptr._type = C.git_proxy_t(opts.Type)
+	ptr.url = C.CString(opts.Url)
+}
+
+func freeProxyOptions(ptr *C.git_proxy_options) {
+	C.free(unsafe.Pointer(ptr.url))
 }
 
 func RemoteIsValidName(name string) bool {
@@ -674,12 +712,12 @@ func (o *Remote) Fetch(refspecs []string, opts *FetchOptions, msg string) error 
 	return nil
 }
 
-func (o *Remote) ConnectFetch(callbacks *RemoteCallbacks, headers []string) error {
-	return o.Connect(ConnectDirectionFetch, callbacks, headers)
+func (o *Remote) ConnectFetch(callbacks *RemoteCallbacks, proxyOpts *ProxyOptions, headers []string) error {
+	return o.Connect(ConnectDirectionFetch, callbacks, proxyOpts, headers)
 }
 
-func (o *Remote) ConnectPush(callbacks *RemoteCallbacks, headers []string) error {
-	return o.Connect(ConnectDirectionPush, callbacks, headers)
+func (o *Remote) ConnectPush(callbacks *RemoteCallbacks, proxyOpts *ProxyOptions, headers []string) error {
+	return o.Connect(ConnectDirectionPush, callbacks, proxyOpts, headers)
 }
 
 // Connect opens a connection to a remote.
@@ -689,19 +727,24 @@ func (o *Remote) ConnectPush(callbacks *RemoteCallbacks, headers []string) error
 // starts up a specific binary which can only do the one or the other.
 //
 // 'headers' are extra HTTP headers to use in this connection.
-func (o *Remote) Connect(direction ConnectDirection, callbacks *RemoteCallbacks, headers []string) error {
+func (o *Remote) Connect(direction ConnectDirection, callbacks *RemoteCallbacks, proxyOpts *ProxyOptions, headers []string) error {
 	var ccallbacks C.git_remote_callbacks
 	populateRemoteCallbacks(&ccallbacks, callbacks)
 
+	var cproxy C.git_proxy_options
+	populateProxyOptions(&cproxy, proxyOpts)
+	defer freeProxyOptions(&cproxy)
+	
 	cheaders := C.git_strarray{}
 	cheaders.count = C.size_t(len(headers))
 	cheaders.strings = makeCStringsFromStrings(headers)
 	defer freeStrarray(&cheaders)
 
+
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if ret := C.git_remote_connect(o.ptr, C.git_direction(direction), &ccallbacks, &cheaders); ret != 0 {
+	if ret := C.git_remote_connect(o.ptr, C.git_direction(direction), &ccallbacks, &cproxy, &cheaders); ret != 0 {
 		return MakeGitError(ret)
 	}
 	return nil
