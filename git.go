@@ -137,6 +137,10 @@ func init() {
 		panic("libgit2 was not built with threading support")
 	}
 
+	if err := RegisterManagedTls(); err != nil {
+		panic(err)
+	}
+
 	// This is not something we should be doing, as we may be
 	// stomping all over someone else's setup. The user should do
 	// this themselves or use some binding/wrapper which does it
