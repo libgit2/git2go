@@ -51,6 +51,7 @@ func (t Tree) EntryByName(filename string) *TreeEntry {
 	if entry == nil {
 		return nil
 	}
+	defer C.git_tree_entry_free(entry)
 
 	return newTreeEntry(entry)
 }
@@ -69,6 +70,7 @@ func (t Tree) EntryByPath(path string) (*TreeEntry, error) {
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
+	defer C.git_tree_entry_free(entry)
 
 	return newTreeEntry(entry), nil
 }
@@ -78,6 +80,7 @@ func (t Tree) EntryByIndex(index uint64) *TreeEntry {
 	if entry == nil {
 		return nil
 	}
+	defer C.git_tree_entry_free(entry)
 
 	return newTreeEntry(entry)
 }
