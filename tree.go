@@ -87,6 +87,7 @@ func (t Tree) EntryByPath(path string) (*TreeEntry, error) {
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
+	defer C.git_tree_entry_free(entry)
 
 	return newTreeEntry(entry), nil
 }
