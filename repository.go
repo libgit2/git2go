@@ -72,6 +72,8 @@ const (
 	RepositoryOpenNoSearch RepositoryOpenFlag = C.GIT_REPOSITORY_OPEN_NO_SEARCH
 	RepositoryOpenCrossFs  RepositoryOpenFlag = C.GIT_REPOSITORY_OPEN_CROSS_FS
 	RepositoryOpenBare     RepositoryOpenFlag = C.GIT_REPOSITORY_OPEN_BARE
+	RepositoryOpenFromEnv  RepositoryOpenFlag = C.GIT_REPOSITORY_OPEN_FROM_ENV
+	RepositoryOpenNoDotGit RepositoryOpenFlag = C.GIT_REPOSITORY_OPEN_NO_DOTGIT
 )
 
 func OpenRepositoryExtended(path string, flags RepositoryOpenFlag, ceiling string) (*Repository, error) {

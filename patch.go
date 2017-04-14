@@ -40,15 +40,18 @@ func (patch *Patch) String() (string, error) {
 	if patch.ptr == nil {
 		return "", ErrInvalid
 	}
-	var buf C.git_buf
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
+
+	var buf C.git_buf
 
 	ecode := C.git_patch_to_buf(&buf, patch.ptr)
 	if ecode < 0 {
 		return "", MakeGitError(ecode)
 	}
+	defer C.git_buf_free(&buf)
+
 	return C.GoString(buf.ptr), nil
 }
 
