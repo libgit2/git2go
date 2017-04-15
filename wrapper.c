@@ -2,6 +2,7 @@
 #include <git2.h>
 #include <git2/sys/odb_backend.h>
 #include <git2/sys/refdb_backend.h>
+#include <git2/sys/transport.h>
 
 typedef int (*gogit_submodule_cbk)(git_submodule *sm, const char *name, void *payload);
 
@@ -178,6 +179,39 @@ int _go_git_writestream_close(git_writestream *stream)
 void _go_git_writestream_free(git_writestream *stream)
 {
 	stream->free(stream);
+}
+
+int _go_git_transport_register(const char *scheme)
+{
+	return git_transport_register(scheme, httpTransportCb, NULL);
+}
+
+int _go_git_transport_smart(git_transport **out, git_remote *owner)
+{
+	git_smart_subtransport_definition defn = {
+		httpSmartSubtransportCb,
+		1, // RPC/Stateless
+	};
+
+	return git_transport_smart(out, owner, &defn);
+}
+
+void _go_git_setup_smart_subtransport(managed_smart_subtransport *t, void *ptr)
+{
+	t->parent.action = httpAction;
+	t->parent.close = httpClose;
+	t->parent.free = httpFree;
+
+	t->ptr = ptr;
+}
+
+void _go_git_setup_smart_subtransport_stream(managed_smart_subtransport_stream *s, void *ptr)
+{
+	s->parent.read = smartSubtransportRead;
+	s->parent.write = smartSubtransportWrite;
+	s->parent.free = smartSubtransportFree;
+
+	s->ptr = ptr;
 }
 
 /* EOF */
