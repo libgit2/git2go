@@ -335,7 +335,7 @@ func getSmartSubtransportStreamInterface(_s *C.git_smart_subtransport_stream) (S
 }
 
 //export smartSubtransportRead
-func smartSubtransportRead(s *C.git_smart_subtransport_stream, data unsafe.Pointer, l C.size_t, read *C.size_t) C.int {
+func smartSubtransportRead(s *C.git_smart_subtransport_stream, data *C.char, l C.size_t, read *C.size_t) C.int {
 	stream, err := getSmartSubtransportStreamInterface(s)
 	if err != nil {
 		return setLibgit2Error(err)
@@ -345,7 +345,7 @@ func smartSubtransportRead(s *C.git_smart_subtransport_stream, data unsafe.Point
 	header := (*reflect.SliceHeader)(unsafe.Pointer(&p))
 	header.Cap = int(l)
 	header.Len = int(l)
-	header.Data = uintptr(data)
+	header.Data = uintptr(unsafe.Pointer(data))
 
 	n, err := stream.Read(p)
 	if err != nil {

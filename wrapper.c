@@ -198,7 +198,9 @@ int _go_git_transport_smart(git_transport **out, git_remote *owner)
 
 void _go_git_setup_smart_subtransport(managed_smart_subtransport *t, void *ptr)
 {
-	t->parent.action = httpAction;
+	typedef int (*transport_action)(git_smart_subtransport_stream **out, git_smart_subtransport *transport, const char *url, git_smart_service_t action);
+
+	t->parent.action = (transport_action)httpAction;
 	t->parent.close = httpClose;
 	t->parent.free = httpFree;
 
@@ -207,8 +209,10 @@ void _go_git_setup_smart_subtransport(managed_smart_subtransport *t, void *ptr)
 
 void _go_git_setup_smart_subtransport_stream(managed_smart_subtransport_stream *s, void *ptr)
 {
+	typedef int (*transport_stream_write)(git_smart_subtransport_stream *stream, const char *buffer, size_t len);
+
 	s->parent.read = smartSubtransportRead;
-	s->parent.write = smartSubtransportWrite;
+	s->parent.write = (transport_stream_write)smartSubtransportWrite;
 	s->parent.free = smartSubtransportFree;
 
 	s->ptr = ptr;
