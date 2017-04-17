@@ -24,7 +24,7 @@ import "C"
 import (
 	"bytes"
 	"errors"
-	"io/ioutil"
+	"fmt"
 	"net/http"
 	"reflect"
 	"runtime"
@@ -124,7 +124,7 @@ func (self *ManagedTransport) Action(url string, action SmartService) (SmartSubt
 	}
 
 	req.Header["User-Agent"] = []string{"git/2.0 (git2go)"}
-	return newManagedHttpStream(req), nil
+	return newManagedHttpStream(self, req), nil
 }
 
 func (self *ManagedTransport) Close() error {
@@ -148,15 +148,17 @@ func (self *ManagedTransport) ensureClient() error {
 }
 
 type ManagedHttpStream struct {
+	owner       *ManagedTransport
 	req         *http.Request
 	resp        *http.Response
 	postBuffer  bytes.Buffer
 	sentRequest bool
 }
 
-func newManagedHttpStream(req *http.Request) *ManagedHttpStream {
+func newManagedHttpStream(owner *ManagedTransport, req *http.Request) *ManagedHttpStream {
 	return &ManagedHttpStream{
-		req: req,
+		owner: owner,
+		req:   req,
 	}
 }
 
@@ -182,10 +184,51 @@ func (self *ManagedHttpStream) Free() {
 }
 
 func (self *ManagedHttpStream) sendRequest() error {
-	self.req.Body = ioutil.NopCloser(&self.postBuffer)
-	resp, err := http.DefaultClient.Do(self.req)
-	if err != nil {
-		return err
+	var resp *http.Response
+	var err error
+	var userName string
+	var password string
+	for {
+		req := &http.Request{
+			Method: self.req.Method,
+			URL:    self.req.URL,
+			Header: self.req.Header,
+		}
+
+		req.SetBasicAuth(userName, password)
+		resp, err = http.DefaultClient.Do(req)
+		if err != nil {
+			return err
+		}
+
+		if resp.StatusCode == http.StatusOK {
+			break
+		}
+
+		if resp.StatusCode == http.StatusUnauthorized {
+			resp.Body.Close()
+			var cred *C.git_cred
+			ret := C.git_transport_smart_credentials(&cred, self.owner.owner, nil, C.GIT_CREDTYPE_USERPASS_PLAINTEXT)
+
+			if ret != 0 {
+				return MakeGitError(ret)
+			}
+
+			if cred.credtype != C.GIT_CREDTYPE_USERPASS_PLAINTEXT {
+				C.git_cred_free(cred)
+				return fmt.Errorf("Unexpected credential type %d", cred.credtype)
+			}
+			ptCred := (*C.git_cred_userpass_plaintext)(unsafe.Pointer(cred))
+			userName = C.GoString(ptCred.username)
+			password = C.GoString(ptCred.password)
+			C.git_cred_free(cred)
+
+			continue
+		}
+
+		// Any other error we treat as a hard error and punt back to the caller
+		resp.Body.Close()
+		return fmt.Errorf("Unhandled HTTP error %s", resp.Status)
 	}
 
 	self.sentRequest = true
@@ -197,6 +240,10 @@ func setLibgit2Error(err error) C.int {
 	cstr := C.CString(err.Error())
 	defer C.free(unsafe.Pointer(cstr))
 	C.giterr_set_str(C.GITERR_NET, cstr)
+
+	if gitErr, ok := err.(*GitError); ok {
+		return C.int(gitErr.Code)
+	}
 
 	return -1
 }
