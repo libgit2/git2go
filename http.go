@@ -82,9 +82,17 @@ func RegisterManagedHttps() error {
 	return nil
 }
 
-type ManagedTransport struct{}
+type ManagedTransport struct {
+	owner *C.git_transport
+
+	client *http.Client
+}
 
 func (self *ManagedTransport) Action(url string, action SmartService) (SmartSubtransportStream, error) {
+	if err := self.ensureClient(); err != nil {
+		return nil, err
+	}
+
 	var req *http.Request
 	var err error
 	switch action {
@@ -126,6 +134,19 @@ func (self *ManagedTransport) Close() error {
 }
 
 func (self *ManagedTransport) Free() {
+}
+
+func (self *ManagedTransport) ensureClient() error {
+	if self.client != nil {
+		return nil
+	}
+
+	transport := &http.Transport{
+		Proxy: http.ProxyFromEnvironment,
+	}
+	self.client = &http.Client{Transport: transport}
+
+	return nil
 }
 
 type ManagedHttpStream struct {
@@ -247,7 +268,7 @@ func httpSmartSubtransportCb(out **C.git_smart_subtransport, owner *C.git_transp
 	}
 
 	transport := C.calloc(1, C.size_t(unsafe.Sizeof(C.managed_smart_subtransport{})))
-	managed := &ManagedTransport{}
+	managed := &ManagedTransport{owner: owner}
 	managedPtr := pointerHandles.Track(managed)
 	C._go_git_setup_smart_subtransport(transport, managedPtr)
 
