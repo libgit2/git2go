@@ -24,12 +24,10 @@ import "C"
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"reflect"
 	"runtime"
-	//"runtime/debug"
 	"unsafe"
 )
 
