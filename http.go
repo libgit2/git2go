@@ -25,6 +25,8 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"net/http"
 	"reflect"
 	"runtime"
@@ -128,6 +130,7 @@ func (self *ManagedTransport) Action(url string, action SmartService) (SmartSubt
 }
 
 func (self *ManagedTransport) Close() error {
+	self.client = nil
 	return nil
 }
 
@@ -190,9 +193,11 @@ func (self *ManagedHttpStream) sendRequest() error {
 	var password string
 	for {
 		req := &http.Request{
-			Method: self.req.Method,
-			URL:    self.req.URL,
-			Header: self.req.Header,
+			Method:        self.req.Method,
+			URL:           self.req.URL,
+			Header:        self.req.Header,
+			Body:          ioutil.NopCloser(&self.postBuffer),
+			ContentLength: int64(self.postBuffer.Len()),
 		}
 
 		req.SetBasicAuth(userName, password)
@@ -352,7 +357,13 @@ func smartSubtransportRead(s *C.git_smart_subtransport_stream, data *C.char, l C
 
 	n, err := stream.Read(p)
 	if err != nil {
-		return setLibgit2Error(err)
+		if err == io.EOF {
+			*read = C.size_t(0)
+			return 0
+		}
+
+		setLibgit2Error(err)
+		return -1
 	}
 
 	*read = C.size_t(n)
