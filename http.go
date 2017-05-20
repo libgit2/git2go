@@ -208,6 +208,9 @@ func (self *ManagedHttpStream) sendRequest() error {
 		if resp.StatusCode == http.StatusUnauthorized {
 			resp.Body.Close()
 			var cred *C.git_cred
+
+			runtime.LockOSThread()
+			defer runtime.UnlockOSThread()
 			ret := C.git_transport_smart_credentials(&cred, self.owner.owner, nil, C.GIT_CREDTYPE_USERPASS_PLAINTEXT)
 
 			if ret != 0 {
