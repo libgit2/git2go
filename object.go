@@ -49,6 +49,20 @@ func (o *Object) Id() *Oid {
 	return newOidFromC(C.git_object_id(o.ptr))
 }
 
+func (o *Object) ShortId() (string, error) {
+	resultBuf := C.git_buf{}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C.git_object_short_id(&resultBuf, o.ptr)
+	if ecode < 0 {
+		return "", MakeGitError(ecode)
+	}
+	defer C.git_buf_free(&resultBuf)
+	return C.GoString(resultBuf.ptr), nil
+}
+
 func (o *Object) Type() ObjectType {
 	return ObjectType(C.git_object_type(o.ptr))
 }

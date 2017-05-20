@@ -1,6 +1,7 @@
 package git
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -103,6 +104,32 @@ func TestObjectOwner(t *testing.T) {
 
 	checkOwner(t, repo, commit.Object)
 	checkOwner(t, repo, tree.Object)
+}
+
+func checkShortId(t *testing.T, Id, shortId string) {
+	if len(shortId) < 7 || len(shortId) >= len(Id) {
+		t.Fatal("bad shortId lenght %s", len(shortId))
+	}
+
+	if !strings.HasPrefix(Id, shortId) {
+		t.Fatalf("bad shortId, should be prefix of %s, but is %s\n", Id, shortId)
+	}
+}
+
+func TestObjectShortId(t *testing.T) {
+	t.Parallel()
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	commitId, _ := seedTestRepo(t, repo)
+
+	commit, err := repo.LookupCommit(commitId)
+	checkFatal(t, err)
+
+	shortId, err := commit.ShortId()
+	checkFatal(t, err)
+
+	checkShortId(t, commitId.String(), shortId)
 }
 
 func TestObjectPeel(t *testing.T) {
