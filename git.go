@@ -279,7 +279,7 @@ func MakeGitError(errorCode C.int) error {
 
 	var errMessage string
 	var errClass ErrorClass
-	if errorCode != C.GIT_ITEROVER {
+	if errorCode != C.GIT_ITEROVER && errorCode != C.GIT_EUSER {
 		err := C.giterr_last()
 		if err != nil {
 			errMessage = C.GoString(err.message)
