@@ -28,6 +28,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"reflect"
 	"runtime"
 	"unsafe"
@@ -142,8 +143,32 @@ func (self *ManagedTransport) ensureClient() error {
 		return nil
 	}
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var cpopts C.git_proxy_options
+	if ret := C.git_transport_smart_proxy_options(&cpopts, self.owner); ret < 0 {
+		return MakeGitError(ret)
+	}
+
+	var proxyFn func(*http.Request) (*url.URL, error)
+	proxyOpts := proxyOptionsFromC(&cpopts)
+	switch proxyOpts.Type {
+	case ProxyTypeNone:
+		proxyFn = nil
+	case ProxyTypeAuto:
+		proxyFn = http.ProxyFromEnvironment
+	case ProxyTypeSpecified:
+		parsedUrl, err := url.Parse(proxyOpts.Url)
+		if err != nil {
+			return err
+		}
+
+		proxyFn = http.ProxyURL(parsedUrl)
+	}
+
 	transport := &http.Transport{
-		Proxy: http.ProxyFromEnvironment,
+		Proxy: proxyFn,
 	}
 	self.client = &http.Client{Transport: transport}
 
