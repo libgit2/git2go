@@ -7,6 +7,13 @@ go:
 
 script: make test-static
 
+# The default of --recursive chokes on the libgit2 tests
+git:
+  submodules: false
+
+before_install:
+  - git submodule update --init
+
 matrix:
   allow_failures:
     - go: tip
