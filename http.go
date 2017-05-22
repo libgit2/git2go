@@ -22,15 +22,14 @@ void _go_git_setup_smart_subtransport_stream(managed_smart_subtransport_stream *
 import "C"
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/url"
 	"reflect"
 	"runtime"
+	"sync"
 	"unsafe"
 )
 
@@ -127,7 +126,14 @@ func (self *ManagedTransport) Action(url string, action SmartService) (SmartSubt
 	}
 
 	req.Header["User-Agent"] = []string{"git/2.0 (git2go)"}
-	return newManagedHttpStream(self, req), nil
+
+	stream := newManagedHttpStream(self, req)
+	if req.Method == "POST" {
+		stream.recvReply.Add(1)
+		stream.sendRequestBackground()
+	}
+
+	return stream, nil
 }
 
 func (self *ManagedTransport) Close() error {
@@ -179,31 +185,49 @@ type ManagedHttpStream struct {
 	owner       *ManagedTransport
 	req         *http.Request
 	resp        *http.Response
-	postBuffer  bytes.Buffer
+	reader      *io.PipeReader
+	writer      *io.PipeWriter
 	sentRequest bool
+	recvReply   sync.WaitGroup
+	httpError   error
 }
 
 func newManagedHttpStream(owner *ManagedTransport, req *http.Request) *ManagedHttpStream {
+	r, w := io.Pipe()
 	return &ManagedHttpStream{
-		owner: owner,
-		req:   req,
+		owner:  owner,
+		req:    req,
+		reader: r,
+		writer: w,
 	}
 }
 
 func (self *ManagedHttpStream) Read(buf []byte) (int, error) {
 	if !self.sentRequest {
+		self.recvReply.Add(1)
 		if err := self.sendRequest(); err != nil {
 			return 0, err
 		}
+	}
+
+	if err := self.writer.Close(); err != nil {
+		return 0, err
+	}
+
+	self.recvReply.Wait()
+
+	if self.httpError != nil {
+		return 0, self.httpError
 	}
 
 	return self.resp.Body.Read(buf)
 }
 
 func (self *ManagedHttpStream) Write(buf []byte) error {
-	// We write it all into a buffer and send it off when the transport asks
-	// us to read.
-	self.postBuffer.Write(buf)
+	if self.httpError != nil {
+		return self.httpError
+	}
+	self.writer.Write(buf)
 	return nil
 }
 
@@ -211,18 +235,30 @@ func (self *ManagedHttpStream) Free() {
 	self.resp.Body.Close()
 }
 
+func (self *ManagedHttpStream) sendRequestBackground() {
+	go func() {
+		self.httpError = self.sendRequest()
+	}()
+	self.sentRequest = true
+}
+
 func (self *ManagedHttpStream) sendRequest() error {
+	defer self.recvReply.Done()
+	self.resp = nil
+
 	var resp *http.Response
 	var err error
 	var userName string
 	var password string
 	for {
 		req := &http.Request{
-			Method:        self.req.Method,
-			URL:           self.req.URL,
-			Header:        self.req.Header,
-			Body:          ioutil.NopCloser(&self.postBuffer),
-			ContentLength: int64(self.postBuffer.Len()),
+			Method: self.req.Method,
+			URL:    self.req.URL,
+			Header: self.req.Header,
+		}
+		if req.Method == "POST" {
+			req.Body = self.reader
+			req.ContentLength = -1
 		}
 
 		req.SetBasicAuth(userName, password)
