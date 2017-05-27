@@ -9,6 +9,7 @@ import "C"
 
 import (
 	"runtime"
+	"time"
 	"unsafe"
 )
 
@@ -28,6 +29,11 @@ func (c Commit) RawMessage() string {
 
 func (c Commit) Summary() string {
 	return C.GoString(C.git_commit_summary(c.cast_ptr))
+}
+
+func (c Commit) Time() time.Time {
+	loc := time.FixedZone("", int(C.git_commit_time_offset(c.cast_ptr))*60)
+	return time.Unix(int64(C.git_commit_time(c.cast_ptr)), 0).In(loc)
 }
 
 func (c Commit) Tree() (*Tree, error) {
