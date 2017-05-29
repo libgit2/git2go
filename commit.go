@@ -9,6 +9,7 @@ import "C"
 
 import (
 	"runtime"
+	"time"
 	"unsafe"
 )
 
@@ -74,6 +75,10 @@ func (c *Commit) ParentId(n uint) *Oid {
 
 func (c *Commit) ParentCount() uint {
 	return uint(C.git_commit_parentcount(c.cast_ptr))
+}
+
+func (c *Commit) Time() time.Time {
+	return time.Unix(int64(C.git_commit_time(c.cast_ptr)), 0)
 }
 
 func (c *Commit) Amend(refname string, author, committer *Signature, message string, tree *Tree) (*Oid, error) {
