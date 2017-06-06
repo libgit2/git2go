@@ -20,7 +20,6 @@ func (v *Repository) MergeHeads() ([]*Oid, error) {
 	arr := []*Oid{}
 	C.git_repository_mergehead_foreach(v.ptr, (*[0]byte)(C.mergeheads_callback),
 		unsafe.Pointer(&arr))
-	// C.mergehead_call(v.ptr, unsafe.Pointer(&arr))
 	return arr, nil
 }
 

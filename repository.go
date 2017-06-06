@@ -3,6 +3,8 @@ package git
 /*
 #include <git2.h>
 #include <git2/sys/repository.h>
+export mergehead_callback(p unsafe.Pointer, arr unsafe.Pointer);
+*/
 */
 import "C"
 import (
@@ -317,6 +319,21 @@ func (v *Repository) Walk() (*RevWalk, error) {
 	}
 
 	return revWalkFromC(v, walkPtr), nil
+}
+
+func (v *Repository) MergeHeads() ([]*Oid, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	arr := []*Oid{}
+	C.git_repository_mergehead_foreach(v.ptr, mergehead_callback, unsafe.Ptr(&arr))
+	return arr, nil
+}
+
+func mergehead_callback(pOid unsafe.Pointer, pArr unsafe.Pointer) {
+	arr := *[]*Oid(pArr)
+	oid := git2go.newOidFromC(pOid)
+	*arr = append(*arr, oid)
 }
 
 func (v *Repository) CreateCommit(
