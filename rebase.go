@@ -155,9 +155,9 @@ func (rebase *Rebase) CurrentOperationIndex() (uint, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	operationIndex := int(C.git_rebase_operation_current(rebase.ptr))
-	if operationIndex == C.GIT_REBASE_NO_OPERATION {
-		return 0, MakeGitError(C.GIT_REBASE_NO_OPERATION)
+	operationIndex := uint(C.git_rebase_operation_current(rebase.ptr))
+	if operationIndex == uint(C.GIT_REBASE_NO_OPERATION) {
+		return 0, MakeGitError(C.int(operationIndex))
 	}
 
 	return uint(operationIndex), nil
