@@ -144,6 +144,7 @@ type ProxyOptions struct {
 type Remote struct {
 	ptr       *C.git_remote
 	callbacks RemoteCallbacks
+	repo      *Repository
 }
 
 type CertificateKind uint
@@ -370,6 +371,7 @@ func RemoteIsValidName(name string) bool {
 func (r *Remote) Free() {
 	runtime.SetFinalizer(r, nil)
 	C.git_remote_free(r.ptr)
+	r.ptr = nil
 }
 
 type RemoteCollection struct {
@@ -383,6 +385,7 @@ func (c *RemoteCollection) List() ([]string, error) {
 	defer runtime.UnlockOSThread()
 
 	ecode := C.git_remote_list(&r, c.repo.ptr)
+	runtime.KeepAlive(c.repo)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
@@ -393,7 +396,7 @@ func (c *RemoteCollection) List() ([]string, error) {
 }
 
 func (c *RemoteCollection) Create(name string, url string) (*Remote, error) {
-	remote := &Remote{}
+	remote := &Remote{repo: c.repo}
 
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
@@ -419,6 +422,7 @@ func (c *RemoteCollection) Delete(name string) error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_remote_delete(c.repo.ptr, cname)
+	runtime.KeepAlive(c.repo)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -426,7 +430,7 @@ func (c *RemoteCollection) Delete(name string) error {
 }
 
 func (c *RemoteCollection) CreateWithFetchspec(name string, url string, fetch string) (*Remote, error) {
-	remote := &Remote{}
+	remote := &Remote{repo: c.repo}
 
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
@@ -447,7 +451,7 @@ func (c *RemoteCollection) CreateWithFetchspec(name string, url string, fetch st
 }
 
 func (c *RemoteCollection) CreateAnonymous(url string) (*Remote, error) {
-	remote := &Remote{}
+	remote := &Remote{repo: c.repo}
 
 	curl := C.CString(url)
 	defer C.free(unsafe.Pointer(curl))
@@ -464,7 +468,7 @@ func (c *RemoteCollection) CreateAnonymous(url string) (*Remote, error) {
 }
 
 func (c *RemoteCollection) Lookup(name string) (*Remote, error) {
-	remote := &Remote{}
+	remote := &Remote{repo: c.repo}
 
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
@@ -481,15 +485,21 @@ func (c *RemoteCollection) Lookup(name string) (*Remote, error) {
 }
 
 func (o *Remote) Name() string {
-	return C.GoString(C.git_remote_name(o.ptr))
+	s := C.git_remote_name(o.ptr)
+	runtime.KeepAlive(o)
+	return C.GoString(s)
 }
 
 func (o *Remote) Url() string {
-	return C.GoString(C.git_remote_url(o.ptr))
+	s := C.git_remote_url(o.ptr)
+	runtime.KeepAlive(o)
+	return C.GoString(s)
 }
 
 func (o *Remote) PushUrl() string {
-	return C.GoString(C.git_remote_pushurl(o.ptr))
+	s := C.git_remote_pushurl(o.ptr)
+	runtime.KeepAlive(o)
+	return C.GoString(s)
 }
 
 func (c *RemoteCollection) Rename(remote, newname string) ([]string, error) {
@@ -504,6 +514,7 @@ func (c *RemoteCollection) Rename(remote, newname string) ([]string, error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_remote_rename(&cproblems, c.repo.ptr, cremote, cnewname)
+	runtime.KeepAlive(c.repo)
 	if ret < 0 {
 		return []string{}, MakeGitError(ret)
 	}
@@ -522,6 +533,7 @@ func (c *RemoteCollection) SetUrl(remote, url string) error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_remote_set_url(c.repo.ptr, cremote, curl)
+	runtime.KeepAlive(c.repo)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -538,6 +550,7 @@ func (c *RemoteCollection) SetPushUrl(remote, url string) error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_remote_set_pushurl(c.repo.ptr, cremote, curl)
+	runtime.KeepAlive(c.repo)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -554,6 +567,7 @@ func (c *RemoteCollection) AddFetch(remote, refspec string) error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_remote_add_fetch(c.repo.ptr, cremote, crefspec)
+	runtime.KeepAlive(c.repo)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -605,6 +619,7 @@ func (o *Remote) FetchRefspecs() ([]string, error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_remote_get_fetch_refspecs(&crefspecs, o.ptr)
+	runtime.KeepAlive(o)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -624,6 +639,7 @@ func (c *RemoteCollection) AddPush(remote, refspec string) error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_remote_add_push(c.repo.ptr, cremote, crefspec)
+	runtime.KeepAlive(c.repo)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -641,12 +657,16 @@ func (o *Remote) PushRefspecs() ([]string, error) {
 		return nil, MakeGitError(ret)
 	}
 	defer C.git_strarray_free(&crefspecs)
+	runtime.KeepAlive(o)
+
 	refspecs := makeStringsFromCStrings(crefspecs.strings, int(crefspecs.count))
 	return refspecs, nil
 }
 
 func (o *Remote) RefspecCount() uint {
-	return uint(C.git_remote_refspec_count(o.ptr))
+	count := C.git_remote_refspec_count(o.ptr)
+	runtime.KeepAlive(o)
+	return uint(count)
 }
 
 func populateFetchOptions(options *C.git_fetch_options, opts *FetchOptions) {
@@ -706,6 +726,7 @@ func (o *Remote) Fetch(refspecs []string, opts *FetchOptions, msg string) error 
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_remote_fetch(o.ptr, &crefspecs, coptions, cmsg)
+	runtime.KeepAlive(o)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -734,17 +755,18 @@ func (o *Remote) Connect(direction ConnectDirection, callbacks *RemoteCallbacks,
 	var cproxy C.git_proxy_options
 	populateProxyOptions(&cproxy, proxyOpts)
 	defer freeProxyOptions(&cproxy)
-	
+
 	cheaders := C.git_strarray{}
 	cheaders.count = C.size_t(len(headers))
 	cheaders.strings = makeCStringsFromStrings(headers)
 	defer freeStrarray(&cheaders)
 
-
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if ret := C.git_remote_connect(o.ptr, C.git_direction(direction), &ccallbacks, &cproxy, &cheaders); ret != 0 {
+	ret := C.git_remote_connect(o.ptr, C.git_direction(direction), &ccallbacks, &cproxy, &cheaders)
+	runtime.KeepAlive(o)
+	if ret != 0 {
 		return MakeGitError(ret)
 	}
 	return nil
@@ -755,6 +777,7 @@ func (o *Remote) Disconnect() {
 	defer runtime.UnlockOSThread()
 
 	C.git_remote_disconnect(o.ptr)
+	runtime.KeepAlive(o)
 }
 
 func (o *Remote) Ls(filterRefs ...string) ([]RemoteHead, error) {
@@ -765,7 +788,9 @@ func (o *Remote) Ls(filterRefs ...string) ([]RemoteHead, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if ret := C.git_remote_ls(&refs, &length, o.ptr); ret != 0 {
+	ret := C.git_remote_ls(&refs, &length, o.ptr)
+	runtime.KeepAlive(o)
+	if ret != 0 {
 		return nil, MakeGitError(ret)
 	}
 
@@ -820,6 +845,7 @@ func (o *Remote) Push(refspecs []string, opts *PushOptions) error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_remote_push(o.ptr, &crefspecs, coptions)
+	runtime.KeepAlive(o)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -838,6 +864,7 @@ func (o *Remote) Prune(callbacks *RemoteCallbacks) error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_remote_prune(o.ptr, &ccallbacks)
+	runtime.KeepAlive(o)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
