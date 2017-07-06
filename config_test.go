@@ -62,7 +62,7 @@ var tests = []TestRunner{
 			t.Errorf("Got LookupBool error: '%v', expected none\n", err)
 		}
 		if !val {
-			t.Errorf("Got %b from LookupBool, expected 'false'\n", val)
+			t.Errorf("Got %t from LookupBool, expected 'false'\n", val)
 		}
 	},
 	// LookupInt32

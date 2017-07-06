@@ -108,7 +108,7 @@ func TestObjectOwner(t *testing.T) {
 
 func checkShortId(t *testing.T, Id, shortId string) {
 	if len(shortId) < 7 || len(shortId) >= len(Id) {
-		t.Fatal("bad shortId lenght %s", len(shortId))
+		t.Fatalf("bad shortId lenght %d", len(shortId))
 	}
 
 	if !strings.HasPrefix(Id, shortId) {
