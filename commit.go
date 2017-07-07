@@ -35,16 +35,18 @@ func (c Commit) ExtractSignature() (string, string, error) {
 	defer C.git_buf_free(&c_signature)
 
 	oid := c.Id()
-	
 	repo := C.git_commit_owner(c.cast_ptr)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 	ret := C.git_commit_extract_signature(&c_signature, &c_signed, repo, oid.toC(), nil)
-	
+
 	if ret < 0 {
-		return "", "", MakeGitError(ret) 
+		return "", "", MakeGitError(ret)
 	} else {
 		return C.GoString(c_signature.ptr), C.GoString(c_signed.ptr), nil
 	}
-	
+
 }
 
 func (c Commit) Summary() string {
