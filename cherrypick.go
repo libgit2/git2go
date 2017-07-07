@@ -66,6 +66,8 @@ func (v *Repository) Cherrypick(commit *Commit, opts CherrypickOptions) error {
 	defer freeCherrypickOpts(cOpts)
 
 	ecode := C.git_cherrypick(v.ptr, commit.cast_ptr, cOpts)
+	runtime.KeepAlive(v)
+	runtime.KeepAlive(commit)
 	if ecode < 0 {
 		return MakeGitError(ecode)
 	}

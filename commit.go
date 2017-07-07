@@ -77,7 +77,7 @@ func (c *Commit) Tree() (*Tree, error) {
 func (c *Commit) TreeId() *Oid {
 	ret := newOidFromC(C.git_commit_tree_id(c.cast_ptr))
 	runtime.KeepAlive(c)
-	return c
+	return ret
 }
 
 func (c *Commit) Author() *Signature {
@@ -101,15 +101,21 @@ func (c *Commit) Parent(n uint) *Commit {
 		return nil
 	}
 
-	return allocCommit(cobj, c.repo)
+	parent := allocCommit(cobj, c.repo)
+	runtime.KeepAlive(c)
+	return parent
 }
 
 func (c *Commit) ParentId(n uint) *Oid {
-	return newOidFromC(C.git_commit_parent_id(c.cast_ptr, C.uint(n)))
+	ret := newOidFromC(C.git_commit_parent_id(c.cast_ptr, C.uint(n)))
+	runtime.KeepAlive(c)
+	return ret
 }
 
 func (c *Commit) ParentCount() uint {
-	return uint(C.git_commit_parentcount(c.cast_ptr))
+	ret := uint(C.git_commit_parentcount(c.cast_ptr))
+	runtime.KeepAlive(c)
+	return ret
 }
 
 func (c *Commit) Amend(refname string, author, committer *Signature, message string, tree *Tree) (*Oid, error) {
@@ -142,6 +148,9 @@ func (c *Commit) Amend(refname string, author, committer *Signature, message str
 	oid := new(Oid)
 
 	cerr := C.git_commit_amend(oid.toC(), c.cast_ptr, cref, authorSig, committerSig, nil, cmsg, tree.cast_ptr)
+	runtime.KeepAlive(oid)
+	runtime.KeepAlive(c)
+	runtime.KeepAlive(tree)
 	if cerr < 0 {
 		return nil, MakeGitError(cerr)
 	}
