@@ -17,6 +17,10 @@ type Tag struct {
 	cast_ptr *C.git_tag
 }
 
+func (t *Tag) AsObject() *Object {
+	return &t.Object
+}
+
 func (t Tag) Message() string {
 	ret := C.GoString(C.git_tag_message(t.cast_ptr))
 	runtime.KeepAlive(t)
