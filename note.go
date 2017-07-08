@@ -52,7 +52,8 @@ func (c *NoteCollection) Create(
 	ret := C.git_note_create(
 		oid.toC(), c.repo.ptr, cref, authorSig,
 		committerSig, id.toC(), cnote, cbool(force))
-
+	runtime.KeepAlive(c)
+	runtime.KeepAlive(id)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -69,17 +70,18 @@ func (c *NoteCollection) Read(ref string, id *Oid) (*Note, error) {
 		defer C.free(unsafe.Pointer(cref))
 	}
 
-	note := new(Note)
-
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if ret := C.git_note_read(&note.ptr, c.repo.ptr, cref, id.toC()); ret < 0 {
+	var ptr *C.git_note
+	ret := C.git_note_read(&ptr, c.repo.ptr, cref, id.toC())
+	runtime.KeepAlive(c)
+	runtime.KeepAlive(id)
+	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
 
-	runtime.SetFinalizer(note, (*Note).Free)
-	return note, nil
+	return newNoteFromC(ptr, c.repo), nil
 }
 
 // Remove removes the note for an object
@@ -108,6 +110,8 @@ func (c *NoteCollection) Remove(ref string, author, committer *Signature, id *Oi
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_note_remove(c.repo.ptr, cref, authorSig, committerSig, id.toC())
+	runtime.KeepAlive(c)
+	runtime.KeepAlive(id)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -121,8 +125,10 @@ func (c *NoteCollection) DefaultRef() (string, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if ret := C.git_note_default_ref(&buf, c.repo.ptr); ret < 0 {
-		return "", MakeGitError(ret)
+	ecode := C.git_note_default_ref(&buf, c.repo.ptr)
+	runtime.KeepAlive(c)
+	if ecode < 0 {
+		return "", MakeGitError(ecode)
 	}
 
 	ret := C.GoString(buf.ptr)
@@ -134,6 +140,13 @@ func (c *NoteCollection) DefaultRef() (string, error) {
 // Note
 type Note struct {
 	ptr *C.git_note
+	r   *Repository
+}
+
+func newNoteFromC(ptr *C.git_note, r *Repository) *Note {
+	note := &Note{ptr: ptr, r: r}
+	runtime.SetFinalizer(note, (*Note).Free)
+	return note
 }
 
 // Free frees a git_note object
@@ -156,23 +169,28 @@ func (n *Note) Author() *Signature {
 // Id returns the note object's id
 func (n *Note) Id() *Oid {
 	ptr := C.git_note_id(n.ptr)
+	runtime.KeepAlive(n)
 	return newOidFromC(ptr)
 }
 
 // Committer returns the signature of the note committer
 func (n *Note) Committer() *Signature {
 	ptr := C.git_note_committer(n.ptr)
+	runtime.KeepAlive(n)
 	return newSignatureFromC(ptr)
 }
 
 // Message returns the note message
 func (n *Note) Message() string {
-	return C.GoString(C.git_note_message(n.ptr))
+	ret := C.GoString(C.git_note_message(n.ptr))
+	runtime.KeepAlive(n)
+	return ret
 }
 
 // NoteIterator
 type NoteIterator struct {
 	ptr *C.git_note_iterator
+	r   *Repository
 }
 
 // NewNoteIterator creates a new iterator for notes
@@ -190,11 +208,13 @@ func (repo *Repository) NewNoteIterator(ref string) (*NoteIterator, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if ret := C.git_note_iterator_new(&ptr, repo.ptr, cref); ret < 0 {
+	ret := C.git_note_iterator_new(&ptr, repo.ptr, cref)
+	runtime.KeepAlive(repo)
+	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
 
-	iter := &NoteIterator{ptr: ptr}
+	iter := &NoteIterator{ptr: ptr, r: repo}
 	runtime.SetFinalizer(iter, (*NoteIterator).Free)
 	return iter, nil
 }
@@ -213,7 +233,11 @@ func (it *NoteIterator) Next() (noteId, annotatedId *Oid, err error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if ret := C.git_note_next(noteId.toC(), annotatedId.toC(), it.ptr); ret < 0 {
+	ret := C.git_note_next(noteId.toC(), annotatedId.toC(), it.ptr)
+	runtime.KeepAlive(noteId)
+	runtime.KeepAlive(annotatedId)
+	runtime.KeepAlive(it)
+	if ret < 0 {
 		err = MakeGitError(ret)
 	}
 	return
