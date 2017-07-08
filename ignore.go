@@ -17,6 +17,7 @@ func (v *Repository) AddIgnoreRule(rules string) error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_ignore_add_rule(v.ptr, crules)
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -28,6 +29,7 @@ func (v *Repository) ClearInternalIgnoreRules() error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_ignore_clear_internal_rules(v.ptr)
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -44,6 +46,7 @@ func (v *Repository) IsPathIgnored(path string) (bool, error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_ignore_path_is_ignored(&ignored, v.ptr, cpath)
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return false, MakeGitError(ret)
 	}

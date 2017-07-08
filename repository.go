@@ -160,12 +160,11 @@ func (v *Repository) Index() (*Index, error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_repository_index(&ptr, v.ptr)
-	runtime.KeepAlive(v)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
 
-	return newIndexFromC(ptr), nil
+	return newIndexFromC(ptr, v), nil
 }
 
 func (v *Repository) lookupType(id *Oid, t ObjectType) (*Object, error) {
