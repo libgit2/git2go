@@ -21,13 +21,19 @@ type Blob struct {
 }
 
 func (v *Blob) Size() int64 {
-	return int64(C.git_blob_rawsize(v.cast_ptr))
+	ret := int64(C.git_blob_rawsize(v.cast_ptr))
+	runtime.KeepAlive(v)
+	return ret
 }
 
 func (v *Blob) Contents() []byte {
 	size := C.int(C.git_blob_rawsize(v.cast_ptr))
 	buffer := unsafe.Pointer(C.git_blob_rawcontent(v.cast_ptr))
-	return C.GoBytes(buffer, size)
+
+	goBytes := C.GoBytes(buffer, size)
+	runtime.KeepAlive(v)
+
+	return goBytes
 }
 
 func (repo *Repository) CreateBlobFromBuffer(data []byte) (*Oid, error) {
@@ -53,6 +59,7 @@ func (repo *Repository) CreateBlobFromBuffer(data []byte) (*Oid, error) {
 	}
 
 	ecode := C.git_blob_create_frombuffer(&id, repo.ptr, unsafe.Pointer(&data[0]), size)
+	runtime.KeepAlive(repo)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
@@ -102,16 +109,18 @@ func (repo *Repository) CreateFromStream(hintPath string) (*BlobWriteStream, err
 		return nil, MakeGitError(ecode)
 	}
 
-	return newBlobWriteStreamFromC(stream), nil
+	return newBlobWriteStreamFromC(stream, repo), nil
 }
 
 type BlobWriteStream struct {
-	ptr *C.git_writestream
+	ptr  *C.git_writestream
+	repo *Repository
 }
 
-func newBlobWriteStreamFromC(ptr *C.git_writestream) *BlobWriteStream {
+func newBlobWriteStreamFromC(ptr *C.git_writestream, repo *Repository) *BlobWriteStream {
 	stream := &BlobWriteStream{
-		ptr: ptr,
+		ptr:  ptr,
+		repo: repo,
 	}
 
 	runtime.SetFinalizer(stream, (*BlobWriteStream).Free)
@@ -128,6 +137,7 @@ func (stream *BlobWriteStream) Write(p []byte) (int, error) {
 	defer runtime.UnlockOSThread()
 
 	ecode := C._go_git_writestream_write(stream.ptr, ptr, size)
+	runtime.KeepAlive(stream)
 	if ecode < 0 {
 		return 0, MakeGitError(ecode)
 	}
@@ -147,6 +157,7 @@ func (stream *BlobWriteStream) Commit() (*Oid, error) {
 	defer runtime.UnlockOSThread()
 
 	ecode := C.git_blob_create_fromstream_commit(&oid, stream.ptr)
+	runtime.KeepAlive(stream)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}

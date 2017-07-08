@@ -188,6 +188,7 @@ func (v *Repository) CheckoutHead(opts *CheckoutOpts) error {
 	defer freeCheckoutOpts(cOpts)
 
 	ret := C.git_checkout_head(v.ptr, cOpts)
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -211,6 +212,7 @@ func (v *Repository) CheckoutIndex(index *Index, opts *CheckoutOpts) error {
 	defer freeCheckoutOpts(cOpts)
 
 	ret := C.git_checkout_index(v.ptr, iptr, cOpts)
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -226,6 +228,7 @@ func (v *Repository) CheckoutTree(tree *Tree, opts *CheckoutOpts) error {
 	defer freeCheckoutOpts(cOpts)
 
 	ret := C.git_checkout_tree(v.ptr, tree.ptr, cOpts)
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}

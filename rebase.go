@@ -100,6 +100,7 @@ func mapEmptyStringToNull(ref string) *C.char {
 // Rebase is the struct representing a Rebase object.
 type Rebase struct {
 	ptr *C.git_rebase
+	r   *Repository
 }
 
 // InitRebase initializes a rebase operation to rebase the changes in branch relative to upstream onto another branch.
@@ -121,6 +122,9 @@ func (r *Repository) InitRebase(branch *AnnotatedCommit, upstream *AnnotatedComm
 
 	var ptr *C.git_rebase
 	err := C.git_rebase_init(&ptr, r.ptr, branch.ptr, upstream.ptr, onto.ptr, opts.toC())
+	runtime.KeepAlive(branch)
+	runtime.KeepAlive(upstream)
+	runtime.KeepAlive(onto)
 	if err < 0 {
 		return nil, MakeGitError(err)
 	}
@@ -135,6 +139,7 @@ func (r *Repository) OpenRebase(opts *RebaseOptions) (*Rebase, error) {
 
 	var ptr *C.git_rebase
 	err := C.git_rebase_open(&ptr, r.ptr, opts.toC())
+	runtime.KeepAlive(r)
 	if err < 0 {
 		return nil, MakeGitError(err)
 	}
@@ -145,7 +150,7 @@ func (r *Repository) OpenRebase(opts *RebaseOptions) (*Rebase, error) {
 // OperationAt gets the rebase operation specified by the given index.
 func (rebase *Rebase) OperationAt(index uint) *RebaseOperation {
 	operation := C.git_rebase_operation_byindex(rebase.ptr, C.size_t(index))
-	
+
 	return newRebaseOperationFromC(operation)
 }
 
@@ -165,7 +170,9 @@ func (rebase *Rebase) CurrentOperationIndex() (uint, error) {
 
 // OperationCount gets the count of rebase operations that are to be applied.
 func (rebase *Rebase) OperationCount() uint {
-	return uint(C.git_rebase_operation_entrycount(rebase.ptr))
+	ret := uint(C.git_rebase_operation_entrycount(rebase.ptr))
+	runtime.KeepAlive(rebase)
+	return ret
 }
 
 // Next performs the next rebase operation and returns the information about it.
@@ -178,6 +185,7 @@ func (rebase *Rebase) Next() (*RebaseOperation, error) {
 
 	var ptr *C.git_rebase_operation
 	err := C.git_rebase_next(&ptr, rebase.ptr)
+	runtime.KeepAlive(rebase)
 	if err < 0 {
 		return nil, MakeGitError(err)
 	}
@@ -207,6 +215,8 @@ func (rebase *Rebase) Commit(ID *Oid, author, committer *Signature, message stri
 	defer C.free(unsafe.Pointer(cmsg))
 
 	cerr := C.git_rebase_commit(ID.toC(), rebase.ptr, authorSig, committerSig, nil, cmsg)
+	runtime.KeepAlive(ID)
+	runtime.KeepAlive(rebase)
 	if cerr < 0 {
 		return MakeGitError(cerr)
 	}
@@ -220,6 +230,7 @@ func (rebase *Rebase) Finish() error {
 	defer runtime.UnlockOSThread()
 
 	err := C.git_rebase_finish(rebase.ptr, nil)
+	runtime.KeepAlive(rebase)
 	if err < 0 {
 		return MakeGitError(err)
 	}
@@ -233,6 +244,7 @@ func (rebase *Rebase) Abort() error {
 	defer runtime.UnlockOSThread()
 
 	err := C.git_rebase_abort(rebase.ptr)
+	runtime.KeepAlive(rebase)
 	if err < 0 {
 		return MakeGitError(err)
 	}

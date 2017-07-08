@@ -13,6 +13,9 @@ func (repo *Repository) DescendantOf(commit, ancestor *Oid) (bool, error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_graph_descendant_of(repo.ptr, commit.toC(), ancestor.toC())
+	runtime.KeepAlive(repo)
+	runtime.KeepAlive(commit)
+	runtime.KeepAlive(ancestor)
 	if ret < 0 {
 		return false, MakeGitError(ret)
 	}
@@ -28,6 +31,9 @@ func (repo *Repository) AheadBehind(local, upstream *Oid) (ahead, behind int, er
 	var behindT C.size_t
 
 	ret := C.git_graph_ahead_behind(&aheadT, &behindT, repo.ptr, local.toC(), upstream.toC())
+	runtime.KeepAlive(repo)
+	runtime.KeepAlive(local)
+	runtime.KeepAlive(upstream)
 	if ret < 0 {
 		return 0, 0, MakeGitError(ret)
 	}

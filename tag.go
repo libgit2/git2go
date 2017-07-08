@@ -18,22 +18,28 @@ type Tag struct {
 }
 
 func (t Tag) Message() string {
-	return C.GoString(C.git_tag_message(t.cast_ptr))
+	ret := C.GoString(C.git_tag_message(t.cast_ptr))
+	runtime.KeepAlive(t)
+	return ret
 }
 
 func (t Tag) Name() string {
-	return C.GoString(C.git_tag_name(t.cast_ptr))
+	ret := C.GoString(C.git_tag_name(t.cast_ptr))
+	runtime.KeepAlive(t)
+	return ret
 }
 
 func (t Tag) Tagger() *Signature {
 	cast_ptr := C.git_tag_tagger(t.cast_ptr)
-	return newSignatureFromC(cast_ptr)
+	ret := newSignatureFromC(cast_ptr)
+	runtime.KeepAlive(t)
+	return ret
 }
 
 func (t Tag) Target() *Object {
 	var ptr *C.git_object
 	ret := C.git_tag_target(&ptr, t.cast_ptr)
-
+	runtime.KeepAlive(t)
 	if ret != 0 {
 		return nil
 	}
@@ -42,11 +48,15 @@ func (t Tag) Target() *Object {
 }
 
 func (t Tag) TargetId() *Oid {
-	return newOidFromC(C.git_tag_target_id(t.cast_ptr))
+	ret := newOidFromC(C.git_tag_target_id(t.cast_ptr))
+	runtime.KeepAlive(t)
+	return ret
 }
 
 func (t Tag) TargetType() ObjectType {
-	return ObjectType(C.git_tag_target_type(t.cast_ptr))
+	ret := ObjectType(C.git_tag_target_type(t.cast_ptr))
+	runtime.KeepAlive(t)
+	return ret
 }
 
 type TagsCollection struct {
@@ -76,6 +86,7 @@ func (c *TagsCollection) Create(
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_tag_create(oid.toC(), c.repo.ptr, cname, ctarget, taggerSig, cmessage, 0)
+	runtime.KeepAlive(c)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -91,6 +102,7 @@ func (c *TagsCollection) Remove(name string) error {
 	defer C.free(unsafe.Pointer(cname))
 
 	ret := C.git_tag_delete(c.repo.ptr, cname)
+	runtime.KeepAlive(c)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -123,6 +135,7 @@ func (c *TagsCollection) CreateLightweight(name string, commit *Commit, force bo
 	defer runtime.UnlockOSThread()
 
 	err := C.git_tag_create_lightweight(oid.toC(), c.repo.ptr, cname, ctarget, cbool(force))
+	runtime.KeepAlive(c)
 	if err < 0 {
 		return nil, MakeGitError(err)
 	}
@@ -139,6 +152,7 @@ func (c *TagsCollection) List() ([]string, error) {
 	defer runtime.UnlockOSThread()
 
 	ecode := C.git_tag_list(&strC, c.repo.ptr)
+	runtime.KeepAlive(c)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
@@ -162,6 +176,7 @@ func (c *TagsCollection) ListWithMatch(pattern string) ([]string, error) {
 	defer runtime.UnlockOSThread()
 
 	ecode := C.git_tag_list_match(&strC, patternC, c.repo.ptr)
+	runtime.KeepAlive(c)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
@@ -215,6 +230,7 @@ func (c *TagsCollection) Foreach(callback TagForeachCallback) error {
 	defer runtime.UnlockOSThread()
 
 	err := C._go_git_tag_foreach(c.repo.ptr, handle)
+	runtime.KeepAlive(c)
 	if err == C.GIT_EUSER {
 		return data.err
 	}

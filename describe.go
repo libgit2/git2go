@@ -128,6 +128,7 @@ func (c *Commit) Describe(opts *DescribeOptions) (*DescribeResult, error) {
 	defer runtime.UnlockOSThread()
 
 	ecode := C.git_describe_commit(&resultPtr, c.ptr, cDescribeOpts)
+	runtime.KeepAlive(c)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
@@ -162,6 +163,7 @@ func (repo *Repository) DescribeWorkdir(opts *DescribeOptions) (*DescribeResult,
 	defer runtime.UnlockOSThread()
 
 	ecode := C.git_describe_workdir(&resultPtr, repo.ptr, cDescribeOpts)
+	runtime.KeepAlive(repo)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
@@ -206,6 +208,7 @@ func (result *DescribeResult) Format(opts *DescribeFormatOptions) (string, error
 	defer runtime.UnlockOSThread()
 
 	ecode := C.git_describe_format(&resultBuf, result.ptr, cFormatOpts)
+	runtime.KeepAlive(result)
 	if ecode < 0 {
 		return "", MakeGitError(ecode)
 	}

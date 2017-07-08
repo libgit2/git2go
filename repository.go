@@ -120,6 +120,7 @@ func NewRepositoryWrapOdb(odb *Odb) (repo *Repository, err error) {
 
 	var ptr *C.git_repository
 	ret := C.git_repository_wrap_odb(&ptr, odb.ptr)
+	runtime.KeepAlive(odb)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -129,6 +130,7 @@ func NewRepositoryWrapOdb(odb *Odb) (repo *Repository, err error) {
 
 func (v *Repository) SetRefdb(refdb *Refdb) {
 	C.git_repository_set_refdb(v.ptr, refdb.ptr)
+	runtime.KeepAlive(v)
 }
 
 func (v *Repository) Free() {
@@ -143,6 +145,7 @@ func (v *Repository) Config() (*Config, error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_repository_config(&config.ptr, v.ptr)
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -162,7 +165,7 @@ func (v *Repository) Index() (*Index, error) {
 		return nil, MakeGitError(ret)
 	}
 
-	return newIndexFromC(ptr), nil
+	return newIndexFromC(ptr, v), nil
 }
 
 func (v *Repository) lookupType(id *Oid, t ObjectType) (*Object, error) {
@@ -172,6 +175,7 @@ func (v *Repository) lookupType(id *Oid, t ObjectType) (*Object, error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_object_lookup(&ptr, v.ptr, id.toC(), C.git_otype(t))
+	runtime.KeepAlive(id)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -241,6 +245,7 @@ func (v *Repository) SetHead(refname string) error {
 	defer runtime.UnlockOSThread()
 
 	ecode := C.git_repository_set_head(v.ptr, cname)
+	runtime.KeepAlive(v)
 	if ecode != 0 {
 		return MakeGitError(ecode)
 	}
@@ -252,6 +257,8 @@ func (v *Repository) SetHeadDetached(id *Oid) error {
 	defer runtime.UnlockOSThread()
 
 	ecode := C.git_repository_set_head_detached(v.ptr, id.toC())
+	runtime.KeepAlive(v)
+	runtime.KeepAlive(id)
 	if ecode != 0 {
 		return MakeGitError(ecode)
 	}
@@ -263,6 +270,7 @@ func (v *Repository) IsHeadDetached() (bool, error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_repository_head_detached(v.ptr)
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return false, MakeGitError(ret)
 	}
@@ -275,6 +283,7 @@ func (v *Repository) IsHeadUnborn() (bool, error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_repository_head_unborn(v.ptr)
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return false, MakeGitError(ret)
 	}
@@ -286,6 +295,7 @@ func (v *Repository) IsEmpty() (bool, error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_repository_is_empty(v.ptr)
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return false, MakeGitError(ret)
 	}
@@ -298,6 +308,7 @@ func (v *Repository) IsShallow() (bool, error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_repository_is_shallow(v.ptr)
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return false, MakeGitError(ret)
 	}
@@ -368,6 +379,9 @@ func (v *Repository) CreateCommit(
 		authorSig, committerSig,
 		nil, cmsg, tree.cast_ptr, C.size_t(nparents), parentsarg)
 
+	runtime.KeepAlive(v)
+	runtime.KeepAlive(oid)
+	runtime.KeepAlive(parents)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -391,7 +405,9 @@ func (v *Repository) Odb() (odb *Odb, err error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if ret := C.git_repository_odb(&odb.ptr, v.ptr); ret < 0 {
+	ret := C.git_repository_odb(&odb.ptr, v.ptr)
+	runtime.KeepAlive(v)
+	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
 
@@ -400,15 +416,21 @@ func (v *Repository) Odb() (odb *Odb, err error) {
 }
 
 func (repo *Repository) Path() string {
-	return C.GoString(C.git_repository_path(repo.ptr))
+	s := C.GoString(C.git_repository_path(repo.ptr))
+	runtime.KeepAlive(repo)
+	return s
 }
 
 func (repo *Repository) IsBare() bool {
-	return C.git_repository_is_bare(repo.ptr) != 0
+	ret := C.git_repository_is_bare(repo.ptr) != 0
+	runtime.KeepAlive(repo)
+	return ret
 }
 
 func (repo *Repository) Workdir() string {
-	return C.GoString(C.git_repository_workdir(repo.ptr))
+	s := C.GoString(C.git_repository_workdir(repo.ptr))
+	runtime.KeepAlive(repo)
+	return s
 }
 
 func (repo *Repository) SetWorkdir(workdir string, updateGitlink bool) error {
@@ -421,6 +443,7 @@ func (repo *Repository) SetWorkdir(workdir string, updateGitlink bool) error {
 	if ret := C.git_repository_set_workdir(repo.ptr, cstr, cbool(updateGitlink)); ret < 0 {
 		return MakeGitError(ret)
 	}
+	runtime.KeepAlive(repo)
 
 	return nil
 }
@@ -434,6 +457,7 @@ func (v *Repository) TreeBuilder() (*TreeBuilder, error) {
 	if ret := C.git_treebuilder_new(&bld.ptr, v.ptr, nil); ret < 0 {
 		return nil, MakeGitError(ret)
 	}
+
 	runtime.SetFinalizer(bld, (*TreeBuilder).Free)
 
 	bld.repo = v
@@ -474,7 +498,10 @@ func (r *Repository) State() RepositoryState {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	return RepositoryState(C.git_repository_state(r.ptr))
+	ret := RepositoryState(C.git_repository_state(r.ptr))
+	runtime.KeepAlive(r)
+
+	return ret
 }
 
 func (r *Repository) StateCleanup() error {
@@ -482,18 +509,22 @@ func (r *Repository) StateCleanup() error {
 	defer runtime.UnlockOSThread()
 
 	cErr := C.git_repository_state_cleanup(r.ptr)
+	runtime.KeepAlive(r)
 	if cErr < 0 {
 		return MakeGitError(cErr)
 	}
 	return nil
 }
+
 func (r *Repository) AddGitIgnoreRules(rules string) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
 	crules := C.CString(rules)
 	defer C.free(unsafe.Pointer(crules))
-	if ret := C.git_ignore_add_rule(r.ptr, crules); ret < 0 {
+	ret := C.git_ignore_add_rule(r.ptr, crules)
+	runtime.KeepAlive(r)
+	if ret < 0 {
 		return MakeGitError(ret)
 	}
 	return nil
@@ -503,7 +534,9 @@ func (r *Repository) ClearGitIgnoreRules() error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if ret := C.git_ignore_clear_internal_rules(r.ptr); ret < 0 {
+	ret := C.git_ignore_clear_internal_rules(r.ptr)
+	runtime.KeepAlive(r)
+	if ret < 0 {
 		return MakeGitError(ret)
 	}
 	return nil

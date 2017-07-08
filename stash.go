@@ -63,7 +63,7 @@ func (c *StashCollection) Save(
 	ret := C.git_stash_save(
 		oid.toC(), c.repo.ptr,
 		stasherC, messageC, C.uint32_t(flags))
-
+	runtime.KeepAlive(c)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -228,6 +228,7 @@ func (c *StashCollection) Apply(index int, opts StashApplyOptions) error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_stash_apply(c.repo.ptr, C.size_t(index), optsC)
+	runtime.KeepAlive(c)
 	if ret == C.GIT_EUSER {
 		return progressData.Error
 	}
@@ -282,6 +283,7 @@ func (c *StashCollection) Foreach(callback StashCallback) error {
 	defer runtime.UnlockOSThread()
 
 	ret := C._go_git_stash_foreach(c.repo.ptr, handle)
+	runtime.KeepAlive(c)
 	if ret == C.GIT_EUSER {
 		return data.Error
 	}
@@ -303,6 +305,7 @@ func (c *StashCollection) Drop(index int) error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_stash_drop(c.repo.ptr, C.size_t(index))
+	runtime.KeepAlive(c)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -328,6 +331,7 @@ func (c *StashCollection) Pop(index int, opts StashApplyOptions) error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_stash_pop(c.repo.ptr, C.size_t(index), optsC)
+	runtime.KeepAlive(c)
 	if ret == C.GIT_EUSER {
 		return progressData.Error
 	}

@@ -17,20 +17,25 @@ import (
 
 type Packbuilder struct {
 	ptr *C.git_packbuilder
+	r   *Repository
 }
 
 func (repo *Repository) NewPackbuilder() (*Packbuilder, error) {
-	builder := &Packbuilder{}
-
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_packbuilder_new(&builder.ptr, repo.ptr)
+	var ptr *C.git_packbuilder
+	ret := C.git_packbuilder_new(&ptr, repo.ptr)
 	if ret != 0 {
 		return nil, MakeGitError(ret)
 	}
-	runtime.SetFinalizer(builder, (*Packbuilder).Free)
-	return builder, nil
+	return newPackbuilderFromC(ptr, repo), nil
+}
+
+func newPackbuilderFromC(ptr *C.git_packbuilder, r *Repository) *Packbuilder {
+	pb := &Packbuilder{ptr: ptr, r: r}
+	runtime.SetFinalizer(pb, (*Packbuilder).Free)
+	return pb
 }
 
 func (pb *Packbuilder) Free() {
@@ -46,6 +51,8 @@ func (pb *Packbuilder) Insert(id *Oid, name string) error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_packbuilder_insert(pb.ptr, id.toC(), cname)
+	runtime.KeepAlive(pb)
+	runtime.KeepAlive(id)
 	if ret != 0 {
 		return MakeGitError(ret)
 	}
@@ -57,6 +64,8 @@ func (pb *Packbuilder) InsertCommit(id *Oid) error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_packbuilder_insert_commit(pb.ptr, id.toC())
+	runtime.KeepAlive(pb)
+	runtime.KeepAlive(id)
 	if ret != 0 {
 		return MakeGitError(ret)
 	}
@@ -68,6 +77,8 @@ func (pb *Packbuilder) InsertTree(id *Oid) error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_packbuilder_insert_tree(pb.ptr, id.toC())
+	runtime.KeepAlive(pb)
+	runtime.KeepAlive(id)
 	if ret != 0 {
 		return MakeGitError(ret)
 	}
@@ -75,7 +86,9 @@ func (pb *Packbuilder) InsertTree(id *Oid) error {
 }
 
 func (pb *Packbuilder) ObjectCount() uint32 {
-	return uint32(C.git_packbuilder_object_count(pb.ptr))
+	ret := uint32(C.git_packbuilder_object_count(pb.ptr))
+	runtime.KeepAlive(pb)
+	return ret
 }
 
 func (pb *Packbuilder) WriteToFile(name string, mode os.FileMode) error {
@@ -86,6 +99,7 @@ func (pb *Packbuilder) WriteToFile(name string, mode os.FileMode) error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_packbuilder_write(pb.ptr, cname, C.uint(mode.Perm()), nil, nil)
+	runtime.KeepAlive(pb)
 	if ret != 0 {
 		return MakeGitError(ret)
 	}
@@ -100,7 +114,9 @@ func (pb *Packbuilder) Write(w io.Writer) error {
 }
 
 func (pb *Packbuilder) Written() uint32 {
-	return uint32(C.git_packbuilder_written(pb.ptr))
+	ret := uint32(C.git_packbuilder_written(pb.ptr))
+	runtime.KeepAlive(pb)
+	return ret
 }
 
 type PackbuilderForeachCallback func([]byte) error
@@ -142,6 +158,7 @@ func (pb *Packbuilder) ForEach(callback PackbuilderForeachCallback) error {
 	defer runtime.UnlockOSThread()
 
 	err := C._go_git_packbuilder_foreach(pb.ptr, handle)
+	runtime.KeepAlive(pb)
 	if err == C.GIT_EUSER {
 		return data.err
 	}
