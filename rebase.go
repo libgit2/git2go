@@ -5,6 +5,7 @@ package git
 */
 import "C"
 import (
+	"errors"
 	"runtime"
 	"unsafe"
 )
@@ -24,6 +25,12 @@ const (
 	// RebaseOperationExec No commit will be cherry-picked.  The client should run the given command and (if successful) continue.
 	RebaseOperationExec RebaseOperationType = C.GIT_REBASE_OPERATION_EXEC
 )
+
+// Special value indicating that there is no currently active operation
+var RebaseNoOperation uint = ^uint(0)
+
+// Error returned if there is no current rebase operation
+var ErrRebaseNoOperation = errors.New("o current rebase operation")
 
 // RebaseOperation describes a single instruction/operation to be performed during the rebase.
 type RebaseOperation struct {
@@ -154,18 +161,21 @@ func (rebase *Rebase) OperationAt(index uint) *RebaseOperation {
 	return newRebaseOperationFromC(operation)
 }
 
-// CurrentOperationIndex gets the index of the rebase operation that is currently being applied.
-// Returns an error if no rebase operation is currently applied.
+// CurrentOperationIndex gets the index of the rebase operation that is
+// currently being applied. There is also an error returned for API
+// compatibility.
 func (rebase *Rebase) CurrentOperationIndex() (uint, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	operationIndex := int(C.git_rebase_operation_current(rebase.ptr))
-	if operationIndex == C.GIT_REBASE_NO_OPERATION {
-		return 0, MakeGitError(C.GIT_REBASE_NO_OPERATION)
+	var err error
+	operationIndex := uint(C.git_rebase_operation_current(rebase.ptr))
+	runtime.KeepAlive(rebase)
+	if operationIndex == RebaseNoOperation {
+		err = ErrRebaseNoOperation
 	}
 
-	return uint(operationIndex), nil
+	return uint(operationIndex), err
 }
 
 // OperationCount gets the count of rebase operations that are to be applied.
