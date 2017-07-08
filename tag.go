@@ -67,8 +67,7 @@ type TagsCollection struct {
 	repo *Repository
 }
 
-func (c *TagsCollection) Create(
-	name string, commit *Commit, tagger *Signature, message string) (*Oid, error) {
+func (c *TagsCollection) Create(name string, obj Objecter, tagger *Signature, message string) (*Oid, error) {
 
 	oid := new(Oid)
 
@@ -84,13 +83,13 @@ func (c *TagsCollection) Create(
 	}
 	defer C.git_signature_free(taggerSig)
 
-	ctarget := commit.ptr
-
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_tag_create(oid.toC(), c.repo.ptr, cname, ctarget, taggerSig, cmessage, 0)
+	o := obj.AsObject()
+	ret := C.git_tag_create(oid.toC(), c.repo.ptr, cname, o.ptr, taggerSig, cmessage, 0)
 	runtime.KeepAlive(c)
+	runtime.KeepAlive(obj)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -114,7 +113,7 @@ func (c *TagsCollection) Remove(name string) error {
 	return nil
 }
 
-// CreateLightweight creates a new lightweight tag pointing to a commit
+// CreateLightweight creates a new lightweight tag pointing to an object
 // and returns the id of the target object.
 //
 // The name of the tag is validated for consistency (see git_tag_create() for the rules
@@ -126,20 +125,20 @@ func (c *TagsCollection) Remove(name string) error {
 // The created tag is a simple reference and can be queried using
 // repo.References.Lookup("refs/tags/<name>"). The name of the tag (eg "v1.0.0")
 // is queried with ref.Shorthand().
-func (c *TagsCollection) CreateLightweight(name string, commit *Commit, force bool) (*Oid, error) {
+func (c *TagsCollection) CreateLightweight(name string, obj Objecter, force bool) (*Oid, error) {
 
 	oid := new(Oid)
 
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 
-	ctarget := commit.ptr
-
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	err := C.git_tag_create_lightweight(oid.toC(), c.repo.ptr, cname, ctarget, cbool(force))
+	o := obj.AsObject()
+	err := C.git_tag_create_lightweight(oid.toC(), c.repo.ptr, cname, o.ptr, cbool(force))
 	runtime.KeepAlive(c)
+	runtime.KeepAlive(obj)
 	if err < 0 {
 		return nil, MakeGitError(err)
 	}
