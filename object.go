@@ -46,7 +46,9 @@ func (t ObjectType) String() string {
 }
 
 func (o *Object) Id() *Oid {
-	return newOidFromC(C.git_object_id(o.ptr))
+	ret := newOidFromC(C.git_object_id(o.ptr))
+	runtime.KeepAlive(o)
+	return ret
 }
 
 func (o *Object) ShortId() (string, error) {
@@ -56,6 +58,7 @@ func (o *Object) ShortId() (string, error) {
 	defer runtime.UnlockOSThread()
 
 	ecode := C.git_object_short_id(&resultBuf, o.ptr)
+	runtime.KeepAlive(o)
 	if ecode < 0 {
 		return "", MakeGitError(ecode)
 	}
@@ -64,15 +67,19 @@ func (o *Object) ShortId() (string, error) {
 }
 
 func (o *Object) Type() ObjectType {
-	return ObjectType(C.git_object_type(o.ptr))
+	ret := ObjectType(C.git_object_type(o.ptr))
+	runtime.KeepAlive(o)
+	return ret
 }
 
 // Owner returns a weak reference to the repository which owns this
 // object. This won't keep the underlying repository alive.
 func (o *Object) Owner() *Repository {
-	return &Repository{
+	ret := &Repository{
 		ptr: C.git_object_owner(o.ptr),
 	}
+	runtime.KeepAlive(o)
+	return ret
 }
 
 func dupObject(obj *Object, kind ObjectType) (*C.git_object, error) {
@@ -85,7 +92,9 @@ func dupObject(obj *Object, kind ObjectType) (*C.git_object, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if err := C.git_object_dup(&cobj, obj.ptr); err < 0 {
+	err := C.git_object_dup(&cobj, obj.ptr)
+	runtime.KeepAlive(obj)
+	if err < 0 {
 		return nil, MakeGitError(err)
 	}
 
@@ -203,7 +212,9 @@ func (o *Object) Peel(t ObjectType) (*Object, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if err := C.git_object_peel(&cobj, o.ptr, C.git_otype(t)); err < 0 {
+	err := C.git_object_peel(&cobj, o.ptr, C.git_otype(t))
+	runtime.KeepAlive(o)
+	if err < 0 {
 		return nil, MakeGitError(err)
 	}
 

@@ -45,7 +45,8 @@ const (
 )
 
 type Index struct {
-	ptr *C.git_index
+	ptr  *C.git_index
+	repo *Repository
 }
 
 type IndexTime struct {
@@ -97,8 +98,8 @@ func freeCIndexEntry(entry *C.git_index_entry) {
 	C.free(unsafe.Pointer(entry.path))
 }
 
-func newIndexFromC(ptr *C.git_index) *Index {
-	idx := &Index{ptr}
+func newIndexFromC(ptr *C.git_index, repo *Repository) *Index {
+	idx := &Index{ptr, repo}
 	runtime.SetFinalizer(idx, (*Index).Free)
 	return idx
 }
@@ -115,7 +116,7 @@ func NewIndex() (*Index, error) {
 		return nil, MakeGitError(err)
 	}
 
-	return newIndexFromC(ptr), nil
+	return newIndexFromC(ptr, nil), nil
 }
 
 // OpenIndex creates a new index at the given path. If the file does
@@ -133,13 +134,15 @@ func OpenIndex(path string) (*Index, error) {
 		return nil, MakeGitError(err)
 	}
 
-	return newIndexFromC(ptr), nil
+	return newIndexFromC(ptr, nil), nil
 }
 
 // Path returns the index' path on disk or an empty string if it
 // exists only in memory.
 func (v *Index) Path() string {
-	return C.GoString(C.git_index_path(v.ptr))
+	ret := C.GoString(C.git_index_path(v.ptr))
+	runtime.KeepAlive(v)
+	return ret
 }
 
 // Add adds or replaces the given entry to the index, making a copy of
@@ -153,7 +156,9 @@ func (v *Index) Add(entry *IndexEntry) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if err := C.git_index_add(v.ptr, &centry); err < 0 {
+	err := C.git_index_add(v.ptr, &centry)
+	runtime.KeepAlive(v)
+	if err < 0 {
 		return MakeGitError(err)
 	}
 
@@ -168,6 +173,7 @@ func (v *Index) AddByPath(path string) error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_index_add_bypath(v.ptr, cstr)
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -196,6 +202,7 @@ func (v *Index) AddAll(pathspecs []string, flags IndexAddOpts, callback IndexMat
 		C.uint(flags),
 		handle,
 	)
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -222,6 +229,7 @@ func (v *Index) UpdateAll(pathspecs []string, callback IndexMatchedPathCallback)
 		&cpathspecs,
 		handle,
 	)
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -248,6 +256,7 @@ func (v *Index) RemoveAll(pathspecs []string, callback IndexMatchedPathCallback)
 		&cpathspecs,
 		handle,
 	)
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -271,6 +280,7 @@ func (v *Index) RemoveByPath(path string) error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_index_remove_bypath(v.ptr, cstr)
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -287,6 +297,7 @@ func (v *Index) RemoveDirectory(dir string, stage int) error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_index_remove_directory(v.ptr, cstr, C.int(stage))
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -301,6 +312,8 @@ func (v *Index) WriteTreeTo(repo *Repository) (*Oid, error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_index_write_tree_to(oid.toC(), v.ptr, repo.ptr)
+	runtime.KeepAlive(v)
+	runtime.KeepAlive(repo)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -315,6 +328,8 @@ func (v *Index) ReadTree(tree *Tree) error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_index_read_tree(v.ptr, tree.cast_ptr)
+	runtime.KeepAlive(v)
+	runtime.KeepAlive(tree)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -329,6 +344,7 @@ func (v *Index) WriteTree() (*Oid, error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_index_write_tree(oid.toC(), v.ptr)
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -341,6 +357,7 @@ func (v *Index) Write() error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_index_write(v.ptr)
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -354,7 +371,9 @@ func (v *Index) Free() {
 }
 
 func (v *Index) EntryCount() uint {
-	return uint(C.git_index_entrycount(v.ptr))
+	ret := uint(C.git_index_entrycount(v.ptr))
+	runtime.KeepAlive(v)
+	return ret
 }
 
 func (v *Index) EntryByIndex(index uint) (*IndexEntry, error) {
@@ -362,7 +381,9 @@ func (v *Index) EntryByIndex(index uint) (*IndexEntry, error) {
 	if centry == nil {
 		return nil, fmt.Errorf("Index out of Bounds")
 	}
-	return newIndexEntryFromC(centry), nil
+	ret := newIndexEntryFromC(centry)
+	runtime.KeepAlive(v)
+	return ret, nil
 }
 
 func (v *Index) EntryByPath(path string, stage int) (*IndexEntry, error) {
@@ -376,7 +397,9 @@ func (v *Index) EntryByPath(path string, stage int) (*IndexEntry, error) {
 	if centry == nil {
 		return nil, MakeGitError(C.GIT_ENOTFOUND)
 	}
-	return newIndexEntryFromC(centry), nil
+	ret := newIndexEntryFromC(centry)
+	runtime.KeepAlive(v)
+	return ret, nil
 }
 
 func (v *Index) Find(path string) (uint, error) {
@@ -388,6 +411,7 @@ func (v *Index) Find(path string) (uint, error) {
 
 	var pos C.size_t
 	ret := C.git_index_find(&pos, v.ptr, cpath)
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return uint(0), MakeGitError(ret)
 	}
@@ -403,6 +427,7 @@ func (v *Index) FindPrefix(prefix string) (uint, error) {
 
 	var pos C.size_t
 	ret := C.git_index_find_prefix(&pos, v.ptr, cprefix)
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return uint(0), MakeGitError(ret)
 	}
@@ -410,12 +435,15 @@ func (v *Index) FindPrefix(prefix string) (uint, error) {
 }
 
 func (v *Index) HasConflicts() bool {
-	return C.git_index_has_conflicts(v.ptr) != 0
+	ret := C.git_index_has_conflicts(v.ptr) != 0
+	runtime.KeepAlive(v)
+	return ret
 }
 
 // FIXME: this might return an error
 func (v *Index) CleanupConflicts() {
 	C.git_index_conflict_cleanup(v.ptr)
+	runtime.KeepAlive(v)
 }
 
 func (v *Index) AddConflict(ancestor *IndexEntry, our *IndexEntry, their *IndexEntry) error {
@@ -446,6 +474,10 @@ func (v *Index) AddConflict(ancestor *IndexEntry, our *IndexEntry, their *IndexE
 	defer runtime.UnlockOSThread()
 
 	ecode := C.git_index_conflict_add(v.ptr, cancestor, cour, ctheir)
+	runtime.KeepAlive(v)
+	runtime.KeepAlive(ancestor)
+	runtime.KeepAlive(our)
+	runtime.KeepAlive(their)
 	if ecode < 0 {
 		return MakeGitError(ecode)
 	}
@@ -474,11 +506,13 @@ func (v *Index) GetConflict(path string) (IndexConflict, error) {
 	if ecode < 0 {
 		return IndexConflict{}, MakeGitError(ecode)
 	}
-	return IndexConflict{
+	ret := IndexConflict{
 		Ancestor: newIndexEntryFromC(cancestor),
 		Our:      newIndexEntryFromC(cour),
 		Their:    newIndexEntryFromC(ctheir),
-	}, nil
+	}
+	runtime.KeepAlive(v)
+	return ret, nil
 }
 
 func (v *Index) RemoveConflict(path string) error {
@@ -490,6 +524,7 @@ func (v *Index) RemoveConflict(path string) error {
 	defer runtime.UnlockOSThread()
 
 	ecode := C.git_index_conflict_remove(v.ptr, cpath)
+	runtime.KeepAlive(v)
 	if ecode < 0 {
 		return MakeGitError(ecode)
 	}
@@ -541,9 +576,11 @@ func (v *IndexConflictIterator) Next() (IndexConflict, error) {
 	if ecode < 0 {
 		return IndexConflict{}, MakeGitError(ecode)
 	}
-	return IndexConflict{
+	ret := IndexConflict{
 		Ancestor: newIndexEntryFromC(cancestor),
 		Our:      newIndexEntryFromC(cour),
 		Their:    newIndexEntryFromC(ctheir),
-	}, nil
+	}
+	runtime.KeepAlive(v)
+	return ret, nil
 }

@@ -18,10 +18,11 @@ import (
 
 type AnnotatedCommit struct {
 	ptr *C.git_annotated_commit
+	r   *Repository
 }
 
-func newAnnotatedCommitFromC(c *C.git_annotated_commit) *AnnotatedCommit {
-	mh := &AnnotatedCommit{ptr: c}
+func newAnnotatedCommitFromC(ptr *C.git_annotated_commit, r *Repository) *AnnotatedCommit {
+	mh := &AnnotatedCommit{ptr: ptr, r: r}
 	runtime.SetFinalizer(mh, (*AnnotatedCommit).Free)
 	return mh
 }
@@ -32,8 +33,6 @@ func (mh *AnnotatedCommit) Free() {
 }
 
 func (r *Repository) AnnotatedCommitFromFetchHead(branchName string, remoteURL string, oid *Oid) (*AnnotatedCommit, error) {
-	mh := &AnnotatedCommit{}
-
 	cbranchName := C.CString(branchName)
 	defer C.free(unsafe.Pointer(cbranchName))
 
@@ -43,40 +42,41 @@ func (r *Repository) AnnotatedCommitFromFetchHead(branchName string, remoteURL s
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_annotated_commit_from_fetchhead(&mh.ptr, r.ptr, cbranchName, cremoteURL, oid.toC())
+	var ptr *C.git_annotated_commit
+	ret := C.git_annotated_commit_from_fetchhead(&ptr, r.ptr, cbranchName, cremoteURL, oid.toC())
+	runtime.KeepAlive(oid)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	runtime.SetFinalizer(mh, (*AnnotatedCommit).Free)
-	return mh, nil
+
+	return newAnnotatedCommitFromC(ptr, r), nil
 }
 
 func (r *Repository) LookupAnnotatedCommit(oid *Oid) (*AnnotatedCommit, error) {
-	mh := &AnnotatedCommit{}
-
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_annotated_commit_lookup(&mh.ptr, r.ptr, oid.toC())
+	var ptr *C.git_annotated_commit
+	ret := C.git_annotated_commit_lookup(&ptr, r.ptr, oid.toC())
+	runtime.KeepAlive(oid)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	runtime.SetFinalizer(mh, (*AnnotatedCommit).Free)
-	return mh, nil
+	return newAnnotatedCommitFromC(ptr, r), nil
 }
 
 func (r *Repository) AnnotatedCommitFromRef(ref *Reference) (*AnnotatedCommit, error) {
-	mh := &AnnotatedCommit{}
-
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_annotated_commit_from_ref(&mh.ptr, r.ptr, ref.ptr)
+	var ptr *C.git_annotated_commit
+	ret := C.git_annotated_commit_from_ref(&ptr, r.ptr, ref.ptr)
+	runtime.KeepAlive(r)
+	runtime.KeepAlive(ref)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	runtime.SetFinalizer(mh, (*AnnotatedCommit).Free)
-	return mh, nil
+	return newAnnotatedCommitFromC(ptr, r), nil
 }
 
 type MergeTreeFlag int
@@ -162,6 +162,7 @@ func (r *Repository) Merge(theirHeads []*AnnotatedCommit, mergeOptions *MergeOpt
 	}
 	ptr := unsafe.Pointer(&gmerge_head_array[0])
 	err := C.git_merge(r.ptr, (**C.git_annotated_commit)(ptr), C.size_t(len(theirHeads)), cMergeOpts, cCheckoutOpts)
+	runtime.KeepAlive(theirHeads)
 	if err < 0 {
 		return MakeGitError(err)
 	}
@@ -201,6 +202,7 @@ func (r *Repository) MergeAnalysis(theirHeads []*AnnotatedCommit) (MergeAnalysis
 	var analysis C.git_merge_analysis_t
 	var preference C.git_merge_preference_t
 	err := C.git_merge_analysis(&analysis, &preference, r.ptr, (**C.git_annotated_commit)(ptr), C.size_t(len(theirHeads)))
+	runtime.KeepAlive(theirHeads)
 	if err < 0 {
 		return MergeAnalysisNone, MergePreferenceNone, MakeGitError(err)
 	}
@@ -214,14 +216,15 @@ func (r *Repository) MergeCommits(ours *Commit, theirs *Commit, options *MergeOp
 
 	copts := options.toC()
 
-	idx := &Index{}
-
-	ret := C.git_merge_commits(&idx.ptr, r.ptr, ours.cast_ptr, theirs.cast_ptr, copts)
+	var ptr *C.git_index
+	ret := C.git_merge_commits(&ptr, r.ptr, ours.cast_ptr, theirs.cast_ptr, copts)
+	runtime.KeepAlive(ours)
+	runtime.KeepAlive(theirs)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	runtime.SetFinalizer(idx, (*Index).Free)
-	return idx, nil
+
+	return newIndexFromC(ptr, r), nil
 }
 
 func (r *Repository) MergeTrees(ancestor *Tree, ours *Tree, theirs *Tree, options *MergeOptions) (*Index, error) {
@@ -230,17 +233,20 @@ func (r *Repository) MergeTrees(ancestor *Tree, ours *Tree, theirs *Tree, option
 
 	copts := options.toC()
 
-	idx := &Index{}
 	var ancestor_ptr *C.git_tree
 	if ancestor != nil {
 		ancestor_ptr = ancestor.cast_ptr
 	}
-	ret := C.git_merge_trees(&idx.ptr, r.ptr, ancestor_ptr, ours.cast_ptr, theirs.cast_ptr, copts)
+	var ptr *C.git_index
+	ret := C.git_merge_trees(&ptr, r.ptr, ancestor_ptr, ours.cast_ptr, theirs.cast_ptr, copts)
+	runtime.KeepAlive(ancestor)
+	runtime.KeepAlive(ours)
+	runtime.KeepAlive(theirs)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	runtime.SetFinalizer(idx, (*Index).Free)
-	return idx, nil
+
+	return newIndexFromC(ptr, r), nil
 }
 
 func (r *Repository) MergeBase(one *Oid, two *Oid) (*Oid, error) {
@@ -249,6 +255,9 @@ func (r *Repository) MergeBase(one *Oid, two *Oid) (*Oid, error) {
 
 	var oid C.git_oid
 	ret := C.git_merge_base(&oid, r.ptr, one.toC(), two.toC())
+	runtime.KeepAlive(one)
+	runtime.KeepAlive(two)
+	runtime.KeepAlive(r)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -265,6 +274,8 @@ func (r *Repository) MergeBases(one, two *Oid) ([]*Oid, error) {
 
 	var coids C.git_oidarray
 	ret := C.git_merge_bases(&coids, r.ptr, one.toC(), two.toC())
+	runtime.KeepAlive(one)
+	runtime.KeepAlive(two)
 	if ret < 0 {
 		return make([]*Oid, 0), MakeGitError(ret)
 	}
@@ -413,6 +424,9 @@ func MergeFile(ancestor MergeFileInput, ours MergeFileInput, theirs MergeFileInp
 		(*C.char)(unsafe.Pointer(oursContents)), C.size_t(len(ours.Contents)), oursPath, C.uint(ours.Mode),
 		(*C.char)(unsafe.Pointer(theirsContents)), C.size_t(len(theirs.Contents)), theirsPath, C.uint(theirs.Mode),
 		copts)
+	runtime.KeepAlive(ancestor)
+	runtime.KeepAlive(ours)
+	runtime.KeepAlive(theirs)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}

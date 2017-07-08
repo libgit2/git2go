@@ -18,15 +18,19 @@ type Commit struct {
 	cast_ptr *C.git_commit
 }
 
-func (c Commit) Message() string {
-	return C.GoString(C.git_commit_message(c.cast_ptr))
+func (c *Commit) Message() string {
+	ret := C.GoString(C.git_commit_message(c.cast_ptr))
+	runtime.KeepAlive(c)
+	return ret
 }
 
-func (c Commit) RawMessage() string {
-	return C.GoString(C.git_commit_message_raw(c.cast_ptr))
+func (c *Commit) RawMessage() string {
+	ret := C.GoString(C.git_commit_message_raw(c.cast_ptr))
+	runtime.KeepAlive(c)
+	return ret
 }
 
-func (c Commit) ExtractSignature() (string, string, error) {
+func (c *Commit) ExtractSignature() (string, string, error) {
 
 	var c_signed C.git_buf
 	defer C.git_buf_free(&c_signed)
@@ -35,29 +39,34 @@ func (c Commit) ExtractSignature() (string, string, error) {
 	defer C.git_buf_free(&c_signature)
 
 	oid := c.Id()
-	
 	repo := C.git_commit_owner(c.cast_ptr)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 	ret := C.git_commit_extract_signature(&c_signature, &c_signed, repo, oid.toC(), nil)
-	
+	runtime.KeepAlive(oid)
 	if ret < 0 {
-		return "", "", MakeGitError(ret) 
+		return "", "", MakeGitError(ret)
 	} else {
 		return C.GoString(c_signature.ptr), C.GoString(c_signed.ptr), nil
 	}
-	
+
 }
 
-func (c Commit) Summary() string {
-	return C.GoString(C.git_commit_summary(c.cast_ptr))
+func (c *Commit) Summary() string {
+	ret := C.GoString(C.git_commit_summary(c.cast_ptr))
+	runtime.KeepAlive(c)
+	return ret
 }
 
-func (c Commit) Tree() (*Tree, error) {
+func (c *Commit) Tree() (*Tree, error) {
 	var ptr *C.git_tree
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
 	err := C.git_commit_tree(&ptr, c.cast_ptr)
+	runtime.KeepAlive(c)
 	if err < 0 {
 		return nil, MakeGitError(err)
 	}
@@ -65,18 +74,24 @@ func (c Commit) Tree() (*Tree, error) {
 	return allocTree(ptr, c.repo), nil
 }
 
-func (c Commit) TreeId() *Oid {
-	return newOidFromC(C.git_commit_tree_id(c.cast_ptr))
+func (c *Commit) TreeId() *Oid {
+	ret := newOidFromC(C.git_commit_tree_id(c.cast_ptr))
+	runtime.KeepAlive(c)
+	return ret
 }
 
-func (c Commit) Author() *Signature {
+func (c *Commit) Author() *Signature {
 	cast_ptr := C.git_commit_author(c.cast_ptr)
-	return newSignatureFromC(cast_ptr)
+	ret := newSignatureFromC(cast_ptr)
+	runtime.KeepAlive(c)
+	return ret
 }
 
-func (c Commit) Committer() *Signature {
+func (c *Commit) Committer() *Signature {
 	cast_ptr := C.git_commit_committer(c.cast_ptr)
-	return newSignatureFromC(cast_ptr)
+	ret := newSignatureFromC(cast_ptr)
+	runtime.KeepAlive(c)
+	return ret
 }
 
 func (c *Commit) Parent(n uint) *Commit {
@@ -86,15 +101,21 @@ func (c *Commit) Parent(n uint) *Commit {
 		return nil
 	}
 
-	return allocCommit(cobj, c.repo)
+	parent := allocCommit(cobj, c.repo)
+	runtime.KeepAlive(c)
+	return parent
 }
 
 func (c *Commit) ParentId(n uint) *Oid {
-	return newOidFromC(C.git_commit_parent_id(c.cast_ptr, C.uint(n)))
+	ret := newOidFromC(C.git_commit_parent_id(c.cast_ptr, C.uint(n)))
+	runtime.KeepAlive(c)
+	return ret
 }
 
 func (c *Commit) ParentCount() uint {
-	return uint(C.git_commit_parentcount(c.cast_ptr))
+	ret := uint(C.git_commit_parentcount(c.cast_ptr))
+	runtime.KeepAlive(c)
+	return ret
 }
 
 func (c *Commit) Amend(refname string, author, committer *Signature, message string, tree *Tree) (*Oid, error) {
@@ -127,6 +148,9 @@ func (c *Commit) Amend(refname string, author, committer *Signature, message str
 	oid := new(Oid)
 
 	cerr := C.git_commit_amend(oid.toC(), c.cast_ptr, cref, authorSig, committerSig, nil, cmsg, tree.cast_ptr)
+	runtime.KeepAlive(oid)
+	runtime.KeepAlive(c)
+	runtime.KeepAlive(tree)
 	if cerr < 0 {
 		return nil, MakeGitError(cerr)
 	}
