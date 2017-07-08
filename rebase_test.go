@@ -182,7 +182,7 @@ func performRebaseOnto(repo *Repository, branch string) (*Rebase, error) {
 
 	// Check no operation has been started yet
 	rebaseOperationIndex, err := rebase.CurrentOperationIndex()
-	if err == nil {
+	if rebaseOperationIndex != RebaseNoOperation && err != ErrRebaseNoOperation {
 		return nil, errors.New("No operation should have been started yet")
 	}
 
