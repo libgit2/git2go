@@ -232,6 +232,7 @@ func ShortenOids(ids []*Oid, minlen int) (int, error) {
 			return int(ret), MakeGitError(ret)
 		}
 	}
+	runtime.KeepAlive(ids)
 	return int(ret), nil
 }
 
