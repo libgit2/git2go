@@ -47,6 +47,7 @@ func (v *Odb) AddBackend(backend *OdbBackend, priority int) (err error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_odb_add_backend(v.ptr, backend.ptr, C.int(priority))
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		backend.Free()
 		return MakeGitError(ret)
@@ -57,20 +58,23 @@ func (v *Odb) AddBackend(backend *OdbBackend, priority int) (err error) {
 func (v *Odb) ReadHeader(oid *Oid) (uint64, ObjectType, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-	
+
 	var sz C.size_t
-	var cotype C.git_otype 
+	var cotype C.git_otype
 
 	ret := C.git_odb_read_header(&sz, &cotype, v.ptr, oid.toC())
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return 0, C.GIT_OBJ_BAD, MakeGitError(ret)
 	}
 
 	return uint64(sz), ObjectType(cotype), nil
 }
-	
+
 func (v *Odb) Exists(oid *Oid) bool {
 	ret := C.git_odb_exists(v.ptr, oid.toC())
+	runtime.KeepAlive(v)
+	runtime.KeepAlive(oid)
 	return ret != 0
 }
 
@@ -85,7 +89,7 @@ func (v *Odb) Write(data []byte, otype ObjectType) (oid *Oid, err error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_odb_write(oid.toC(), v.ptr, cptr, C.size_t(len(data)), C.git_otype(otype))
-
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -100,6 +104,8 @@ func (v *Odb) Read(oid *Oid) (obj *OdbObject, err error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_odb_read(&obj.ptr, v.ptr, oid.toC())
+	runtime.KeepAlive(v)
+	runtime.KeepAlive(oid)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -145,6 +151,7 @@ func (v *Odb) ForEach(callback OdbForEachCallback) error {
 	defer pointerHandles.Untrack(handle)
 
 	ret := C._go_git_odb_foreach(v.ptr, handle)
+	runtime.KeepAlive(v)
 	if ret == C.GIT_EUSER {
 		return data.err
 	} else if ret < 0 {
@@ -164,6 +171,7 @@ func (v *Odb) Hash(data []byte, otype ObjectType) (oid *Oid, err error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_odb_hash(oid.toC(), ptr, C.size_t(header.Len), C.git_otype(otype))
+	runtime.KeepAlive(data)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -179,6 +187,8 @@ func (v *Odb) NewReadStream(id *Oid) (*OdbReadStream, error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_odb_open_rstream(&stream.ptr, v.ptr, id.toC())
+	runtime.KeepAlive(v)
+	runtime.KeepAlive(id)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -197,6 +207,7 @@ func (v *Odb) NewWriteStream(size int64, otype ObjectType) (*OdbWriteStream, err
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_odb_open_wstream(&stream.ptr, v.ptr, C.git_off_t(size), C.git_otype(otype))
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -219,17 +230,25 @@ func (v *OdbObject) Free() {
 }
 
 func (object *OdbObject) Id() (oid *Oid) {
-	return newOidFromC(C.git_odb_object_id(object.ptr))
+	ret := newOidFromC(C.git_odb_object_id(object.ptr))
+	runtime.KeepAlive(object)
+	return ret
 }
 
 func (object *OdbObject) Len() (len uint64) {
-	return uint64(C.git_odb_object_size(object.ptr))
+	ret := uint64(C.git_odb_object_size(object.ptr))
+	runtime.KeepAlive(object)
+	return ret
 }
 
 func (object *OdbObject) Type() ObjectType {
-	return ObjectType(C.git_odb_object_type(object.ptr))
+	ret := ObjectType(C.git_odb_object_type(object.ptr))
+	runtime.KeepAlive(object)
+	return ret
 }
 
+// Data returns a slice pointing to the unmanaged object memory. You must make
+// sure the object is referenced for at least as long as the slice is used.
 func (object *OdbObject) Data() (data []byte) {
 	var c_blob unsafe.Pointer = C.git_odb_object_data(object.ptr)
 	var blob []byte
@@ -258,6 +277,7 @@ func (stream *OdbReadStream) Read(data []byte) (int, error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_odb_stream_read(stream.ptr, ptr, size)
+	runtime.KeepAlive(stream)
 	if ret < 0 {
 		return 0, MakeGitError(ret)
 	}
@@ -293,6 +313,7 @@ func (stream *OdbWriteStream) Write(data []byte) (int, error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_odb_stream_write(stream.ptr, ptr, size)
+	runtime.KeepAlive(stream)
 	if ret < 0 {
 		return 0, MakeGitError(ret)
 	}
@@ -307,6 +328,7 @@ func (stream *OdbWriteStream) Close() error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_odb_stream_finalize_write(stream.Id.toC(), stream.ptr)
+	runtime.KeepAlive(stream)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}

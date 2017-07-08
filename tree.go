@@ -48,6 +48,7 @@ func (t Tree) EntryByName(filename string) *TreeEntry {
 	defer C.free(unsafe.Pointer(cname))
 
 	entry := C.git_tree_entry_byname(t.cast_ptr, cname)
+	runtime.KeepAlive(t)
 	if entry == nil {
 		return nil
 	}
@@ -66,6 +67,8 @@ func (t Tree) EntryById(id *Oid) *TreeEntry {
 	defer runtime.UnlockOSThread()
 
 	entry := C.git_tree_entry_byid(t.cast_ptr, id.toC())
+	runtime.KeepAlive(t)
+	runtime.KeepAlive(id)
 	if entry == nil {
 		return nil
 	}
@@ -84,6 +87,7 @@ func (t Tree) EntryByPath(path string) (*TreeEntry, error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_tree_entry_bypath(&entry, t.cast_ptr, cpath)
+	runtime.KeepAlive(t)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -94,6 +98,7 @@ func (t Tree) EntryByPath(path string) (*TreeEntry, error) {
 
 func (t Tree) EntryByIndex(index uint64) *TreeEntry {
 	entry := C.git_tree_entry_byindex(t.cast_ptr, C.size_t(index))
+	runtime.KeepAlive(t)
 	if entry == nil {
 		return nil
 	}
@@ -103,6 +108,7 @@ func (t Tree) EntryByIndex(index uint64) *TreeEntry {
 
 func (t Tree) EntryCount() uint64 {
 	num := C.git_tree_entrycount(t.cast_ptr)
+	runtime.KeepAlive(t)
 	return uint64(num)
 }
 
@@ -132,7 +138,7 @@ func (t Tree) Walk(callback TreeWalkCallback) error {
 		C.GIT_TREEWALK_PRE,
 		ptr,
 	)
-
+	runtime.KeepAlive(t)
 	if err < 0 {
 		return MakeGitError(err)
 	}
@@ -158,6 +164,8 @@ func (v *TreeBuilder) Insert(filename string, id *Oid, filemode Filemode) error 
 	defer runtime.UnlockOSThread()
 
 	err := C.git_treebuilder_insert(nil, v.ptr, cfilename, id.toC(), C.git_filemode_t(filemode))
+	runtime.KeepAlive(v)
+	runtime.KeepAlive(id)
 	if err < 0 {
 		return MakeGitError(err)
 	}
@@ -173,6 +181,7 @@ func (v *TreeBuilder) Remove(filename string) error {
 	defer runtime.UnlockOSThread()
 
 	err := C.git_treebuilder_remove(v.ptr, cfilename)
+	runtime.KeepAlive(v)
 	if err < 0 {
 		return MakeGitError(err)
 	}
@@ -187,7 +196,7 @@ func (v *TreeBuilder) Write() (*Oid, error) {
 	defer runtime.UnlockOSThread()
 
 	err := C.git_treebuilder_write(oid.toC(), v.ptr)
-
+	runtime.KeepAlive(v)
 	if err < 0 {
 		return nil, MakeGitError(err)
 	}

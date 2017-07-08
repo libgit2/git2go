@@ -34,6 +34,7 @@ func (c *ReferenceCollection) Lookup(name string) (*Reference, error) {
 	defer runtime.UnlockOSThread()
 
 	ecode := C.git_reference_lookup(&ptr, c.repo.ptr, cname)
+	runtime.KeepAlive(c)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
@@ -59,6 +60,8 @@ func (c *ReferenceCollection) Create(name string, id *Oid, force bool, msg strin
 	defer runtime.UnlockOSThread()
 
 	ecode := C.git_reference_create(&ptr, c.repo.ptr, cname, id.toC(), cbool(force), cmsg)
+	runtime.KeepAlive(c)
+	runtime.KeepAlive(id)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
@@ -87,6 +90,7 @@ func (c *ReferenceCollection) CreateSymbolic(name, target string, force bool, ms
 	defer runtime.UnlockOSThread()
 
 	ecode := C.git_reference_symbolic_create(&ptr, c.repo.ptr, cname, ctarget, cbool(force), cmsg)
+	runtime.KeepAlive(c)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
@@ -104,6 +108,7 @@ func (c *ReferenceCollection) EnsureLog(name string) error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_reference_ensure_log(c.repo.ptr, cname)
+	runtime.KeepAlive(c)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -121,6 +126,7 @@ func (c *ReferenceCollection) HasLog(name string) (bool, error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_reference_has_log(c.repo.ptr, cname)
+	runtime.KeepAlive(c)
 	if ret < 0 {
 		return false, MakeGitError(ret)
 	}
@@ -138,6 +144,7 @@ func (c *ReferenceCollection) Dwim(name string) (*Reference, error) {
 
 	var ptr *C.git_reference
 	ret := C.git_reference_dwim(&ptr, c.repo.ptr, cname)
+	runtime.KeepAlive(c)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -169,6 +176,7 @@ func (v *Reference) SetSymbolicTarget(target string, msg string) (*Reference, er
 	}
 
 	ret := C.git_reference_symbolic_set_target(&ptr, v.ptr, ctarget, cmsg)
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -191,6 +199,7 @@ func (v *Reference) SetTarget(target *Oid, msg string) (*Reference, error) {
 	}
 
 	ret := C.git_reference_set_target(&ptr, v.ptr, target.toC(), cmsg)
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -205,6 +214,7 @@ func (v *Reference) Resolve() (*Reference, error) {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_reference_resolve(&ptr, v.ptr)
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -229,7 +239,7 @@ func (v *Reference) Rename(name string, force bool, msg string) (*Reference, err
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_reference_rename(&ptr, v.ptr, cname, cbool(force), cmsg)
-
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -238,16 +248,21 @@ func (v *Reference) Rename(name string, force bool, msg string) (*Reference, err
 }
 
 func (v *Reference) Target() *Oid {
-	return newOidFromC(C.git_reference_target(v.ptr))
+	ret := newOidFromC(C.git_reference_target(v.ptr))
+	runtime.KeepAlive(v)
+	return ret
 }
 
 func (v *Reference) SymbolicTarget() string {
+	var ret string
 	cstr := C.git_reference_symbolic_target(v.ptr)
-	if cstr == nil {
-		return ""
+
+	if cstr != nil {
+		return C.GoString(cstr)
 	}
 
-	return C.GoString(cstr)
+	runtime.KeepAlive(v)
+	return ret
 }
 
 func (v *Reference) Delete() error {
@@ -255,7 +270,7 @@ func (v *Reference) Delete() error {
 	defer runtime.UnlockOSThread()
 
 	ret := C.git_reference_delete(v.ptr)
-
+	runtime.KeepAlive(v)
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -269,7 +284,9 @@ func (v *Reference) Peel(t ObjectType) (*Object, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if err := C.git_reference_peel(&cobj, v.ptr, C.git_otype(t)); err < 0 {
+	err := C.git_reference_peel(&cobj, v.ptr, C.git_otype(t))
+	runtime.KeepAlive(v)
+	if err < 0 {
 		return nil, MakeGitError(err)
 	}
 
@@ -287,37 +304,54 @@ func (v *Reference) Owner() *Repository {
 // Cmp compares both references, retursn 0 on equality, otherwise a
 // stable sorting.
 func (v *Reference) Cmp(ref2 *Reference) int {
-	return int(C.git_reference_cmp(v.ptr, ref2.ptr))
+	ret := int(C.git_reference_cmp(v.ptr, ref2.ptr))
+	runtime.KeepAlive(v)
+	runtime.KeepAlive(ref2)
+	return ret
 }
 
-// Shorthand returns a "human-readable" short reference name
+// Shorthand ret :=s a "human-readable" short reference name
 func (v *Reference) Shorthand() string {
-	return C.GoString(C.git_reference_shorthand(v.ptr))
+	ret := C.GoString(C.git_reference_shorthand(v.ptr))
+	runtime.KeepAlive(v)
+	return ret
 }
 
 func (v *Reference) Name() string {
-	return C.GoString(C.git_reference_name(v.ptr))
+	ret := C.GoString(C.git_reference_name(v.ptr))
+	runtime.KeepAlive(v)
+	return ret
 }
 
 func (v *Reference) Type() ReferenceType {
-	return ReferenceType(C.git_reference_type(v.ptr))
+	ret := ReferenceType(C.git_reference_type(v.ptr))
+	runtime.KeepAlive(v)
+	return ret
 }
 
 func (v *Reference) IsBranch() bool {
-	return C.git_reference_is_branch(v.ptr) == 1
+	ret := C.git_reference_is_branch(v.ptr) == 1
+	runtime.KeepAlive(v)
+	return ret
 }
 
 func (v *Reference) IsRemote() bool {
-	return C.git_reference_is_remote(v.ptr) == 1
+	ret := C.git_reference_is_remote(v.ptr) == 1
+	runtime.KeepAlive(v)
+	return ret
 }
 
 func (v *Reference) IsTag() bool {
-	return C.git_reference_is_tag(v.ptr) == 1
+	ret := C.git_reference_is_tag(v.ptr) == 1
+	runtime.KeepAlive(v)
+	return ret
 }
 
 // IsNote checks if the reference is a note.
 func (v *Reference) IsNote() bool {
-	return C.git_reference_is_note(v.ptr) == 1
+	ret := C.git_reference_is_note(v.ptr) == 1
+	runtime.KeepAlive(v)
+	return ret
 }
 
 func (v *Reference) Free() {
@@ -346,9 +380,7 @@ func (repo *Repository) NewReferenceIterator() (*ReferenceIterator, error) {
 		return nil, MakeGitError(ret)
 	}
 
-	iter := &ReferenceIterator{ptr: ptr, repo: repo}
-	runtime.SetFinalizer(iter, (*ReferenceIterator).Free)
-	return iter, nil
+	return newReferenceIteratorFromC(ptr, repo), nil
 }
 
 // NewReferenceIterator creates a new branch iterator over reference names
@@ -363,8 +395,7 @@ func (repo *Repository) NewReferenceNameIterator() (*ReferenceNameIterator, erro
 		return nil, MakeGitError(ret)
 	}
 
-	iter := &ReferenceIterator{ptr: ptr, repo: repo}
-	runtime.SetFinalizer(iter, (*ReferenceIterator).Free)
+	iter := newReferenceIteratorFromC(ptr, repo)
 	return iter.Names(), nil
 }
 
@@ -384,9 +415,7 @@ func (repo *Repository) NewReferenceIteratorGlob(glob string) (*ReferenceIterato
 		return nil, MakeGitError(ret)
 	}
 
-	iter := &ReferenceIterator{ptr: ptr}
-	runtime.SetFinalizer(iter, (*ReferenceIterator).Free)
-	return iter, nil
+	return newReferenceIteratorFromC(ptr, repo), nil
 }
 
 func (i *ReferenceIterator) Names() *ReferenceNameIterator {
@@ -423,6 +452,13 @@ func (v *ReferenceIterator) Next() (*Reference, error) {
 	}
 
 	return newReferenceFromC(ptr, v.repo), nil
+}
+
+func newReferenceIteratorFromC(ptr *C.git_reference_iterator, r *Repository) *ReferenceIterator {
+	return &ReferenceIterator{
+		ptr:  ptr,
+		repo: r,
+	}
 }
 
 // Free the reference iterator

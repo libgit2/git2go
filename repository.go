@@ -120,6 +120,7 @@ func NewRepositoryWrapOdb(odb *Odb) (repo *Repository, err error) {
 
 	var ptr *C.git_repository
 	ret := C.git_repository_wrap_odb(&ptr, odb.ptr)
+	runtime.KeepAlive(odb)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}

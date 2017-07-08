@@ -63,6 +63,7 @@ func (repo *Repository) DefaultSignature() (*Signature, error) {
 	defer runtime.UnlockOSThread()
 
 	cErr := C.git_signature_default(&out, repo.ptr)
+	runtime.KeepAlive(repo)
 	if cErr < 0 {
 		return nil, MakeGitError(cErr)
 	}
