@@ -27,6 +27,10 @@ type Tree struct {
 	cast_ptr *C.git_tree
 }
 
+func (t *Tree) AsObject() *Object {
+	return &t.Object
+}
+
 type TreeEntry struct {
 	Name     string
 	Id       *Oid

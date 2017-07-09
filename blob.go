@@ -20,6 +20,10 @@ type Blob struct {
 	cast_ptr *C.git_blob
 }
 
+func (b *Blob) AsObject() *Object {
+	return &b.Object
+}
+
 func (v *Blob) Size() int64 {
 	ret := int64(C.git_blob_rawsize(v.cast_ptr))
 	runtime.KeepAlive(v)

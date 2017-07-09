@@ -18,6 +18,10 @@ type Commit struct {
 	cast_ptr *C.git_commit
 }
 
+func (c *Commit) AsObject() *Object {
+	return &c.Object
+}
+
 func (c *Commit) Message() string {
 	ret := C.GoString(C.git_commit_message(c.cast_ptr))
 	runtime.KeepAlive(c)
