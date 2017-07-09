@@ -129,6 +129,14 @@ func init() {
 		panic("libgit2 was not built with threading support")
 	}
 
+	if err := RegisterManagedHttp(); err != nil {
+		panic(err)
+	}
+
+	if err := RegisterManagedHttps(); err != nil {
+		panic(err)
+	}
+
 	// This is not something we should be doing, as we may be
 	// stomping all over someone else's setup. The user should do
 	// this themselves or use some binding/wrapper which does it
@@ -271,7 +279,7 @@ func MakeGitError(errorCode C.int) error {
 
 	var errMessage string
 	var errClass ErrorClass
-	if errorCode != C.GIT_ITEROVER {
+	if errorCode != C.GIT_ITEROVER && errorCode != C.GIT_EUSER {
 		err := C.giterr_last()
 		if err != nil {
 			errMessage = C.GoString(err.message)

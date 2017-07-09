@@ -141,6 +141,13 @@ type ProxyOptions struct {
 	Url string
 }
 
+func proxyOptionsFromC(copts *C.git_proxy_options) ProxyOptions {
+	return ProxyOptions{
+		Type: ProxyType(copts._type),
+		Url:  C.GoString(copts.url),
+	}
+}
+
 type Remote struct {
 	ptr       *C.git_remote
 	callbacks RemoteCallbacks
