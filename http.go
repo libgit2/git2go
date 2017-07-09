@@ -295,7 +295,7 @@ func httpAction(out **C.git_smart_subtransport_stream, t *C.git_smart_subtranspo
 
 	stream := C.calloc(1, C.size_t(unsafe.Sizeof(C.managed_smart_subtransport_stream{})))
 	managedPtr := pointerHandles.Track(managed)
-	C._go_git_setup_smart_subtransport_stream(stream, managedPtr)
+	C._go_git_setup_smart_subtransport_stream((*C.managed_smart_subtransport_stream)(stream), managedPtr)
 
 	*out = (*C.git_smart_subtransport_stream)(stream)
 	return 0
@@ -348,7 +348,7 @@ func httpSmartSubtransportCb(out **C.git_smart_subtransport, owner *C.git_transp
 	transport := C.calloc(1, C.size_t(unsafe.Sizeof(C.managed_smart_subtransport{})))
 	managed := &ManagedTransport{owner: owner}
 	managedPtr := pointerHandles.Track(managed)
-	C._go_git_setup_smart_subtransport(transport, managedPtr)
+	C._go_git_setup_smart_subtransport((*C.managed_smart_subtransport)(transport), managedPtr)
 
 	*out = (*C.git_smart_subtransport)(transport)
 	return 0
