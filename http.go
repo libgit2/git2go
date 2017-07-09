@@ -423,8 +423,7 @@ func smartSubtransportRead(s *C.git_smart_subtransport_stream, data *C.char, l C
 			return 0
 		}
 
-		setLibgit2Error(err)
-		return -1
+		return setLibgit2Error(err)
 	}
 
 	*read = C.size_t(n)
