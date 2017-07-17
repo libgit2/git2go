@@ -90,7 +90,9 @@ func populateCIndexEntry(source *IndexEntry, dest *C.git_index_entry) {
 	dest.uid = C.uint32_t(source.Uid)
 	dest.gid = C.uint32_t(source.Gid)
 	dest.file_size = C.uint32_t(source.Size)
-	dest.id = *source.Id.toC()
+	if source.Id != nil {
+		dest.id = *source.Id.toC()
+	}
 	dest.path = C.CString(source.Path)
 }
 
@@ -176,6 +178,28 @@ func (v *Index) AddByPath(path string) error {
 	runtime.KeepAlive(v)
 	if ret < 0 {
 		return MakeGitError(ret)
+	}
+
+	return nil
+}
+
+// AddFromBuffer adds or replaces an index entry from a buffer in memory
+func (v *Index) AddFromBuffer(entry *IndexEntry, buffer []byte) error {
+	var centry C.git_index_entry
+
+	populateCIndexEntry(entry, &centry)
+	defer freeCIndexEntry(&centry)
+
+	var cbuffer unsafe.Pointer
+	if len(buffer) > 0 {
+		cbuffer = unsafe.Pointer(&buffer[0])
+	}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if err := C.git_index_add_frombuffer(v.ptr, &centry, cbuffer, C.size_t(len(buffer))); err < 0 {
+		return MakeGitError(err)
 	}
 
 	return nil

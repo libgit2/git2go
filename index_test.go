@@ -149,6 +149,30 @@ func TestIndexRemoveDirectory(t *testing.T) {
 	}
 }
 
+func TestIndexAddFromBuffer(t *testing.T) {
+	t.Parallel()
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	idx, err := repo.Index()
+	checkFatal(t, err)
+
+	entry := IndexEntry{
+		Path: "README",
+		Mode: FilemodeBlob,
+	}
+
+	err = idx.AddFromBuffer(&entry, []byte("foo\n"))
+	checkFatal(t, err)
+
+	treeId, err := idx.WriteTreeTo(repo)
+	checkFatal(t, err)
+
+	if treeId.String() != "b7119b11e8ef7a1a5a34d3ac87f5b075228ac81e" {
+		t.Fatalf("%v", treeId.String())
+	}
+}
+
 func TestIndexAddAllNoCallback(t *testing.T) {
 	t.Parallel()
 	repo := createTestRepo(t)
