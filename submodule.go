@@ -369,7 +369,6 @@ func populateSubmoduleUpdateOptions(ptr *C.git_submodule_update_options, opts *S
 
 	populateCheckoutOpts(&ptr.checkout_opts, opts.CheckoutOpts)
 	populateFetchOptions(&ptr.fetch_opts, opts.FetchOptions)
-	ptr.clone_checkout_strategy = C.uint(opts.CloneCheckoutStrategy)
 
 	return nil
 }
