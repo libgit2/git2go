@@ -69,7 +69,7 @@ func (v *Repository) PatchFromBuffers(oldPath, newPath string, oldBuf, newBuf []
 	var patchPtr *C.git_patch
 
 	oldPtr := toPointer(oldBuf)
-	newPtr := toPointer(newBuf)
+	newPtr := (*C.char)(toPointer(newBuf))
 
 	cOldPath := C.CString(oldPath)
 	defer C.free(unsafe.Pointer(cOldPath))
