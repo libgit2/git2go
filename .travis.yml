@@ -11,6 +11,12 @@ matrix:
   allow_failures:
     - go: tip
 
+git:
+  submodules: false
+
+before_install:
+  - git submodule update --init
+
 branches:
   only:
   - master
