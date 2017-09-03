@@ -19,10 +19,10 @@ type Repository struct {
 	Remotes RemoteCollection
 	// Submodules represents the collection of submodules and can
 	// be used to add, remove and configure submodules in this
-	// repostiory.
+	// repository.
 	Submodules SubmoduleCollection
 	// References represents the collection of references and can
-	// be used to create, remove or update refernces for this repository.
+	// be used to create, remove or update references for this repository.
 	References ReferenceCollection
 	// Notes represents the collection of notes and can be used to
 	// read, write and delete notes from this repository.

@@ -59,7 +59,7 @@ Alternatively, you can build the library manually first and then run the tests
 License
 -------
 
-M to the I to the T. See the LICENSE file if you've never seen a MIT license before.
+M to the I to the T. See the LICENSE file if you've never seen an MIT license before.
 
 Authors
 -------
