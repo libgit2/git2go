@@ -17,3 +17,4 @@ cmake -DTHREADSAFE=ON \
       .. &&
 
 cmake --build .
+make -j2 install
