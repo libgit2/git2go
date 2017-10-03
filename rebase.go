@@ -30,7 +30,7 @@ const (
 var RebaseNoOperation uint = ^uint(0)
 
 // Error returned if there is no current rebase operation
-var ErrRebaseNoOperation = errors.New("o current rebase operation")
+var ErrRebaseNoOperation = errors.New("no current rebase operation")
 
 // RebaseOperation describes a single instruction/operation to be performed during the rebase.
 type RebaseOperation struct {
