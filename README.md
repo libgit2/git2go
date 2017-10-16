@@ -35,9 +35,9 @@ If using `master` or building a branch statically, we need to build libgit2 firs
 Run `go get -d github.com/libgit2/git2go` to download the code and go to your `$GOPATH/src/github.com/libgit2/git2go` directory. From there, we need to build the C code and put it into the resulting go binary.
 
     git submodule update --init # get libgit2
-    make install
+    make install-static
 
-will compile libgit2, link it into git2go and install it.
+will compile libgit2, link it into git2go and install it. The `master` branch is set up to follow the specific libgit2 version that is vendored, so trying dynamic linking may or may not work depending on the exact versions involved.
 
 Parallelism and network operations
 ----------------------------------
