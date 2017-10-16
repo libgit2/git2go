@@ -47,14 +47,14 @@ libgit2 may use OpenSSL and LibSSH2 for performing encrypted network connections
 Running the tests
 -----------------
 
-For the stable version, `go test` will work as usual. For the `next` branch, similarly to installing, running the tests requires building a local libgit2 library, so the Makefile provides a wrapper that makes sure it's built
+For the stable version, `go test` will work as usual. For the `master` branch, similarly to installing, running the tests requires building a local libgit2 library, so the Makefile provides a wrapper that makes sure it's built
 
-    make test
+    make test-static
 
 Alternatively, you can build the library manually first and then run the tests
 
     ./script/build-libgit2-static.sh
-    go test -v
+    go test -v --tags "static" ./...
 
 License
 -------
