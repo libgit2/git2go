@@ -22,6 +22,26 @@ func TestTreeEntryById(t *testing.T) {
 	}
 }
 
+func TestManagedTreeEntryById(t *testing.T) {
+	t.Parallel()
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	_, treeID := seedTestRepo(t, repo)
+
+	tree, err := NewManagedTree(repo, treeID)
+	checkFatal(t, err)
+
+	id, err := NewOid("257cc5642cb1a054f08cc83f2d943e56fd3ebe99")
+	checkFatal(t, err)
+
+	entry := tree.EntryById(id)
+
+	if entry == nil {
+		t.Fatalf("entry id %v was not found", id)
+	}
+}
+
 func TestTreeBuilderInsert(t *testing.T) {
 	t.Parallel()
 	repo := createTestRepo(t)
