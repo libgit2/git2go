@@ -12,13 +12,13 @@ import (
 // Tree.
 type ManagedTree struct {
 	m map[string]*TreeEntry
-	l []*TreeEntry
+	l []TreeEntry
 }
 
 func (t *ManagedTree) EntryById(id *Oid) *TreeEntry {
 	for _, entry := range t.l {
 		if entry.Id.Equal(id) {
-			return entry
+			return &entry
 		}
 	}
 
@@ -30,7 +30,7 @@ func (t *ManagedTree) EntryByName(filename string) *TreeEntry {
 }
 
 func (t *ManagedTree) EntryByIndex(index uint64) *TreeEntry {
-	return t.l[index]
+	return &t.l[index]
 }
 
 func (t *ManagedTree) EntryCount() uint64 {
@@ -54,8 +54,12 @@ func NewManagedTree(r *Repository, id *Oid) (*ManagedTree, error) {
 	}
 
 	data := obj.Data()
-	l := make([]*TreeEntry, 0, 8)
-	m := make(map[string]*TreeEntry)
+	// var buf bytes.Buffer
+	// buf.Grow(len(borrowedData))
+	// buf.Write(borrowedData)
+	// data := buf.Bytes()
+
+	l := make([]TreeEntry, 0, 24)
 
 	var done bool
 	for !done {
@@ -74,27 +78,30 @@ func NewManagedTree(r *Repository, id *Oid) (*ManagedTree, error) {
 			return nil, errors.New("failed to find NUL after filename")
 		}
 
-		var name bytes.Buffer
-		name.Grow(nulAt)
-		name.Write(data[:nulAt])
+		name := string(data[:nulAt])
 
 		data = data[nulAt+1:]
-		oid := NewOidFromBytes(data)
+		oid := data[:20]
 		if len(data) > 20 {
 			data = data[20:]
 		} else {
 			done = true
 		}
 
-		entry := &TreeEntry{
-			Name:     name.String(),
-			Id:       oid,
+		entry := TreeEntry{
+			Name: name,
+			//Id:       Oid(oid),
 			Type:     typeFromMode(mode),
 			Filemode: Filemode(mode),
 		}
+		copy(entry.Id[:], oid)
 
 		l = append(l, entry)
-		m[entry.Name] = entry
+	}
+
+	m := make(map[string]*TreeEntry, len(l))
+	for _, entry := range l {
+		m[entry.Name] = &entry
 	}
 
 	// This avoids the runtime from garbage-collecting 'obj' and freeing the

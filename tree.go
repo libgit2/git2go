@@ -33,7 +33,7 @@ func (t *Tree) AsObject() *Object {
 
 type TreeEntry struct {
 	Name     string
-	Id       *Oid
+	Id       Oid
 	Type     ObjectType
 	Filemode Filemode
 }
@@ -41,7 +41,7 @@ type TreeEntry struct {
 func newTreeEntry(entry *C.git_tree_entry) *TreeEntry {
 	return &TreeEntry{
 		C.GoString(C.git_tree_entry_name(entry)),
-		newOidFromC(C.git_tree_entry_id(entry)),
+		*newOidFromC(C.git_tree_entry_id(entry)),
 		ObjectType(C.git_tree_entry_type(entry)),
 		Filemode(C.git_tree_entry_filemode(entry)),
 	}
