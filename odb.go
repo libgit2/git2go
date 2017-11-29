@@ -236,7 +236,7 @@ func (object *OdbObject) Data() (data []byte) {
 
 	len := int(C.git_odb_object_size(object.ptr))
 
-	sliceHeader := (*reflect.SliceHeader)((unsafe.Pointer(&blob)))
+	sliceHeader := (*reflect.SliceHeader)(unsafe.Pointer(&blob))
 	sliceHeader.Cap = len
 	sliceHeader.Len = len
 	sliceHeader.Data = uintptr(c_blob)

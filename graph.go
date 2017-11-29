@@ -17,7 +17,7 @@ func (repo *Repository) DescendantOf(commit, ancestor *Oid) (bool, error) {
 		return false, MakeGitError(ret)
 	}
 
-	return (ret > 0), nil
+	return ret > 0, nil
 }
 
 func (repo *Repository) AheadBehind(local, upstream *Oid) (ahead, behind int, err error) {

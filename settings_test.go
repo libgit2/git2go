@@ -11,9 +11,9 @@ type pathPair struct {
 
 func TestSearchPath(t *testing.T) {
 	paths := []pathPair{
-		pathPair{ConfigLevelSystem, "/tmp/system"},
-		pathPair{ConfigLevelGlobal, "/tmp/global"},
-		pathPair{ConfigLevelXDG, "/tmp/xdg"},
+		{ConfigLevelSystem, "/tmp/system"},
+		{ConfigLevelGlobal, "/tmp/global"},
+		{ConfigLevelXDG, "/tmp/xdg"},
 	}
 
 	for _, pair := range paths {
