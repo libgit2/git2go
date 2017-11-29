@@ -9,6 +9,7 @@ import "C"
 
 import (
 	"runtime"
+	"time"
 	"unsafe"
 )
 
@@ -16,6 +17,10 @@ import (
 type Commit struct {
 	Object
 	cast_ptr *C.git_commit
+}
+
+func (c Commit) Time() time.Time {
+	return time.Unix(int64(C.git_commit_time(c.cast_ptr)), 0)
 }
 
 func (c Commit) Message() string {
