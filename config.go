@@ -77,7 +77,7 @@ func (c *Config) AddFile(path string, level ConfigLevel, force bool) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_config_add_file_ondisk(c.ptr, cpath, C.git_config_level_t(level), cbool(force))
+	ret := C.git_config_add_file_ondisk(c.ptr, cpath, C.git_config_level_t(level), nil, cbool(force))
 	runtime.KeepAlive(c)
 	if ret < 0 {
 		return MakeGitError(ret)
