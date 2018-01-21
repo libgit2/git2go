@@ -6,6 +6,7 @@ package git
 import "C"
 import (
 	"errors"
+	"fmt"
 	"runtime"
 	"unsafe"
 )
@@ -27,6 +28,24 @@ const (
 	// RebaseOperationExec No commit will be cherry-picked.  The client should run the given command and (if successful) continue.
 	RebaseOperationExec RebaseOperationType = C.GIT_REBASE_OPERATION_EXEC
 )
+
+func (t RebaseOperationType) String() string {
+	switch t {
+	case RebaseOperationPick:
+		return "pick"
+	case RebaseOperationReword:
+		return "reword"
+	case RebaseOperationEdit:
+		return "edit"
+	case RebaseOperationSquash:
+		return "squash"
+	case RebaseOperationFixup:
+		return "fixup"
+	case RebaseOperationExec:
+		return "exec"
+	}
+	return fmt.Sprintf("RebaseOperationType(%d)", t)
+}
 
 // Special value indicating that there is no currently active operation
 var RebaseNoOperation uint = ^uint(0)
