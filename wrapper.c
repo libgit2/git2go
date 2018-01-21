@@ -10,6 +10,11 @@ void _go_git_populate_remote_cb(git_clone_options *opts)
 	opts->remote_cb = (git_remote_create_cb)remoteCreateCallback;
 }
 
+void _go_git_populate_repository_cb(git_clone_options *opts)
+{
+    opts->repository_cb = (git_repository_create_cb)repositoryCreateCallback;
+}
+
 void _go_git_populate_checkout_cb(git_checkout_options *opts)
 {
 	opts->notify_cb = (git_checkout_notify_cb)checkoutNotifyCallback;

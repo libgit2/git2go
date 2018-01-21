@@ -4,6 +4,7 @@ package git
 #include <git2.h>
 
 extern void _go_git_populate_remote_cb(git_clone_options *opts);
+extern void _go_git_populate_repository_cb(git_clone_options *opts);
 */
 import "C"
 import (
@@ -11,14 +12,18 @@ import (
 	"unsafe"
 )
 
-type RemoteCreateCallback func(repo *Repository, name, url string) (*Remote, ErrorCode)
+type (
+	RemoteCreateCallback     func(repo *Repository, name, url string) (*Remote, ErrorCode)
+	RepositoryCreateCallback func(path string, bare bool) (*Repository, ErrorCode)
+)
 
 type CloneOptions struct {
 	*CheckoutOpts
 	*FetchOptions
-	Bare                 bool
-	CheckoutBranch       string
-	RemoteCreateCallback RemoteCreateCallback
+	Bare                     bool
+	CheckoutBranch           string
+	RemoteCreateCallback     RemoteCreateCallback
+	RepositoryCreateCallback RepositoryCreateCallback
 }
 
 func Clone(url string, path string, options *CloneOptions) (*Repository, error) {
@@ -76,6 +81,33 @@ func remoteCreateCallback(cremote unsafe.Pointer, crepo unsafe.Pointer, cname, c
 	}
 }
 
+//export repositoryCreateCallback
+func repositoryCreateCallback(crepo unsafe.Pointer, cpath *C.char, cbare C.int, payload unsafe.Pointer) C.int {
+	path := C.GoString(cpath)
+	bare := false
+	if cbare != 0 {
+		bare = true
+	}
+
+	if opts, ok := pointerHandles.Get(payload).(CloneOptions); ok {
+		repo, err := opts.RepositoryCreateCallback(path, bare)
+		// clear finalizer as the calling C function will
+		// free the repository itself
+		runtime.SetFinalizer(repo, nil)
+
+		if err == ErrOk && repo != nil {
+			cptr := (**C.git_repository)(crepo)
+			*cptr = repo.ptr
+		} else if err == ErrOk && repo == nil {
+			panic("no repository created by callback")
+		}
+
+		return C.int(err)
+	} else {
+		panic("invalid repository create callback")
+	}
+}
+
 func populateCloneOptions(ptr *C.git_clone_options, opts *CloneOptions) {
 	C.git_clone_init_options(ptr, C.GIT_CLONE_OPTIONS_VERSION)
 
@@ -91,6 +123,12 @@ func populateCloneOptions(ptr *C.git_clone_options, opts *CloneOptions) {
 		C._go_git_populate_remote_cb(ptr)
 		ptr.remote_cb_payload = pointerHandles.Track(*opts)
 	}
+
+	if opts.RepositoryCreateCallback != nil {
+		// Go v1.1 does not allow to assign a C function pointer
+		C._go_git_populate_repository_cb(ptr)
+		ptr.repository_cb_payload = pointerHandles.Track(*opts)
+	}
 }
 
 func freeCloneOptions(ptr *C.git_clone_options) {
@@ -102,6 +140,9 @@ func freeCloneOptions(ptr *C.git_clone_options) {
 
 	if ptr.remote_cb_payload != nil {
 		pointerHandles.Untrack(ptr.remote_cb_payload)
+	}
+	if ptr.repository_cb_payload != nil {
+		pointerHandles.Untrack(ptr.repository_cb_payload)
 	}
 
 	C.free(unsafe.Pointer(ptr.checkout_branch))
