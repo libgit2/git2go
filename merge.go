@@ -27,6 +27,15 @@ func newAnnotatedCommitFromC(ptr *C.git_annotated_commit, r *Repository) *Annota
 	return mh
 }
 
+func (mh *AnnotatedCommit) Id() *Oid {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := newOidFromC(C.git_annotated_commit_id(mh.ptr))
+	runtime.KeepAlive(mh)
+	return ret
+}
+
 func (mh *AnnotatedCommit) Free() {
 	runtime.SetFinalizer(mh, nil)
 	C.git_annotated_commit_free(mh.ptr)
@@ -73,6 +82,22 @@ func (r *Repository) AnnotatedCommitFromRef(ref *Reference) (*AnnotatedCommit, e
 	ret := C.git_annotated_commit_from_ref(&ptr, r.ptr, ref.ptr)
 	runtime.KeepAlive(r)
 	runtime.KeepAlive(ref)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+	return newAnnotatedCommitFromC(ptr, r), nil
+}
+
+func (r *Repository) AnnotatedCommitFromRevspec(spec string) (*AnnotatedCommit, error) {
+	crevspec := C.CString(spec)
+	defer C.free(unsafe.Pointer(crevspec))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var ptr *C.git_annotated_commit
+	ret := C.git_annotated_commit_from_revspec(&ptr, r.ptr, crevspec)
+	runtime.KeepAlive(r)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
