@@ -73,3 +73,19 @@ func (v *Repository) Cherrypick(commit *Commit, opts CherrypickOptions) error {
 	}
 	return nil
 }
+
+func (r *Repository) CherrypickCommit(pick, our *Commit, opts CherrypickOptions) (*Index, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	cOpts := opts.MergeOpts.toC()
+
+	var ptr *C.git_index
+	ret := C.git_cherrypick_commit(&ptr, r.ptr, pick.cast_ptr, our.cast_ptr, C.uint(opts.Mainline), cOpts)
+	runtime.KeepAlive(pick)
+	runtime.KeepAlive(our)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+	return newIndexFromC(ptr, r), nil
+}
