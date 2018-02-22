@@ -355,6 +355,7 @@ type MergeFileOptions struct {
 	TheirLabel    string
 	Favor         MergeFileFavor
 	Flags         MergeFileFlags
+	MarkerSize    uint16
 }
 
 func mergeFileOptionsFromC(c C.git_merge_file_options) MergeFileOptions {
@@ -364,6 +365,7 @@ func mergeFileOptionsFromC(c C.git_merge_file_options) MergeFileOptions {
 		TheirLabel:    C.GoString(c.their_label),
 		Favor:         MergeFileFavor(c.favor),
 		Flags:         MergeFileFlags(c.flags),
+		MarkerSize:    uint16(c.marker_size),
 	}
 }
 
@@ -373,6 +375,7 @@ func populateCMergeFileOptions(c *C.git_merge_file_options, options MergeFileOpt
 	c.their_label = C.CString(options.TheirLabel)
 	c.favor = C.git_merge_file_favor_t(options.Favor)
 	c.flags = C.git_merge_file_flag_t(options.Flags)
+	c.marker_size = C.ushort(options.MarkerSize)
 }
 
 func freeCMergeFileOptions(c *C.git_merge_file_options) {
