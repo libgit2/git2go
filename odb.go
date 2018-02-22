@@ -182,17 +182,21 @@ func (v *Odb) Hash(data []byte, otype ObjectType) (oid *Oid, err error) {
 // contents of the object.
 func (v *Odb) NewReadStream(id *Oid) (*OdbReadStream, error) {
 	stream := new(OdbReadStream)
+	var ctype C.git_otype
+	var csize C.size_t
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_odb_open_rstream(&stream.ptr, v.ptr, id.toC())
+	ret := C.git_odb_open_rstream(&stream.ptr, &csize, &ctype, v.ptr, id.toC())
 	runtime.KeepAlive(v)
 	runtime.KeepAlive(id)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
 
+	stream.Size = uint64(csize)
+	stream.Type = ObjectType(ctype)
 	runtime.SetFinalizer(stream, (*OdbReadStream).Free)
 	return stream, nil
 }
@@ -264,7 +268,9 @@ func (object *OdbObject) Data() (data []byte) {
 }
 
 type OdbReadStream struct {
-	ptr *C.git_odb_stream
+	ptr  *C.git_odb_stream
+	Size uint64
+	Type ObjectType
 }
 
 // Read reads from the stream
