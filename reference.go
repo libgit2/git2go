@@ -456,10 +456,12 @@ func (v *ReferenceIterator) Next() (*Reference, error) {
 }
 
 func newReferenceIteratorFromC(ptr *C.git_reference_iterator, r *Repository) *ReferenceIterator {
-	return &ReferenceIterator{
+	iter := &ReferenceIterator{
 		ptr:  ptr,
 		repo: r,
 	}
+	runtime.SetFinalizer(iter, (*ReferenceIterator).Free)
+	return iter
 }
 
 // Free the reference iterator
