@@ -37,10 +37,10 @@ func (c *Commit) RawMessage() string {
 func (c *Commit) ExtractSignature() (string, string, error) {
 
 	var c_signed C.git_buf
-	defer C.git_buf_free(&c_signed)
+	defer C.git_buf_dispose(&c_signed)
 
 	var c_signature C.git_buf
-	defer C.git_buf_free(&c_signature)
+	defer C.git_buf_dispose(&c_signature)
 
 	oid := c.Id()
 	repo := C.git_commit_owner(c.cast_ptr)
