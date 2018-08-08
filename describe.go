@@ -212,7 +212,7 @@ func (result *DescribeResult) Format(opts *DescribeFormatOptions) (string, error
 	if ecode < 0 {
 		return "", MakeGitError(ecode)
 	}
-	defer C.git_buf_free(&resultBuf)
+	defer C.git_buf_dispose(&resultBuf)
 
 	return C.GoString(resultBuf.ptr), nil
 }

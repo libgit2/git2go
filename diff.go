@@ -246,7 +246,7 @@ const (
 func (stats *DiffStats) String(format DiffStatsFormat,
 	width uint) (string, error) {
 	buf := C.git_buf{}
-	defer C.git_buf_free(&buf)
+	defer C.git_buf_dispose(&buf)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
