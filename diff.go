@@ -405,7 +405,7 @@ func (diff *Diff) Patch(deltaIndex int) (*Patch, error) {
 	return newPatchFromC(patchPtr), nil
 }
 
-type DiffOptionsFlag int
+type DiffOptionsFlag uint
 
 const (
 	DiffNormal                 DiffOptionsFlag = C.GIT_DIFF_NORMAL
