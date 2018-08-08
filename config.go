@@ -134,7 +134,7 @@ func (c *Config) LookupString(name string) (string, error) {
 	if ret < 0 {
 		return "", MakeGitError(ret)
 	}
-	defer C.git_buf_free(&valBuf)
+	defer C.git_buf_dispose(&valBuf)
 
 	return C.GoString(valBuf.ptr), nil
 }
@@ -390,7 +390,7 @@ func (iter *ConfigIterator) Free() {
 
 func ConfigFindGlobal() (string, error) {
 	var buf C.git_buf
-	defer C.git_buf_free(&buf)
+	defer C.git_buf_dispose(&buf)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -405,7 +405,7 @@ func ConfigFindGlobal() (string, error) {
 
 func ConfigFindSystem() (string, error) {
 	var buf C.git_buf
-	defer C.git_buf_free(&buf)
+	defer C.git_buf_dispose(&buf)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -420,7 +420,7 @@ func ConfigFindSystem() (string, error) {
 
 func ConfigFindXDG() (string, error) {
 	var buf C.git_buf
-	defer C.git_buf_free(&buf)
+	defer C.git_buf_dispose(&buf)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -438,7 +438,7 @@ func ConfigFindXDG() (string, error) {
 // Look for the file in %PROGRAMDATA%\Git\config used by portable git.
 func ConfigFindProgramdata() (string, error) {
 	var buf C.git_buf
-	defer C.git_buf_free(&buf)
+	defer C.git_buf_dispose(&buf)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()

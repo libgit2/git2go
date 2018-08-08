@@ -31,7 +31,7 @@ import (
 
 func SearchPath(level ConfigLevel) (string, error) {
 	var buf C.git_buf
-	defer C.git_buf_free(&buf)
+	defer C.git_buf_dispose(&buf)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()

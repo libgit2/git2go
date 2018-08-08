@@ -309,7 +309,7 @@ func Discover(start string, across_fs bool, ceiling_dirs []string) (string, erro
 	defer C.free(unsafe.Pointer(cstart))
 
 	var buf C.git_buf
-	defer C.git_buf_free(&buf)
+	defer C.git_buf_dispose(&buf)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()

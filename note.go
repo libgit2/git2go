@@ -132,7 +132,7 @@ func (c *NoteCollection) DefaultRef() (string, error) {
 	}
 
 	ret := C.GoString(buf.ptr)
-	C.git_buf_free(&buf)
+	C.git_buf_dispose(&buf)
 
 	return ret, nil
 }
