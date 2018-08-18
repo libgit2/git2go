@@ -3,6 +3,8 @@ package git
 /*
 #include <git2.h>
 #include <git2/sys/repository.h>
+#include <git2/sys/commit.h>
+#include <string.h>
 */
 import "C"
 import (
@@ -378,6 +380,66 @@ func (v *Repository) CreateCommit(
 		oid.toC(), v.ptr, cref,
 		authorSig, committerSig,
 		nil, cmsg, tree.cast_ptr, C.size_t(nparents), parentsarg)
+
+	runtime.KeepAlive(v)
+	runtime.KeepAlive(oid)
+	runtime.KeepAlive(parents)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return oid, nil
+}
+
+func (v *Repository) CreateCommitFromIds(
+	refname string, author, committer *Signature,
+	message string, tree *Oid, parents ...*Oid) (*Oid, error) {
+
+	oid := new(Oid)
+
+	var cref *C.char
+	if refname == "" {
+		cref = nil
+	} else {
+		cref = C.CString(refname)
+		defer C.free(unsafe.Pointer(cref))
+	}
+
+	cmsg := C.CString(message)
+	defer C.free(unsafe.Pointer(cmsg))
+
+	var parentsarg **C.git_oid = nil
+
+	nparents := len(parents)
+	if nparents > 0 {
+		parentsarg = (**C.git_oid)(C.malloc(C.size_t(unsafe.Sizeof(uintptr(0)) * uintptr(nparents))))
+		defer C.free(unsafe.Pointer(parentsarg))
+		parentsptr := uintptr(unsafe.Pointer(parentsarg))
+		for _, v := range parents {
+			*(**C.git_oid)(unsafe.Pointer(parentsptr)) = v.toC()
+			parentsptr += unsafe.Sizeof(uintptr(0))
+		}
+	}
+
+	authorSig, err := author.toC()
+	if err != nil {
+		return nil, err
+	}
+	defer C.git_signature_free(authorSig)
+
+	committerSig, err := committer.toC()
+	if err != nil {
+		return nil, err
+	}
+	defer C.git_signature_free(committerSig)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_commit_create_from_ids(
+		oid.toC(), v.ptr, cref,
+		authorSig, committerSig,
+		nil, cmsg, tree.toC(), C.size_t(nparents), parentsarg)
 
 	runtime.KeepAlive(v)
 	runtime.KeepAlive(oid)
