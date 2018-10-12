@@ -112,25 +112,36 @@ func (t Tree) EntryCount() uint64 {
 	return uint64(num)
 }
 
-type TreeWalkCallback func(string, *TreeEntry) int
+
+type TreeWalkCallback func(string, *TreeEntry, interface{}) int
+
+type TreeWalkCallbackContext struct {
+	Callback TreeWalkCallback
+	Payload interface{}
+}
+
 
 //export CallbackGitTreeWalk
 func CallbackGitTreeWalk(_root *C.char, _entry unsafe.Pointer, ptr unsafe.Pointer) C.int {
 	root := C.GoString(_root)
 	entry := (*C.git_tree_entry)(_entry)
 
-	if callback, ok := pointerHandles.Get(ptr).(TreeWalkCallback); ok {
-		return C.int(callback(root, newTreeEntry(entry)))
+	if ctx, ok := pointerHandles.Get(ptr).(*TreeWalkCallbackContext); ok {
+		return C.int(ctx.Callback(root, newTreeEntry(entry), ctx.Payload))
 	} else {
 		panic("invalid treewalk callback")
 	}
 }
 
-func (t Tree) Walk(callback TreeWalkCallback) error {
+func (t Tree) Walk(callback TreeWalkCallback, payload interface{}) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ptr := pointerHandles.Track(callback)
+	ctx := &TreeWalkCallbackContext {
+		Callback: callback,
+		Payload: payload,
+	}
+	ptr := pointerHandles.Track(ctx)
 	defer pointerHandles.Untrack(ptr)
 
 	err := C._go_git_treewalk(
