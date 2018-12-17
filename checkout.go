@@ -35,7 +35,7 @@ const (
 	CheckoutDontUpdateIndex           CheckoutStrategy = C.GIT_CHECKOUT_DONT_UPDATE_INDEX            // Normally checkout updates index entries as it goes; this stops that
 	CheckoutNoRefresh                 CheckoutStrategy = C.GIT_CHECKOUT_NO_REFRESH                   // Don't refresh index/config/etc before doing checkout
 	CheckoutSkipUnmerged              CheckoutStrategy = C.GIT_CHECKOUT_SKIP_UNMERGED                // Allow checkout to skip unmerged files
-	CheckoutUserOurs                  CheckoutStrategy = C.GIT_CHECKOUT_USE_OURS                     // For unmerged files, checkout stage 2 from index
+	CheckoutUseOurs                   CheckoutStrategy = C.GIT_CHECKOUT_USE_OURS                     // For unmerged files, checkout stage 2 from index
 	CheckoutUseTheirs                 CheckoutStrategy = C.GIT_CHECKOUT_USE_THEIRS                   // For unmerged files, checkout stage 3 from index
 	CheckoutDisablePathspecMatch      CheckoutStrategy = C.GIT_CHECKOUT_DISABLE_PATHSPEC_MATCH       // Treat pathspec as simple list of exact match file paths
 	CheckoutSkipLockedDirectories     CheckoutStrategy = C.GIT_CHECKOUT_SKIP_LOCKED_DIRECTORIES      // Ignore directories in use, they will be left empty
