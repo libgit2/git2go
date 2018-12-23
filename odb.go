@@ -4,6 +4,7 @@ package git
 #include <git2.h>
 
 extern int git_odb_backend_one_pack(git_odb_backend **out, const char *index_file);
+extern int git_odb_backend_loose(git_odb_backend **out, const char *objects_dir, int compression_level, int do_fsync, unsigned int dir_mode, unsigned int file_mode);
 extern int _go_git_odb_foreach(git_odb *db, void *payload);
 extern void _go_git_odb_backend_free(git_odb_backend *backend);
 extern int _go_git_odb_write_pack(git_odb_writepack **out, git_odb *db, void *progress_payload);
@@ -14,6 +15,7 @@ extern void _go_git_odb_writepack_free(git_odb_writepack *writepack);
 import "C"
 import (
 	"io"
+	"os"
 	"reflect"
 	"runtime"
 	"unsafe"
@@ -86,6 +88,27 @@ func NewOdbBackendOnePack(packfileIndexPath string) (backend *OdbBackend, err er
 		return nil, MakeGitError(ret)
 	}
 	return NewOdbBackendFromC(unsafe.Pointer(odbOnePack)), nil
+}
+
+// NewOdbBackendLoose creates a backend for loose objects.
+func NewOdbBackendLoose(objectsDir string, compressionLevel int, doFsync bool, dirMode os.FileMode, fileMode os.FileMode) (backend *OdbBackend, err error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var odbLoose *C.git_odb_backend = nil
+	var doFsyncInt C.int
+	if doFsync {
+		doFsyncInt = C.int(1)
+	}
+
+	cstr := C.CString(objectsDir)
+	defer C.free(unsafe.Pointer(cstr))
+
+	ret := C.git_odb_backend_loose(&odbLoose, cstr, C.int(compressionLevel), doFsyncInt, C.uint(dirMode), C.uint(fileMode))
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+	return NewOdbBackendFromC(unsafe.Pointer(odbLoose)), nil
 }
 
 func (v *Odb) ReadHeader(oid *Oid) (uint64, ObjectType, error) {
