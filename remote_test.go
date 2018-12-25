@@ -192,9 +192,6 @@ func TestRemoteCredentialsCalled(t *testing.T) {
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
-	remote, err := repo.Remotes.CreateAnonymous("https://github.com/libgit2/non-existent")
-	checkFatal(t, err)
-
 	fetchOpts := FetchOptions{
 		RemoteCallbacks: RemoteCallbacks{
 			CredentialsCallback: func(url, username string, allowedTypes CredType) (*Cred, error) {
@@ -203,8 +200,14 @@ func TestRemoteCredentialsCalled(t *testing.T) {
 		},
 	}
 
-	err = remote.Fetch(nil, &fetchOpts, "fetch")
-	if !IsErrorCode(err, ErrUser) {
-		t.Fatal("Bad Fetch return, expected ErrUser, got", err)
+	for _, protocol := range []string{"ssh", "https"} {
+		remote, err := repo.Remotes.CreateAnonymous(fmt.Sprintf("%s://github.com/libgit2/non-existent", protocol))
+		checkFatal(t, err)
+
+		err = remote.Fetch(nil, &fetchOpts, "")
+		if !IsErrorCode(err, ErrUser) {
+			t.Errorf("Bad Fetch return for protocol %s, expected ErrUser, got %v", protocol, err)
+		}
+		remote.Free()
 	}
 }

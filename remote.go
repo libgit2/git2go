@@ -221,6 +221,7 @@ type Certificate struct {
 	Hostkey HostkeyCertificate
 }
 
+// HostkeyKind is a bitmask of the available hashes in HostkeyCertificate.
 type HostkeyKind uint
 
 const (
@@ -228,9 +229,8 @@ const (
 	HostkeySHA1 HostkeyKind = C.GIT_CERT_SSH_SHA1
 )
 
-// Server host key information. If Kind is HostkeyMD5 the MD5 field
-// will be filled. If Kind is HostkeySHA1, then HashSHA1 will be
-// filled.
+// Server host key information. HashMD5 and HashSHA1 will be filled if the
+// HostkeyKind bitmask has the HostkeyMD5 and/or HostkeySHA1 bits on.
 type HostkeyCertificate struct {
 	Kind     HostkeyKind
 	HashMD5  [16]byte

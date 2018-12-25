@@ -138,6 +138,10 @@ func init() {
 	if err := registerManagedHttps(); err != nil {
 		panic(err)
 	}
+
+	if err := registerManagedSsh(); err != nil {
+		panic(err)
+	}
 }
 
 // Oid represents the id for a Git object.

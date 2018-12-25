@@ -20,6 +20,9 @@ const (
 	CredTypeSshKey            CredType = C.GIT_CREDTYPE_SSH_KEY
 	CredTypeSshCustom         CredType = C.GIT_CREDTYPE_SSH_CUSTOM
 	CredTypeDefault           CredType = C.GIT_CREDTYPE_DEFAULT
+	CredTypeSshInteractive    CredType = C.GIT_CREDTYPE_SSH_INTERACTIVE
+	CredTypeUsername          CredType = C.GIT_CREDTYPE_USERNAME
+	CredTypeSshMemory         CredType = C.GIT_CREDTYPE_SSH_MEMORY
 )
 
 type Cred struct {
@@ -59,6 +62,21 @@ func (o *Cred) GetUserpassPlaintext() (username, password string, err error) {
 	plaintextCredPtr := (*C.git_cred_userpass_plaintext)(unsafe.Pointer(o.ptr))
 	username = C.GoString(plaintextCredPtr.username)
 	password = C.GoString(plaintextCredPtr.password)
+	return
+}
+
+// GetSshKey returns the SSH-specific key information from the Cred object.
+func (o *Cred) GetSshKey() (username, publickey, privatekey, passphrase string, err error) {
+	if o.Type() != CredTypeSshKey && o.Type() != CredTypeSshMemory {
+		err = errors.New("credential is not an ssh key")
+		return
+	}
+
+	sshKeyCredPtr := (*C.git_cred_ssh_key)(unsafe.Pointer(o.ptr))
+	username = C.GoString(sshKeyCredPtr.username)
+	publickey = C.GoString(sshKeyCredPtr.publickey)
+	privatekey = C.GoString(sshKeyCredPtr.privatekey)
+	passphrase = C.GoString(sshKeyCredPtr.passphrase)
 	return
 }
 
