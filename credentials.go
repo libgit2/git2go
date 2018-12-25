@@ -120,6 +120,21 @@ func (o *Credential) GetUserpassPlaintext() (username, password string, err erro
 	return
 }
 
+// GetSSHKey returns the SSH-specific key information from the Cred object.
+func (o *Credential) GetSSHKey() (username, publickey, privatekey, passphrase string, err error) {
+	if o.Type() != CredentialTypeSSHKey && o.Type() != CredentialTypeSSHMemory {
+		err = fmt.Errorf("credential is not an SSH key: %v", o.Type())
+		return
+	}
+
+	sshKeyCredPtr := (*C.git_cred_ssh_key)(unsafe.Pointer(o.ptr))
+	username = C.GoString(sshKeyCredPtr.username)
+	publickey = C.GoString(sshKeyCredPtr.publickey)
+	privatekey = C.GoString(sshKeyCredPtr.privatekey)
+	passphrase = C.GoString(sshKeyCredPtr.passphrase)
+	return
+}
+
 func NewCredentialUsername(username string) (*Credential, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
