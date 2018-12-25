@@ -344,7 +344,7 @@ func (c *Config) OpenLevel(parent *Config, level ConfigLevel) (*Config, error) {
 }
 
 // OpenOndisk creates a new config instance containing a single on-disk file
-func OpenOndisk(parent *Config, path string) (*Config, error) {
+func OpenOndisk(path string) (*Config, error) {
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
 
