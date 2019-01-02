@@ -8,6 +8,7 @@ extern void _go_git_odb_backend_free(git_odb_backend *backend);
 */
 import "C"
 import (
+	"io"
 	"reflect"
 	"runtime"
 	"unsafe"
@@ -286,6 +287,9 @@ func (stream *OdbReadStream) Read(data []byte) (int, error) {
 	runtime.KeepAlive(stream)
 	if ret < 0 {
 		return 0, MakeGitError(ret)
+	}
+	if ret == 0 {
+		return 0, io.EOF
 	}
 
 	header.Len = int(ret)

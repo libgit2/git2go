@@ -3,6 +3,7 @@ package git
 import (
 	"errors"
 	"io"
+	"io/ioutil"
 	"testing"
 )
 
@@ -26,7 +27,7 @@ func TestOdbReadHeader(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadHeader: %v", err)
 	}
-	
+
 	if sz != uint64(len(data)) {
 		t.Errorf("ReadHeader got size %d, want %d", sz, len(data))
 	}
@@ -47,21 +48,28 @@ func TestOdbStream(t *testing.T) {
 
 	str := "hello, world!"
 
-	stream, error := odb.NewWriteStream(int64(len(str)), ObjectBlob)
+	writeStream, error := odb.NewWriteStream(int64(len(str)), ObjectBlob)
 	checkFatal(t, error)
-	n, error := io.WriteString(stream, str)
+	n, error := io.WriteString(writeStream, str)
 	checkFatal(t, error)
 	if n != len(str) {
 		t.Fatalf("Bad write length %v != %v", n, len(str))
 	}
 
-	error = stream.Close()
+	error = writeStream.Close()
 	checkFatal(t, error)
 
 	expectedId, error := NewOid("30f51a3fba5274d53522d0f19748456974647b4f")
 	checkFatal(t, error)
-	if stream.Id.Cmp(expectedId) != 0 {
+	if writeStream.Id.Cmp(expectedId) != 0 {
 		t.Fatal("Wrong data written")
+	}
+
+	readStream, error := odb.NewReadStream(&writeStream.Id)
+	checkFatal(t, error)
+	data, error := ioutil.ReadAll(readStream)
+	if str != string(data) {
+		t.Fatalf("Wrong data read %v != %v", str, string(data))
 	}
 }
 
