@@ -81,15 +81,19 @@ func (v *Odb) Exists(oid *Oid) bool {
 
 func (v *Odb) Write(data []byte, otype ObjectType) (oid *Oid, err error) {
 	oid = new(Oid)
-	var cptr unsafe.Pointer
-	if len(data) > 0 {
-		cptr = unsafe.Pointer(&data[0])
-	}
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_odb_write(oid.toC(), v.ptr, cptr, C.size_t(len(data)), C.git_otype(otype))
+	var size C.size_t
+	if len(data) > 0 {
+		size = C.size_t(len(data))
+	} else {
+		data = []byte{0}
+		size = C.size_t(0)
+	}
+
+	ret := C.git_odb_write(oid.toC(), v.ptr, unsafe.Pointer(&data[0]), size, C.git_otype(otype))
 	runtime.KeepAlive(v)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
@@ -165,13 +169,19 @@ func (v *Odb) ForEach(callback OdbForEachCallback) error {
 // Hash determines the object-ID (sha1) of a data buffer.
 func (v *Odb) Hash(data []byte, otype ObjectType) (oid *Oid, err error) {
 	oid = new(Oid)
-	header := (*reflect.SliceHeader)(unsafe.Pointer(&data))
-	ptr := unsafe.Pointer(header.Data)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_odb_hash(oid.toC(), ptr, C.size_t(header.Len), C.git_otype(otype))
+	var size C.size_t
+	if len(data) > 0 {
+		size = C.size_t(len(data))
+	} else {
+		data = []byte{0}
+		size = C.size_t(0)
+	}
+
+	ret := C.git_odb_hash(oid.toC(), unsafe.Pointer(&data[0]), size, C.git_otype(otype))
 	runtime.KeepAlive(data)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
