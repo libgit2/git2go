@@ -1,13 +1,14 @@
 package git
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"io/ioutil"
 	"testing"
 )
 
-func TestOdbReadHeader(t *testing.T) {
+func TestOdbRead(t *testing.T) {
 	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
@@ -33,6 +34,20 @@ func TestOdbReadHeader(t *testing.T) {
 	}
 	if typ != ObjectBlob {
 		t.Errorf("ReadHeader got object type %s", typ)
+	}
+
+	obj, err := odb.Read(id)
+	if err != nil {
+		t.Fatalf("Read: %v", err)
+	}
+	if !bytes.Equal(obj.Data(), data) {
+		t.Errorf("Read got wrong data")
+	}
+	if sz := obj.Len(); sz != uint64(len(data)) {
+		t.Errorf("Read got size %d, want %d", sz, len(data))
+	}
+	if typ := obj.Type(); typ != ObjectBlob {
+		t.Errorf("Read got object type %s", typ)
 	}
 }
 
@@ -90,14 +105,16 @@ committer John Doe <john@doe.com> 1390682018 +0000
 
 Initial commit.`
 
-	oid, error := odb.Hash([]byte(str), ObjectCommit)
-	checkFatal(t, error)
+	for _, data := range [][]byte{[]byte(str), doublePointerBytes()} {
+		oid, error := odb.Hash(data, ObjectCommit)
+		checkFatal(t, error)
 
-	coid, error := odb.Write([]byte(str), ObjectCommit)
-	checkFatal(t, error)
+		coid, error := odb.Write(data, ObjectCommit)
+		checkFatal(t, error)
 
-	if oid.Cmp(coid) != 0 {
-		t.Fatal("Hash and write Oids are different")
+		if oid.Cmp(coid) != 0 {
+			t.Fatal("Hash and write Oids are different")
+		}
 	}
 }
 
