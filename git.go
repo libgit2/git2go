@@ -189,22 +189,16 @@ func (oid *Oid) Cmp(oid2 *Oid) int {
 }
 
 func (oid *Oid) Copy() *Oid {
-	ret := new(Oid)
-	copy(ret[:], oid[:])
-	return ret
+	ret := *oid
+	return &ret
 }
 
 func (oid *Oid) Equal(oid2 *Oid) bool {
-	return bytes.Equal(oid[:], oid2[:])
+	return *oid == *oid2
 }
 
 func (oid *Oid) IsZero() bool {
-	for _, a := range oid {
-		if a != 0 {
-			return false
-		}
-	}
-	return true
+	return *oid == Oid{}
 }
 
 func (oid *Oid) NCmp(oid2 *Oid, n uint) int {
