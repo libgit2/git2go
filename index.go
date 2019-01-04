@@ -145,6 +145,20 @@ func (v *Index) Path() string {
 	return ret
 }
 
+// Clear clears the index object in memory; changes must be explicitly
+// written to disk for them to take effect persistently
+func (v *Index) Clear() error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	err := C.git_index_clear(v.ptr)
+	runtime.KeepAlive(v)
+	if err < 0 {
+		return MakeGitError(err)
+	}
+	return nil
+}
+
 // Add adds or replaces the given entry to the index, making a copy of
 // the data
 func (v *Index) Add(entry *IndexEntry) error {
