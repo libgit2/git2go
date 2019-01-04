@@ -85,6 +85,19 @@ func (pb *Packbuilder) InsertTree(id *Oid) error {
 	return nil
 }
 
+func (pb *Packbuilder) InsertWalk(walk *RevWalk) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_packbuilder_insert_walk(pb.ptr, walk.ptr)
+	runtime.KeepAlive(pb)
+	runtime.KeepAlive(walk)
+	if ret != 0 {
+		return MakeGitError(ret)
+	}
+	return nil
+}
+
 func (pb *Packbuilder) ObjectCount() uint32 {
 	ret := uint32(C.git_packbuilder_object_count(pb.ptr))
 	runtime.KeepAlive(pb)
