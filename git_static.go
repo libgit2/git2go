@@ -3,9 +3,9 @@
 package git
 
 /*
-#cgo windows CFLAGS: -I${SRCDIR}/vendor/libgit2/include
-#cgo windows LDFLAGS: -L${SRCDIR}/vendor/libgit2/build/ -lgit2 -lwinhttp
-#cgo !windows pkg-config: --static ${SRCDIR}/vendor/libgit2/build/libgit2.pc
+#cgo windows CFLAGS: -I${SRCDIR}/static-build/install/include/
+#cgo windows LDFLAGS: -L${SRCDIR}/static-build/install/lib/ -lgit2 -lwinhttp
+#cgo !windows pkg-config: --static ${SRCDIR}/static-build/install/lib/pkgconfig/libgit2.pc
 #include <git2.h>
 
 #if LIBGIT2_VER_MAJOR != 0 || LIBGIT2_VER_MINOR != 27
