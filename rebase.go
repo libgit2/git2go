@@ -6,6 +6,7 @@ package git
 import "C"
 import (
 	"errors"
+	"fmt"
 	"runtime"
 	"unsafe"
 )
@@ -16,6 +17,8 @@ type RebaseOperationType uint
 const (
 	// RebaseOperationPick The given commit is to be cherry-picked.  The client should commit the changes and continue if there are no conflicts.
 	RebaseOperationPick RebaseOperationType = C.GIT_REBASE_OPERATION_PICK
+	// RebaseOperationReword The given commit is to be cherry-picked, but the client should prompt the user to provide an updated commit message.
+	RebaseOperationReword RebaseOperationType = C.GIT_REBASE_OPERATION_REWORD
 	// RebaseOperationEdit The given commit is to be cherry-picked, but the client should stop to allow the user to edit the changes before committing them.
 	RebaseOperationEdit RebaseOperationType = C.GIT_REBASE_OPERATION_EDIT
 	// RebaseOperationSquash The given commit is to be squashed into the previous commit.  The commit message will be merged with the previous message.
@@ -25,6 +28,24 @@ const (
 	// RebaseOperationExec No commit will be cherry-picked.  The client should run the given command and (if successful) continue.
 	RebaseOperationExec RebaseOperationType = C.GIT_REBASE_OPERATION_EXEC
 )
+
+func (t RebaseOperationType) String() string {
+	switch t {
+	case RebaseOperationPick:
+		return "pick"
+	case RebaseOperationReword:
+		return "reword"
+	case RebaseOperationEdit:
+		return "edit"
+	case RebaseOperationSquash:
+		return "squash"
+	case RebaseOperationFixup:
+		return "fixup"
+	case RebaseOperationExec:
+		return "exec"
+	}
+	return fmt.Sprintf("RebaseOperationType(%d)", t)
+}
 
 // Special value indicating that there is no currently active operation
 var RebaseNoOperation uint = ^uint(0)
