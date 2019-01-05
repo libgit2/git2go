@@ -412,12 +412,19 @@ func (v *Repository) CreateCommitFromIds(
 
 	nparents := len(parents)
 	if nparents > 0 {
-		parentsarg = (**C.git_oid)(C.malloc(C.size_t(unsafe.Sizeof(uintptr(0)) * uintptr(nparents))))
+		// All this awful pointer arithmetic is needed to avoid passing a Go
+		// pointer to Go pointer into C. Other methods (like CreateCommits) are
+		// fine without this workaround because they are just passing Go pointers
+		// to C pointers, but arrays-of-pointers-to-git_oid are a bit special since
+		// both the array and the objects are allocated from Go.
+		var emptyOidPtr *C.git_oid
+		sizeofOidPtr := unsafe.Sizeof(emptyOidPtr)
+		parentsarg = (**C.git_oid)(C.calloc(C.size_t(uintptr(nparents)), C.size_t(sizeofOidPtr)))
 		defer C.free(unsafe.Pointer(parentsarg))
 		parentsptr := uintptr(unsafe.Pointer(parentsarg))
 		for _, v := range parents {
 			*(**C.git_oid)(unsafe.Pointer(parentsptr)) = v.toC()
-			parentsptr += unsafe.Sizeof(uintptr(0))
+			parentsptr += sizeofOidPtr
 		}
 	}
 
