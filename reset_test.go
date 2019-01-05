@@ -8,6 +8,8 @@ import (
 func TestResetToCommit(t *testing.T) {
 	t.Parallel()
 	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
 	seedTestRepo(t, repo)
 	// create commit to reset to
 	commitId, _ := updateReadme(t, repo, "testing reset")
