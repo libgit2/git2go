@@ -51,7 +51,7 @@ func (patch *Patch) String() (string, error) {
 	if ecode < 0 {
 		return "", MakeGitError(ecode)
 	}
-	defer C.git_buf_free(&buf)
+	defer C.git_buf_dispose(&buf)
 
 	return C.GoString(buf.ptr), nil
 }

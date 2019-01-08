@@ -1,12 +1,14 @@
 package git
 
 import (
+	"bytes"
 	"errors"
 	"io"
+	"io/ioutil"
 	"testing"
 )
 
-func TestOdbReadHeader(t *testing.T) {
+func TestOdbRead(t *testing.T) {
 	t.Parallel()
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
@@ -26,12 +28,26 @@ func TestOdbReadHeader(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadHeader: %v", err)
 	}
-	
+
 	if sz != uint64(len(data)) {
 		t.Errorf("ReadHeader got size %d, want %d", sz, len(data))
 	}
 	if typ != ObjectBlob {
 		t.Errorf("ReadHeader got object type %s", typ)
+	}
+
+	obj, err := odb.Read(id)
+	if err != nil {
+		t.Fatalf("Read: %v", err)
+	}
+	if !bytes.Equal(obj.Data(), data) {
+		t.Errorf("Read got wrong data")
+	}
+	if sz := obj.Len(); sz != uint64(len(data)) {
+		t.Errorf("Read got size %d, want %d", sz, len(data))
+	}
+	if typ := obj.Type(); typ != ObjectBlob {
+		t.Errorf("Read got object type %s", typ)
 	}
 }
 
@@ -47,21 +63,28 @@ func TestOdbStream(t *testing.T) {
 
 	str := "hello, world!"
 
-	stream, error := odb.NewWriteStream(int64(len(str)), ObjectBlob)
+	writeStream, error := odb.NewWriteStream(int64(len(str)), ObjectBlob)
 	checkFatal(t, error)
-	n, error := io.WriteString(stream, str)
+	n, error := io.WriteString(writeStream, str)
 	checkFatal(t, error)
 	if n != len(str) {
 		t.Fatalf("Bad write length %v != %v", n, len(str))
 	}
 
-	error = stream.Close()
+	error = writeStream.Close()
 	checkFatal(t, error)
 
 	expectedId, error := NewOid("30f51a3fba5274d53522d0f19748456974647b4f")
 	checkFatal(t, error)
-	if stream.Id.Cmp(expectedId) != 0 {
+	if writeStream.Id.Cmp(expectedId) != 0 {
 		t.Fatal("Wrong data written")
+	}
+
+	readStream, error := odb.NewReadStream(&writeStream.Id)
+	checkFatal(t, error)
+	data, error := ioutil.ReadAll(readStream)
+	if str != string(data) {
+		t.Fatalf("Wrong data read %v != %v", str, string(data))
 	}
 }
 
@@ -82,14 +105,16 @@ committer John Doe <john@doe.com> 1390682018 +0000
 
 Initial commit.`
 
-	oid, error := odb.Hash([]byte(str), ObjectCommit)
-	checkFatal(t, error)
+	for _, data := range [][]byte{[]byte(str), doublePointerBytes()} {
+		oid, error := odb.Hash(data, ObjectCommit)
+		checkFatal(t, error)
 
-	coid, error := odb.Write([]byte(str), ObjectCommit)
-	checkFatal(t, error)
+		coid, error := odb.Write(data, ObjectCommit)
+		checkFatal(t, error)
 
-	if oid.Cmp(coid) != 0 {
-		t.Fatal("Hash and write Oids are different")
+		if oid.Cmp(coid) != 0 {
+			t.Fatal("Hash and write Oids are different")
+		}
 	}
 }
 

@@ -284,7 +284,7 @@ func (v *Reference) Peel(t ObjectType) (*Object, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	err := C.git_reference_peel(&cobj, v.ptr, C.git_otype(t))
+	err := C.git_reference_peel(&cobj, v.ptr, C.git_object_t(t))
 	runtime.KeepAlive(v)
 	if err < 0 {
 		return nil, MakeGitError(err)

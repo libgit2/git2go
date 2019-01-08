@@ -344,9 +344,29 @@ type MergeFileFlags int
 const (
 	MergeFileDefault MergeFileFlags = C.GIT_MERGE_FILE_DEFAULT
 
-	MergeFileStyleMerge         MergeFileFlags = C.GIT_MERGE_FILE_STYLE_MERGE
-	MergeFileStyleDiff          MergeFileFlags = C.GIT_MERGE_FILE_STYLE_DIFF3
+	// Create standard conflicted merge files
+	MergeFileStyleMerge MergeFileFlags = C.GIT_MERGE_FILE_STYLE_MERGE
+
+	// Create diff3-style files
+	MergeFileStyleDiff MergeFileFlags = C.GIT_MERGE_FILE_STYLE_DIFF3
+
+	// Condense non-alphanumeric regions for simplified diff file
 	MergeFileStyleSimplifyAlnum MergeFileFlags = C.GIT_MERGE_FILE_SIMPLIFY_ALNUM
+
+	// Ignore all whitespace
+	MergeFileIgnoreWhitespace MergeFileFlags = C.GIT_MERGE_FILE_IGNORE_WHITESPACE
+
+	// Ignore changes in amount of whitespace
+	MergeFileIgnoreWhitespaceChange MergeFileFlags = C.GIT_MERGE_FILE_IGNORE_WHITESPACE_CHANGE
+
+	// Ignore whitespace at end of line
+	MergeFileIgnoreWhitespaceEOL MergeFileFlags = C.GIT_MERGE_FILE_IGNORE_WHITESPACE_EOL
+
+	// Use the "patience diff" algorithm
+	MergeFileDiffPatience MergeFileFlags = C.GIT_MERGE_FILE_DIFF_PATIENCE
+
+	// Take extra time to find minimal diff
+	MergeFileDiffMinimal MergeFileFlags = C.GIT_MERGE_FILE_DIFF_MINIMAL
 )
 
 type MergeFileOptions struct {
