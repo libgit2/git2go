@@ -450,6 +450,7 @@ func (v *Repository) CreateCommitFromIds(
 
 	runtime.KeepAlive(v)
 	runtime.KeepAlive(oid)
+	runtime.KeepAlive(tree)
 	runtime.KeepAlive(parents)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
