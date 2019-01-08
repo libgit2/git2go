@@ -32,15 +32,13 @@ func NewMempack(odb *Odb) (mempack *Mempack, err error) {
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	runtime.SetFinalizer(mempack, (*Mempack).Free)
 
 	ret = C.git_odb_add_backend(odb.ptr, mempack.ptr, C.int(999))
 	if ret < 0 {
 		// Since git_odb_add_alternate() takes ownership of the ODB backend, the
 		// only case in which we free the mempack's memory is if it fails to be
-		// added to the ODB. Mempack.Free() is actually just a no-op.
+		// added to the ODB.
 		C._go_git_odb_backend_free(mempack.ptr)
-		mempack.Free()
 		return nil, MakeGitError(ret)
 	}
 
@@ -66,16 +64,12 @@ func (mempack *Mempack) Dump(repository *Repository) ([]byte, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	var repoPtr *C.git_repository
-	if repository != nil {
-		repoPtr = repository.ptr
-	}
-
-	ret := C.git_mempack_dump(&buf, repoPtr, mempack.ptr)
+	ret := C.git_mempack_dump(&buf, repository.ptr, mempack.ptr)
+	runtime.KeepAlive(repository)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	defer C.git_buf_free(&buf)
+	defer C.git_buf_dispose(&buf)
 
 	return C.GoBytes(unsafe.Pointer(buf.ptr), C.int(buf.size)), nil
 }
@@ -85,13 +79,5 @@ func (mempack *Mempack) Dump(repository *Repository) ([]byte, error) {
 // This assumes that Mempack.Dump has been called before to store all the
 // queued objects into a single packfile.
 func (mempack *Mempack) Reset() {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
 	C.git_mempack_reset(mempack.ptr)
-}
-
-// Free frees the mempack and its resources.
-func (mempack *Mempack) Free() {
-	runtime.SetFinalizer(mempack, nil)
 }
