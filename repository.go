@@ -176,7 +176,7 @@ func (v *Repository) lookupType(id *Oid, t ObjectType) (*Object, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_object_lookup(&ptr, v.ptr, id.toC(), C.git_otype(t))
+	ret := C.git_object_lookup(&ptr, v.ptr, id.toC(), C.git_object_t(t))
 	runtime.KeepAlive(id)
 	if ret < 0 {
 		return nil, MakeGitError(ret)

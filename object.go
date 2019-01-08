@@ -13,12 +13,12 @@ import (
 type ObjectType int
 
 const (
-	ObjectAny    ObjectType = C.GIT_OBJ_ANY
-	ObjectBad    ObjectType = C.GIT_OBJ_BAD
-	ObjectCommit ObjectType = C.GIT_OBJ_COMMIT
-	ObjectTree   ObjectType = C.GIT_OBJ_TREE
-	ObjectBlob   ObjectType = C.GIT_OBJ_BLOB
-	ObjectTag    ObjectType = C.GIT_OBJ_TAG
+	ObjectAny    ObjectType = C.GIT_OBJECT_ANY
+	ObjectBad    ObjectType = C.GIT_OBJECT_BAD
+	ObjectCommit ObjectType = C.GIT_OBJECT_COMMIT
+	ObjectTree   ObjectType = C.GIT_OBJECT_TREE
+	ObjectBlob   ObjectType = C.GIT_OBJECT_BLOB
+	ObjectTag    ObjectType = C.GIT_OBJECT_TAG
 )
 
 type Object struct {
@@ -217,7 +217,7 @@ func (o *Object) Peel(t ObjectType) (*Object, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	err := C.git_object_peel(&cobj, o.ptr, C.git_otype(t))
+	err := C.git_object_peel(&cobj, o.ptr, C.git_object_t(t))
 	runtime.KeepAlive(o)
 	if err < 0 {
 		return nil, MakeGitError(err)
