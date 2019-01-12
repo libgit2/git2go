@@ -66,7 +66,7 @@ func (v *Odb) ReadHeader(oid *Oid) (uint64, ObjectType, error) {
 	ret := C.git_odb_read_header(&sz, &cotype, v.ptr, oid.toC())
 	runtime.KeepAlive(v)
 	if ret < 0 {
-		return 0, ObjectBad, MakeGitError(ret)
+		return 0, ObjectInvalid, MakeGitError(ret)
 	}
 
 	return uint64(sz), ObjectType(cotype), nil
