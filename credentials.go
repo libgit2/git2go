@@ -8,6 +8,7 @@ git_credtype_t _go_git_cred_credtype(git_cred *cred);
 */
 import "C"
 import (
+	"errors"
 	"runtime"
 	"unsafe"
 )
@@ -46,6 +47,19 @@ func (o *Cred) Free() {
 	C.git_cred_free(o.ptr)
 	runtime.SetFinalizer(o, nil)
 	o.ptr = nil
+}
+
+// GetUserpassPlaintext returns the plaintext username/password combination stored in the Cred.
+func (o *Cred) GetUserpassPlaintext() (username, password string, err error) {
+	if o.Type() != CredTypeUserpassPlaintext {
+		err = errors.New("credential is not userpass plaintext")
+		return
+	}
+
+	plaintextCredPtr := (*C.git_cred_userpass_plaintext)(unsafe.Pointer(o.ptr))
+	username = C.GoString(plaintextCredPtr.username)
+	password = C.GoString(plaintextCredPtr.password)
+	return
 }
 
 func NewCredUserpassPlaintext(username string, password string) (*Cred, error) {

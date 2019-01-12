@@ -1,6 +1,7 @@
 package git
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 )
@@ -182,5 +183,28 @@ func TestRemotePrune(t *testing.T) {
 	_, err = repo.References.Lookup("refs/remotes/origin/test-prune")
 	if err == nil {
 		t.Fatal("Expected error getting a pruned reference")
+	}
+}
+
+func TestRemoteCredentialsCalled(t *testing.T) {
+	t.Parallel()
+
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	remote, err := repo.Remotes.CreateAnonymous("https://github.com/libgit2/non-existent")
+	checkFatal(t, err)
+
+	fetchOpts := FetchOptions{
+		RemoteCallbacks: RemoteCallbacks{
+			CredentialsCallback: func(url, username string, allowedTypes CredType) (*Cred, error) {
+				return nil, errors.New("non-existent repository")
+			},
+		},
+	}
+
+	err = remote.Fetch(nil, &fetchOpts, "fetch")
+	if !IsErrorCode(err, ErrUser) {
+		t.Fatal("Bad Fetch return, expected ErrUser, got", err)
 	}
 }

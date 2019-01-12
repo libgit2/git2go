@@ -60,6 +60,40 @@ type Transport struct {
 	ptr *C.git_transport
 }
 
+// SmartProxyOptions gets a copy of the proxy options for this transport.
+func (t *Transport) SmartProxyOptions() (*ProxyOptions, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var cpopts C.git_proxy_options
+	if ret := C.git_transport_smart_proxy_options(&cpopts, t.ptr); ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return proxyOptionsFromC(&cpopts), nil
+}
+
+// SmartCredentials calls the credentials callback for this transport.
+func (t *Transport) SmartCredentials(user string, methods CredType) (*Cred, error) {
+	cred := newCred()
+	var cstr *C.char
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if user != "" {
+		cstr = C.CString(user)
+		defer C.free(unsafe.Pointer(cstr))
+	}
+	ret := C.git_transport_smart_credentials(&cred.ptr, t.ptr, cstr, C.int(methods))
+	if ret != 0 {
+		cred.Free()
+		return nil, MakeGitError(ret)
+	}
+
+	return cred, nil
+}
+
 // SmartSubtransport is the interface for custom subtransports which carry data
 // for the smart transport.
 type SmartSubtransport interface {

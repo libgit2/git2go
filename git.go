@@ -131,12 +131,13 @@ func init() {
 		panic("libgit2 was not built with threading support")
 	}
 
-	// This is not something we should be doing, as we may be
-	// stomping all over someone else's setup. The user should do
-	// this themselves or use some binding/wrapper which does it
-	// in such a way that they can be sure they're the only ones
-	// setting it up.
-	C.git_openssl_set_locking()
+	if err := registerManagedHttp(); err != nil {
+		panic(err)
+	}
+
+	if err := registerManagedHttps(); err != nil {
+		panic(err)
+	}
 }
 
 // Oid represents the id for a Git object.
