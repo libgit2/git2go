@@ -23,6 +23,16 @@ func TestMain(m *testing.M) {
 	}
 	pointerHandles.Unlock()
 
+	// Or remote pointers.
+	remotePointers.Lock()
+	if len(remotePointers.pointers) > 0 {
+		for ptr, remote := range remotePointers.pointers {
+			fmt.Printf("%016p: %+v\n", ptr, remote)
+		}
+		panic("remote pointer list not empty")
+	}
+	remotePointers.Unlock()
+
 	Shutdown()
 
 	os.Exit(ret)

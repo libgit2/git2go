@@ -124,6 +124,7 @@ var (
 )
 
 var pointerHandles *HandleList
+var remotePointers *remotePointerList
 
 func init() {
 	initLibGit2()
@@ -131,6 +132,7 @@ func init() {
 
 func initLibGit2() {
 	pointerHandles = NewHandleList()
+	remotePointers = newRemotePointerList()
 
 	C.git_libgit2_init()
 
@@ -157,6 +159,7 @@ func initLibGit2() {
 // undefined behavior, so make sure this is called carefully.
 func Shutdown() {
 	pointerHandles.Clear()
+	remotePointers.clear()
 
 	C.git_libgit2_shutdown()
 }
