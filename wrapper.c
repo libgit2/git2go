@@ -213,4 +213,50 @@ int _go_git_indexer_new(git_indexer **out, const char *path, unsigned int mode, 
 	return git_indexer_new(out, path, mode, odb, &indexer_options);
 }
 
+int _go_git_smart_transport_register(const char *scheme, void *payload)
+{
+	return git_transport_register(scheme, smartTransportCb, payload);
+}
+
+int _go_git_smart_subtransport_callback(git_smart_subtransport **out, git_transport *owner, void *subtransport_payload)
+{
+	typedef int (*transport_action)(
+		git_smart_subtransport_stream **out,
+		git_smart_subtransport *subtransport,
+		const char *url,
+		git_smart_service_t action
+	);
+	_go_managed_smart_subtransport *subtransport = (_go_managed_smart_subtransport*)subtransport_payload;
+	subtransport->parent.action = (transport_action)smartSubtransportActionCb;
+	subtransport->parent.close = smartSubtransportCloseCb;
+	subtransport->parent.free = smartSubtransportFreeCb;
+
+	*out = (git_smart_subtransport*)subtransport;
+	return smartTransportSubtransportCb(subtransport, owner);
+}
+
+int _go_git_transport_smart(git_transport **out, git_remote *owner, int stateless, void *subtransport_payload)
+{
+	git_smart_subtransport_definition definition = {
+		_go_git_smart_subtransport_callback,
+		stateless,
+		subtransport_payload,
+	};
+
+	return git_transport_smart(out, owner, &definition);
+}
+
+void _go_git_setup_smart_subtransport_stream(_go_managed_smart_subtransport_stream *stream)
+{
+	typedef int (*subtransport_stream_write)(
+		git_smart_subtransport_stream *stream,
+		const char *buffer,
+		size_t len
+	);
+	_go_managed_smart_subtransport_stream *managed_stream = (_go_managed_smart_subtransport_stream*)stream;
+	managed_stream->parent.write = (subtransport_stream_write)smartSubtransportStreamWriteCb;
+	managed_stream->parent.read = smartSubtransportStreamReadCb;
+	managed_stream->parent.free = smartSubtransportStreamFreeCb;
+}
+
 /* EOF */

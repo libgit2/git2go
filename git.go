@@ -114,9 +114,11 @@ var (
 )
 
 var pointerHandles *HandleList
+var remotePointers *remotePointerList
 
 func init() {
 	pointerHandles = NewHandleList()
+	remotePointers = newRemotePointerList()
 
 	C.git_libgit2_init()
 
@@ -262,7 +264,6 @@ func IsErrorCode(err error, c ErrorCode) bool {
 }
 
 func MakeGitError(errorCode C.int) error {
-
 	var errMessage string
 	var errClass ErrorClass
 	if errorCode != C.GIT_ITEROVER {
@@ -279,6 +280,18 @@ func MakeGitError(errorCode C.int) error {
 
 func MakeGitError2(err int) error {
 	return MakeGitError(C.int(err))
+}
+
+func setLibgit2Error(errorClass ErrorClass, err error) C.int {
+	cstr := C.CString(err.Error())
+	defer C.free(unsafe.Pointer(cstr))
+	C.giterr_set_str(C.int(errorClass), cstr)
+
+	if gitErr, ok := err.(*GitError); ok {
+		return C.int(gitErr.Code)
+	}
+
+	return -1
 }
 
 func cbool(b bool) C.int {
