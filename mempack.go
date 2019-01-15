@@ -34,6 +34,7 @@ func NewMempack(odb *Odb) (mempack *Mempack, err error) {
 	}
 
 	ret = C.git_odb_add_backend(odb.ptr, mempack.ptr, C.int(999))
+	runtime.KeepAlive(odb)
 	if ret < 0 {
 		// Since git_odb_add_alternate() takes ownership of the ODB backend, the
 		// only case in which we free the mempack's memory is if it fails to be
