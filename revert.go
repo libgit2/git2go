@@ -10,7 +10,6 @@ import (
 
 // RevertOptions contains options for performing a revert
 type RevertOptions struct {
-	Version      uint
 	Mainline     uint
 	MergeOpts    MergeOptions
 	CheckoutOpts CheckoutOpts
@@ -18,7 +17,7 @@ type RevertOptions struct {
 
 func (opts *RevertOptions) toC() *C.git_revert_options {
 	return &C.git_revert_options{
-		version:       C.uint(opts.Version),
+		version:       C.GIT_REVERT_OPTIONS_VERSION,
 		mainline:      C.uint(opts.Mainline),
 		merge_opts:    *opts.MergeOpts.toC(),
 		checkout_opts: *opts.CheckoutOpts.toC(),
@@ -27,7 +26,6 @@ func (opts *RevertOptions) toC() *C.git_revert_options {
 
 func revertOptionsFromC(opts *C.git_revert_options) RevertOptions {
 	return RevertOptions{
-		Version:      uint(opts.version),
 		Mainline:     uint(opts.mainline),
 		MergeOpts:    mergeOptionsFromC(&opts.merge_opts),
 		CheckoutOpts: checkoutOptionsFromC(&opts.checkout_opts),
