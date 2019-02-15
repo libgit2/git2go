@@ -13,12 +13,12 @@ import (
 type ObjectType int
 
 const (
-	ObjectAny    ObjectType = C.GIT_OBJECT_ANY
-	ObjectBad    ObjectType = C.GIT_OBJECT_BAD
-	ObjectCommit ObjectType = C.GIT_OBJECT_COMMIT
-	ObjectTree   ObjectType = C.GIT_OBJECT_TREE
-	ObjectBlob   ObjectType = C.GIT_OBJECT_BLOB
-	ObjectTag    ObjectType = C.GIT_OBJECT_TAG
+	ObjectAny     ObjectType = C.GIT_OBJECT_ANY
+	ObjectInvalid ObjectType = C.GIT_OBJECT_INVALID
+	ObjectCommit  ObjectType = C.GIT_OBJECT_COMMIT
+	ObjectTree    ObjectType = C.GIT_OBJECT_TREE
+	ObjectBlob    ObjectType = C.GIT_OBJECT_BLOB
+	ObjectTag     ObjectType = C.GIT_OBJECT_TAG
 )
 
 type Object struct {
@@ -35,8 +35,8 @@ func (t ObjectType) String() string {
 	switch t {
 	case ObjectAny:
 		return "Any"
-	case ObjectBad:
-		return "Bad"
+	case ObjectInvalid:
+		return "Invalid"
 	case ObjectCommit:
 		return "Commit"
 	case ObjectTree:
