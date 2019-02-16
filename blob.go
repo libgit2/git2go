@@ -24,18 +24,18 @@ func (b *Blob) AsObject() *Object {
 	return &b.Object
 }
 
-func (v *Blob) Size() int64 {
-	ret := int64(C.git_blob_rawsize(v.cast_ptr))
-	runtime.KeepAlive(v)
+func (b *Blob) Size() int64 {
+	ret := int64(C.git_blob_rawsize(b.cast_ptr))
+	runtime.KeepAlive(b)
 	return ret
 }
 
-func (v *Blob) Contents() []byte {
-	size := C.int(C.git_blob_rawsize(v.cast_ptr))
-	buffer := unsafe.Pointer(C.git_blob_rawcontent(v.cast_ptr))
+func (b *Blob) Contents() []byte {
+	size := C.int(C.git_blob_rawsize(b.cast_ptr))
+	buffer := unsafe.Pointer(C.git_blob_rawcontent(b.cast_ptr))
 
 	goBytes := C.GoBytes(buffer, size)
-	runtime.KeepAlive(v)
+	runtime.KeepAlive(b)
 
 	return goBytes
 }
