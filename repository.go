@@ -194,6 +194,7 @@ func (v *Repository) LookupTree(id *Oid) (*Tree, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer obj.Free()
 
 	return obj.AsTree()
 }
@@ -203,6 +204,7 @@ func (v *Repository) LookupCommit(id *Oid) (*Commit, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer obj.Free()
 
 	return obj.AsCommit()
 }
@@ -212,6 +214,7 @@ func (v *Repository) LookupBlob(id *Oid) (*Blob, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer obj.Free()
 
 	return obj.AsBlob()
 }
@@ -221,6 +224,7 @@ func (v *Repository) LookupTag(id *Oid) (*Tag, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer obj.Free()
 
 	return obj.AsTag()
 }
