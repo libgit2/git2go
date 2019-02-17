@@ -3,12 +3,14 @@ package git
 /*
 #include <git2.h>
 #include <git2/sys/openssl.h>
+extern int _go_git_setup_debug_allocator(const char *log_path);
 */
 import "C"
 import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"os"
 	"runtime"
 	"strings"
 	"unsafe"
@@ -119,6 +121,12 @@ var pointerHandles *HandleList
 
 func init() {
 	pointerHandles = NewHandleList()
+
+	if val, ok := os.LookupEnv("GIT2GO_DEBUG_ALLOCATOR_LOG"); ok && val != "" {
+		if _, err := C._go_git_setup_debug_allocator(C.CString(val)); err != nil {
+			panic(err)
+		}
+	}
 
 	C.git_libgit2_init()
 
