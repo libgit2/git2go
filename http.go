@@ -9,20 +9,41 @@ import (
 	"sync"
 )
 
+var (
+	registeredSmartTransportHttp  *RegisteredSmartTransport
+	registeredSmartTransportHttps *RegisteredSmartTransport
+)
+
 func registerManagedHttp() error {
-	registeredSmartTransport, err := NewRegisteredSmartTransport("http", true, httpSmartSubtransportFactory)
-	if err != nil {
-		registeredSmartTransport.Free()
-	}
+	var err error
+	registeredSmartTransportHttp, err = NewRegisteredSmartTransport("http", true, httpSmartSubtransportFactory)
 	return err
 }
 
-func registerManagedHttps() error {
-	registeredSmartTransport, err := NewRegisteredSmartTransport("https", true, httpSmartSubtransportFactory)
-	if err != nil {
-		registeredSmartTransport.Free()
+func unregisterManagedHttp() error {
+	if registeredSmartTransportHttp != nil {
+		if err := registeredSmartTransportHttp.Free(); err != nil {
+			return err
+		}
+		registeredSmartTransportHttp = nil
 	}
+	return nil
+}
+
+func registerManagedHttps() error {
+	var err error
+	registeredSmartTransportHttps, err = NewRegisteredSmartTransport("https", true, httpSmartSubtransportFactory)
 	return err
+}
+
+func unregisterManagedHttps() error {
+	if registeredSmartTransportHttps != nil {
+		if err := registeredSmartTransportHttps.Free(); err != nil {
+			return err
+		}
+		registeredSmartTransportHttps = nil
+	}
+	return nil
 }
 
 func httpSmartSubtransportFactory(remote *Remote, transport *Transport) (SmartSubtransport, error) {

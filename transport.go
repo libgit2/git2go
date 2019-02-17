@@ -210,18 +210,21 @@ func NewRegisteredSmartTransport(
 
 // Free releases all resources used by the RegisteredSmartTransport and
 // unregisters the custom transport definition referenced by it.
-func (t *RegisteredSmartTransport) Free() {
+func (t *RegisteredSmartTransport) Free() error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
 	cstr := C.CString(t.name)
 	defer C.free(unsafe.Pointer(cstr))
 
-	C.git_transport_unregister(cstr)
+	if ret := C.git_transport_unregister(cstr); ret < 0 {
+		return MakeGitError(ret)
+	}
 
 	pointerHandles.Untrack(t.handle)
 	runtime.SetFinalizer(t, nil)
 	t.handle = nil
+	return nil
 }
 
 //export smartTransportCb

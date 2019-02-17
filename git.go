@@ -152,6 +152,27 @@ func init() {
 	}
 }
 
+// Shutdown frees all the resources acquired by libgit2. Make sure no
+// references to any git2go objects are live before calling this.
+// After this is called, invoking any function from this library will result in
+// undefined behavior, so make sure this is called carefully.
+func Shutdown() {
+	if err := unregisterManagedHttp(); err != nil {
+		panic(err)
+	}
+	if err := unregisterManagedHttps(); err != nil {
+		panic(err)
+	}
+	if err := unregisterManagedSsh(); err != nil {
+		panic(err)
+	}
+
+	pointerHandles.Clear()
+	remotePointers.Clear()
+
+	C.git_libgit2_shutdown()
+}
+
 // Oid represents the id for a Git object.
 type Oid [20]byte
 

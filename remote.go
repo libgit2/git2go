@@ -191,6 +191,23 @@ func (v *remotePointerList) Untrack(remote *Remote) {
 	remote.ptr = nil
 }
 
+// Clear stops tracking all the git_remote pointers.
+func (v *remotePointerList) Clear() {
+	v.Lock()
+	var remotes []*Remote
+	for remotePtr, remote := range v.pointers {
+		remotes = append(remotes, remote)
+		delete(v.pointers, remotePtr)
+	}
+	v.Unlock()
+
+	for _, remote := range remotes {
+		runtime.SetFinalizer(remote, nil)
+		C.git_remote_free(remote.ptr)
+		remote.ptr = nil
+	}
+}
+
 // Get retrieves the pointer from the given *git_remote.
 func (v *remotePointerList) Get(ptr *C.git_remote) (*Remote, bool) {
 	v.RLock()

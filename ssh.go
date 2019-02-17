@@ -12,12 +12,24 @@ import (
 	"runtime"
 )
 
+var (
+	registeredSmartTransportSsh *RegisteredSmartTransport
+)
+
 func registerManagedSsh() error {
-	registeredSmartTransport, err := NewRegisteredSmartTransport("ssh", false, sshSmartSubtransportFactory)
-	if err != nil {
-		registeredSmartTransport.Free()
-	}
+	var err error
+	registeredSmartTransportSsh, err = NewRegisteredSmartTransport("ssh", false, sshSmartSubtransportFactory)
 	return err
+}
+
+func unregisterManagedSsh() error {
+	if registeredSmartTransportSsh != nil {
+		if err := registeredSmartTransportSsh.Free(); err != nil {
+			return err
+		}
+		registeredSmartTransportSsh = nil
+	}
+	return nil
 }
 
 func sshSmartSubtransportFactory(remote *Remote, transport *Transport) (SmartSubtransport, error) {
