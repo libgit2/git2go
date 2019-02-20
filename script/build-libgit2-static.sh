@@ -2,7 +2,7 @@
 
 set -ex
 
-ROOT="$(cd "$0/../.." && echo "${PWD}")"
+ROOT="$(cd "$(dirname $0)/.." && echo "${PWD}")"
 BUILD_PATH="${ROOT}/static-build"
 VENDORED_PATH="${ROOT}/vendor/libgit2"
 
