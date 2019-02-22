@@ -35,6 +35,17 @@ func newTransferProgressFromC(c *C.git_transfer_progress) TransferProgress {
 		ReceivedBytes:   uint(c.received_bytes)}
 }
 
+func (tp TransferProgress) toC() *C.git_transfer_progress {
+	return &C.git_transfer_progress{
+		total_objects:    C.uint(tp.TotalObjects),
+		indexed_objects:  C.uint(tp.IndexedObjects),
+		received_objects: C.uint(tp.ReceivedObjects),
+		local_objects:    C.uint(tp.LocalObjects),
+		total_deltas:     C.uint(tp.TotalDeltas),
+		received_bytes:   C.ulong(tp.ReceivedBytes),
+	}
+}
+
 type RemoteCompletion uint
 type ConnectDirection uint
 
@@ -191,14 +202,41 @@ type PushOptions struct {
 }
 
 type RemoteHead struct {
-	Id   *Oid
-	Name string
+	Id           *Oid
+	Name         string
+	SymrefTarget string
 }
 
 func newRemoteHeadFromC(ptr *C.git_remote_head) RemoteHead {
 	return RemoteHead{
-		Id:   newOidFromC(&ptr.oid),
-		Name: C.GoString(ptr.name),
+		Id:           newOidFromC(&ptr.oid),
+		Name:         C.GoString(ptr.name),
+		SymrefTarget: C.GoString(ptr.symref_target),
+	}
+}
+
+func newRemoteHeadsFromC(cHeads **C.git_remote_head, numHeads C.size_t) []RemoteHead {
+	hdr := reflect.SliceHeader{
+		Data: uintptr(unsafe.Pointer(cHeads)),
+		Len:  int(numHeads),
+		Cap:  int(numHeads),
+	}
+
+	goSlice := *(*[]*C.git_remote_head)(unsafe.Pointer(&hdr))
+
+	var heads []RemoteHead
+	for _, s := range goSlice {
+		head := newRemoteHeadFromC(s)
+		heads = append(heads, head)
+	}
+	return heads
+}
+
+func (head RemoteHead) toC() *C.git_remote_head {
+	return &C.git_remote_head{
+		oid:           *head.Id.toC(),
+		name:          C.CString(head.Name),
+		symref_target: C.CString(head.SymrefTarget),
 	}
 }
 
