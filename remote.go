@@ -42,7 +42,7 @@ func (tp TransferProgress) toC() *C.git_transfer_progress {
 		received_objects: C.uint(tp.ReceivedObjects),
 		local_objects:    C.uint(tp.LocalObjects),
 		total_deltas:     C.uint(tp.TotalDeltas),
-		received_bytes:   C.ulong(tp.ReceivedBytes),
+		received_bytes:   C.size_t(tp.ReceivedBytes),
 	}
 }
 
