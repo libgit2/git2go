@@ -55,6 +55,19 @@ type Config struct {
 	ptr *C.git_config
 }
 
+func DefaultConfig() (*Config, error) {
+	config := new(Config)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	if ret := C.git_config_open_default(&config.ptr); ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return config, nil
+}
+
 // NewConfig creates a new empty configuration object
 func NewConfig() (*Config, error) {
 	config := new(Config)
