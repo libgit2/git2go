@@ -28,6 +28,12 @@ func (c *Commit) Message() string {
 	return ret
 }
 
+func (c *Commit) MessageEncoding() string {
+	ret := C.GoString(C.git_commit_message_encoding(c.cast_ptr))
+	runtime.KeepAlive(c)
+	return ret
+}
+
 func (c *Commit) RawMessage() string {
 	ret := C.GoString(C.git_commit_message_raw(c.cast_ptr))
 	runtime.KeepAlive(c)
