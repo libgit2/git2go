@@ -10,6 +10,7 @@ extern void _go_git_setup_callbacks(git_remote_callbacks *callbacks);
 import "C"
 import (
 	"crypto/x509"
+	"errors"
 	"reflect"
 	"runtime"
 	"strings"
@@ -162,6 +163,20 @@ type Certificate struct {
 	Kind    CertificateKind
 	X509    *x509.Certificate
 	Hostkey HostkeyCertificate
+}
+
+func (self *Certificate) toC() (*C.git_cert, error) {
+	switch self.Kind {
+	case CertificateX509:
+		ccert := (*C.git_cert_x509)(C.calloc(1, C.size_t(unsafe.Sizeof(C.git_cert_x509{}))))
+		ccert.parent.cert_type = C.GIT_CERT_X509
+		rawCert := self.X509.Raw
+		ccert.len = C.size_t(len(rawCert))
+		ccert.data = C.CBytes(rawCert)
+		return (*C.git_cert)(unsafe.Pointer(ccert)), nil
+	default:
+		return nil, errors.New("not supported")
+	}
 }
 
 type HostkeyKind uint

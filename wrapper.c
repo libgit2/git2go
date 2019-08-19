@@ -180,4 +180,27 @@ void _go_git_writestream_free(git_writestream *stream)
 	stream->free(stream);
 }
 
+int _go_git_register_tls(void)
+{
+	return git_stream_register_tls((git_stream_cb) streamCallbackCb);
+}
+
+typedef int (*set_proxy_cb)(struct git_stream *, const git_proxy_options *proxy_opts);
+typedef ssize_t (*write_cb)(struct git_stream *, const char *, size_t, int);
+
+void _go_git_setup_stream(managed_stream* s, int encrypted, int proxy_support, void *ptr)
+{
+  s->parent.version = GIT_STREAM_VERSION;
+  s->parent.encrypted = encrypted;
+  s->parent.proxy_support = proxy_support;
+  s->parent.connect = streamConnect;
+  s->parent.certificate = streamCertificate;
+  s->parent.set_proxy = (set_proxy_cb) streamSetProxy;
+  s->parent.read = streamRead;
+  s->parent.write = (write_cb) streamWrite;
+  s->parent.close = streamClose;
+  s->parent.free = streamFree;
+  s->ptr = ptr;
+}
+
 /* EOF */
