@@ -284,7 +284,7 @@ type diffForEachData struct {
 	Error        error
 }
 
-type DiffForEachFileCallback func(DiffDelta, float64) (DiffForEachHunkCallback, error)
+type DiffForEachFileCallback func(delta DiffDelta, progress float64) (DiffForEachHunkCallback, error)
 
 type DiffDetail int
 
