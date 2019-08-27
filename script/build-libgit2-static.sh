@@ -2,7 +2,7 @@
 
 set -ex
 
-ROOT="$(cd "$0/../.." && echo "${PWD}")"
+ROOT="$(git rev-parse --show-toplevel)"
 BUILD_PATH="${ROOT}/static-build"
 VENDORED_PATH="${ROOT}/vendor/libgit2"
 
