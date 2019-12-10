@@ -2,6 +2,7 @@ package git
 
 /*
 #include <git2.h>
+#include <git2/sys/cred.h>
 */
 import "C"
 import "unsafe"
