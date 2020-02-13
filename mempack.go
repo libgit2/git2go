@@ -6,7 +6,7 @@ package git
 
 extern int git_mempack_new(git_odb_backend **out);
 extern int git_mempack_dump(git_buf *pack, git_repository *repo, git_odb_backend *backend);
-extern void git_mempack_reset(git_odb_backend *backend);
+extern int git_mempack_reset(git_odb_backend *backend);
 extern void _go_git_odb_backend_free(git_odb_backend *backend);
 */
 import "C"
@@ -79,6 +79,13 @@ func (mempack *Mempack) Dump(repository *Repository) ([]byte, error) {
 //
 // This assumes that Mempack.Dump has been called before to store all the
 // queued objects into a single packfile.
-func (mempack *Mempack) Reset() {
-	C.git_mempack_reset(mempack.ptr)
+func (mempack *Mempack) Reset() error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_mempack_reset(mempack.ptr)
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+	return nil
 }
