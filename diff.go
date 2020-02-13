@@ -39,6 +39,8 @@ const (
 	DeltaConflicted Delta = C.GIT_DELTA_CONFLICTED
 )
 
+//go:generate stringer -type Delta -trimprefix Delta -tags static
+
 type DiffLineType int
 
 const (
@@ -53,6 +55,8 @@ const (
 	DiffLineHunkHdr DiffLineType = C.GIT_DIFF_LINE_HUNK_HDR
 	DiffLineBinary  DiffLineType = C.GIT_DIFF_LINE_BINARY
 )
+
+//go:generate stringer -type DiffLineType -trimprefix DiffLine -tags static
 
 type DiffFile struct {
 	Path  string
@@ -284,7 +288,7 @@ type diffForEachData struct {
 	Error        error
 }
 
-type DiffForEachFileCallback func(DiffDelta, float64) (DiffForEachHunkCallback, error)
+type DiffForEachFileCallback func(delta DiffDelta, progress float64) (DiffForEachHunkCallback, error)
 
 type DiffDetail int
 
