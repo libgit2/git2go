@@ -50,6 +50,22 @@ func newRepositoryFromC(ptr *C.git_repository) *Repository {
 	return repo
 }
 
+// In contrast to newRepositoryFromC, this function does not cause the C object to deallocate when
+// its Go wrapper leaves scope.  This is used by the transportNegotiateFetchCallback() and
+// transportDownloadPackCallback() glue functions because `git_clone` manually deallocs the
+// `git_repository` when it finishes.  It's faster than using newRepositoryFromC and unsetting the
+// returned Repository's finalizer
+func newRepositoryFromCNoFinalizer(cRepo *C.git_repository) *Repository {
+	repo := &Repository{ptr: cRepo}
+	repo.Remotes.repo = repo
+	repo.Submodules.repo = repo
+	repo.References.repo = repo
+	repo.Notes.repo = repo
+	repo.Tags.repo = repo
+	repo.Stashes.repo = repo
+	return repo
+}
+
 func OpenRepository(path string) (*Repository, error) {
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
