@@ -4,15 +4,49 @@ on:
   push:
     branches:
     - master
+    - release-*
     - v*
 
 jobs:
 
-  build:
+  build-legacy:
     strategy:
       fail-fast: false
       matrix:
-        go: [ '1.9', '1.10', '1.11', '1.12' , '1.13']
+        go: [ '1.9', '1.10' ]
+    name: Go ${{ matrix.go }}
+
+    runs-on: ubuntu-18.04
+
+    steps:
+    - name: Set up Go
+      uses: actions/setup-go@v1
+      with:
+        go-version: ${{ matrix.go }}
+      id: go
+    - name: Check out code into the GOPATH
+      uses: actions/checkout@v1
+      with:
+        fetch-depth: 1
+        path: src/github.com/${{ github.repository }}
+    - name: Build
+      env:
+        GOPATH: /home/runner/work/git2go
+      run: |
+        git submodule update --init
+        make build-libgit2-static
+        go get --tags "static" github.com/${{ github.repository }}/...
+        go build --tags "static" github.com/${{ github.repository }}/...
+    - name: Test
+      env:
+        GOPATH: /home/runner/work/git2go
+      run: make test-static
+
+  build-static:
+    strategy:
+      fail-fast: false
+      matrix:
+        go: [ '1.11', '1.12', '1.13' ]
     name: Go ${{ matrix.go }}
 
     runs-on: ubuntu-18.04
@@ -28,4 +62,28 @@ jobs:
     - name: Build
       run: |
         git submodule update --init
-        make test-static
+        make build-libgit2-static
+    - name: Test
+      run:  make test-static
+
+  build-dynamic:
+    strategy:
+      fail-fast: false
+    name: Go (dynamic)
+
+    runs-on: ubuntu-18.04
+
+    steps:
+    - name: Set up Go
+      uses: actions/setup-go@v1
+      with:
+        go-version: '1.13'
+      id: go
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v1
+    - name: Build
+      run: |
+        git submodule update --init
+        make build-libgit2-dynamic
+    - name: Test
+      run: make test-dynamic
