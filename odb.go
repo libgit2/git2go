@@ -8,6 +8,7 @@ extern void _go_git_odb_backend_free(git_odb_backend *backend);
 */
 import "C"
 import (
+	"io"
 	"reflect"
 	"runtime"
 	"unsafe"
@@ -60,12 +61,12 @@ func (v *Odb) ReadHeader(oid *Oid) (uint64, ObjectType, error) {
 	defer runtime.UnlockOSThread()
 
 	var sz C.size_t
-	var cotype C.git_otype
+	var cotype C.git_object_t
 
 	ret := C.git_odb_read_header(&sz, &cotype, v.ptr, oid.toC())
 	runtime.KeepAlive(v)
 	if ret < 0 {
-		return 0, C.GIT_OBJ_BAD, MakeGitError(ret)
+		return 0, ObjectInvalid, MakeGitError(ret)
 	}
 
 	return uint64(sz), ObjectType(cotype), nil
@@ -80,15 +81,19 @@ func (v *Odb) Exists(oid *Oid) bool {
 
 func (v *Odb) Write(data []byte, otype ObjectType) (oid *Oid, err error) {
 	oid = new(Oid)
-	var cptr unsafe.Pointer
-	if len(data) > 0 {
-		cptr = unsafe.Pointer(&data[0])
-	}
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_odb_write(oid.toC(), v.ptr, cptr, C.size_t(len(data)), C.git_otype(otype))
+	var size C.size_t
+	if len(data) > 0 {
+		size = C.size_t(len(data))
+	} else {
+		data = []byte{0}
+		size = C.size_t(0)
+	}
+
+	ret := C.git_odb_write(oid.toC(), v.ptr, unsafe.Pointer(&data[0]), size, C.git_object_t(otype))
 	runtime.KeepAlive(v)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
@@ -164,13 +169,19 @@ func (v *Odb) ForEach(callback OdbForEachCallback) error {
 // Hash determines the object-ID (sha1) of a data buffer.
 func (v *Odb) Hash(data []byte, otype ObjectType) (oid *Oid, err error) {
 	oid = new(Oid)
-	header := (*reflect.SliceHeader)(unsafe.Pointer(&data))
-	ptr := unsafe.Pointer(header.Data)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_odb_hash(oid.toC(), ptr, C.size_t(header.Len), C.git_otype(otype))
+	var size C.size_t
+	if len(data) > 0 {
+		size = C.size_t(len(data))
+	} else {
+		data = []byte{0}
+		size = C.size_t(0)
+	}
+
+	ret := C.git_odb_hash(oid.toC(), unsafe.Pointer(&data[0]), size, C.git_object_t(otype))
 	runtime.KeepAlive(data)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
@@ -182,17 +193,21 @@ func (v *Odb) Hash(data []byte, otype ObjectType) (oid *Oid, err error) {
 // contents of the object.
 func (v *Odb) NewReadStream(id *Oid) (*OdbReadStream, error) {
 	stream := new(OdbReadStream)
+	var ctype C.git_object_t
+	var csize C.size_t
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_odb_open_rstream(&stream.ptr, v.ptr, id.toC())
+	ret := C.git_odb_open_rstream(&stream.ptr, &csize, &ctype, v.ptr, id.toC())
 	runtime.KeepAlive(v)
 	runtime.KeepAlive(id)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
 
+	stream.Size = uint64(csize)
+	stream.Type = ObjectType(ctype)
 	runtime.SetFinalizer(stream, (*OdbReadStream).Free)
 	return stream, nil
 }
@@ -206,7 +221,7 @@ func (v *Odb) NewWriteStream(size int64, otype ObjectType) (*OdbWriteStream, err
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_odb_open_wstream(&stream.ptr, v.ptr, C.git_off_t(size), C.git_otype(otype))
+	ret := C.git_odb_open_wstream(&stream.ptr, v.ptr, C.git_object_size_t(size), C.git_object_t(otype))
 	runtime.KeepAlive(v)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
@@ -264,7 +279,9 @@ func (object *OdbObject) Data() (data []byte) {
 }
 
 type OdbReadStream struct {
-	ptr *C.git_odb_stream
+	ptr  *C.git_odb_stream
+	Size uint64
+	Type ObjectType
 }
 
 // Read reads from the stream
@@ -280,6 +297,9 @@ func (stream *OdbReadStream) Read(data []byte) (int, error) {
 	runtime.KeepAlive(stream)
 	if ret < 0 {
 		return 0, MakeGitError(ret)
+	}
+	if ret == 0 {
+		return 0, io.EOF
 	}
 
 	header.Len = int(ret)
