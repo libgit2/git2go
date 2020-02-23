@@ -41,6 +41,8 @@ cmake -DTHREADSAFE=ON \
       -DCMAKE_C_FLAGS=-fPIC \
       -DCMAKE_BUILD_TYPE="RelWithDebInfo" \
       -DCMAKE_INSTALL_PREFIX="${BUILD_PATH}/install" \
+      -DINCLUDE_INSTALL_DIR="${BUILD_PATH}/install/include" \
+      -DLIB_INSTALL_DIR="${BUILD_PATH}/install/lib" \
       "${VENDORED_PATH}" &&
 
 exec cmake --build . --target install
