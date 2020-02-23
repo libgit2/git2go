@@ -27,6 +27,15 @@ func newAnnotatedCommitFromC(ptr *C.git_annotated_commit, r *Repository) *Annota
 	return mh
 }
 
+func (mh *AnnotatedCommit) Id() *Oid {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := newOidFromC(C.git_annotated_commit_id(mh.ptr))
+	runtime.KeepAlive(mh)
+	return ret
+}
+
 func (mh *AnnotatedCommit) Free() {
 	runtime.SetFinalizer(mh, nil)
 	C.git_annotated_commit_free(mh.ptr)
@@ -49,7 +58,9 @@ func (r *Repository) AnnotatedCommitFromFetchHead(branchName string, remoteURL s
 		return nil, MakeGitError(ret)
 	}
 
-	return newAnnotatedCommitFromC(ptr, r), nil
+	annotatedCommit := newAnnotatedCommitFromC(ptr, r)
+	runtime.KeepAlive(r)
+	return annotatedCommit, nil
 }
 
 func (r *Repository) LookupAnnotatedCommit(oid *Oid) (*AnnotatedCommit, error) {
@@ -62,7 +73,10 @@ func (r *Repository) LookupAnnotatedCommit(oid *Oid) (*AnnotatedCommit, error) {
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	return newAnnotatedCommitFromC(ptr, r), nil
+
+	annotatedCommit := newAnnotatedCommitFromC(ptr, r)
+	runtime.KeepAlive(r)
+	return annotatedCommit, nil
 }
 
 func (r *Repository) AnnotatedCommitFromRef(ref *Reference) (*AnnotatedCommit, error) {
@@ -76,7 +90,29 @@ func (r *Repository) AnnotatedCommitFromRef(ref *Reference) (*AnnotatedCommit, e
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	return newAnnotatedCommitFromC(ptr, r), nil
+
+	annotatedCommit := newAnnotatedCommitFromC(ptr, r)
+	runtime.KeepAlive(r)
+	return annotatedCommit, nil
+}
+
+func (r *Repository) AnnotatedCommitFromRevspec(spec string) (*AnnotatedCommit, error) {
+	crevspec := C.CString(spec)
+	defer C.free(unsafe.Pointer(crevspec))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var ptr *C.git_annotated_commit
+	ret := C.git_annotated_commit_from_revspec(&ptr, r.ptr, crevspec)
+	runtime.KeepAlive(r)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	annotatedCommit := newAnnotatedCommitFromC(ptr, r)
+	runtime.KeepAlive(r)
+	return annotatedCommit, nil
 }
 
 type MergeTreeFlag int
