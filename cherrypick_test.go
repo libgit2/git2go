@@ -84,3 +84,57 @@ func TestCherrypick(t *testing.T) {
 		t.Fatal("Incorrect repository state: ", state)
 	}
 }
+
+func TestCherrypickCommit(t *testing.T) {
+	t.Parallel()
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	c1, _ := seedTestRepo(t, repo)
+	c2, _ := updateReadme(t, repo, content)
+
+	commit1, err := repo.LookupCommit(c1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	commit2, err := repo.LookupCommit(c2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	checkout(t, repo, commit1)
+
+	if got := readReadme(t, repo); got == content {
+		t.Fatalf("README = %q, want %q", got, content)
+	}
+
+	opts, err := DefaultCherrypickOptions()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	idx, err := repo.CherrypickCommit(commit2, commit1, opts)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer idx.Free()
+
+	// The file is only updated in the index, not in the working directory.
+	if got := readReadme(t, repo); got == content {
+		t.Errorf("README = %q, want %q", got, content)
+	}
+	if got := repo.State(); got != RepositoryStateNone {
+		t.Errorf("repo.State() = %v, want %v", got, RepositoryStateCherrypick)
+	}
+
+	if got := idx.EntryCount(); got != 1 {
+		t.Fatalf("idx.EntryCount() = %v, want %v", got, 1)
+	}
+	entry, err := idx.EntryByIndex(0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if entry.Path != "README" {
+		t.Errorf("entry.Path = %v, want %v", entry.Path, "README")
+	}
+}
