@@ -212,7 +212,7 @@ func (v *Index) AddFromBuffer(entry *IndexEntry, buffer []byte) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	if err := C.git_index_add_frombuffer(v.ptr, &centry, cbuffer, C.size_t(len(buffer))); err < 0 {
+	if err := C.git_index_add_from_buffer(v.ptr, &centry, cbuffer, C.size_t(len(buffer))); err < 0 {
 		return MakeGitError(err)
 	}
 
