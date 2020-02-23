@@ -14,7 +14,7 @@ import (
 	"unsafe"
 )
 
-type DiffFlag int
+type DiffFlag uint32
 
 const (
 	DiffFlagBinary    DiffFlag = C.GIT_DIFF_FLAG_BINARY
