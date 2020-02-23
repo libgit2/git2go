@@ -3,6 +3,8 @@ package git
 /*
 #include <git2.h>
 #include <git2/sys/repository.h>
+#include <git2/sys/commit.h>
+#include <string.h>
 */
 import "C"
 import (
@@ -192,6 +194,7 @@ func (v *Repository) LookupTree(id *Oid) (*Tree, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer obj.Free()
 
 	return obj.AsTree()
 }
@@ -201,6 +204,7 @@ func (v *Repository) LookupCommit(id *Oid) (*Commit, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer obj.Free()
 
 	return obj.AsCommit()
 }
@@ -210,6 +214,7 @@ func (v *Repository) LookupBlob(id *Oid) (*Blob, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer obj.Free()
 
 	return obj.AsBlob()
 }
@@ -219,6 +224,7 @@ func (v *Repository) LookupTag(id *Oid) (*Tag, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer obj.Free()
 
 	return obj.AsTag()
 }
@@ -381,6 +387,74 @@ func (v *Repository) CreateCommit(
 
 	runtime.KeepAlive(v)
 	runtime.KeepAlive(oid)
+	runtime.KeepAlive(parents)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return oid, nil
+}
+
+func (v *Repository) CreateCommitFromIds(
+	refname string, author, committer *Signature,
+	message string, tree *Oid, parents ...*Oid) (*Oid, error) {
+
+	oid := new(Oid)
+
+	var cref *C.char
+	if refname == "" {
+		cref = nil
+	} else {
+		cref = C.CString(refname)
+		defer C.free(unsafe.Pointer(cref))
+	}
+
+	cmsg := C.CString(message)
+	defer C.free(unsafe.Pointer(cmsg))
+
+	var parentsarg **C.git_oid = nil
+
+	nparents := len(parents)
+	if nparents > 0 {
+		// All this awful pointer arithmetic is needed to avoid passing a Go
+		// pointer to Go pointer into C. Other methods (like CreateCommits) are
+		// fine without this workaround because they are just passing Go pointers
+		// to C pointers, but arrays-of-pointers-to-git_oid are a bit special since
+		// both the array and the objects are allocated from Go.
+		var emptyOidPtr *C.git_oid
+		sizeofOidPtr := unsafe.Sizeof(emptyOidPtr)
+		parentsarg = (**C.git_oid)(C.calloc(C.size_t(uintptr(nparents)), C.size_t(sizeofOidPtr)))
+		defer C.free(unsafe.Pointer(parentsarg))
+		parentsptr := uintptr(unsafe.Pointer(parentsarg))
+		for _, v := range parents {
+			*(**C.git_oid)(unsafe.Pointer(parentsptr)) = v.toC()
+			parentsptr += sizeofOidPtr
+		}
+	}
+
+	authorSig, err := author.toC()
+	if err != nil {
+		return nil, err
+	}
+	defer C.git_signature_free(authorSig)
+
+	committerSig, err := committer.toC()
+	if err != nil {
+		return nil, err
+	}
+	defer C.git_signature_free(committerSig)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_commit_create_from_ids(
+		oid.toC(), v.ptr, cref,
+		authorSig, committerSig,
+		nil, cmsg, tree.toC(), C.size_t(nparents), parentsarg)
+
+	runtime.KeepAlive(v)
+	runtime.KeepAlive(oid)
+	runtime.KeepAlive(tree)
 	runtime.KeepAlive(parents)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
