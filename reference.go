@@ -284,7 +284,7 @@ func (v *Reference) Peel(t ObjectType) (*Object, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	err := C.git_reference_peel(&cobj, v.ptr, C.git_otype(t))
+	err := C.git_reference_peel(&cobj, v.ptr, C.git_object_t(t))
 	runtime.KeepAlive(v)
 	if err < 0 {
 		return nil, MakeGitError(err)
@@ -301,7 +301,7 @@ func (v *Reference) Owner() *Repository {
 	}
 }
 
-// Cmp compares both references, retursn 0 on equality, otherwise a
+// Cmp compares v to ref2. It returns 0 on equality, otherwise a
 // stable sorting.
 func (v *Reference) Cmp(ref2 *Reference) int {
 	ret := int(C.git_reference_cmp(v.ptr, ref2.ptr))
@@ -310,13 +310,14 @@ func (v *Reference) Cmp(ref2 *Reference) int {
 	return ret
 }
 
-// Shorthand ret :=s a "human-readable" short reference name
+// Shorthand returns a "human-readable" short reference name.
 func (v *Reference) Shorthand() string {
 	ret := C.GoString(C.git_reference_shorthand(v.ptr))
 	runtime.KeepAlive(v)
 	return ret
 }
 
+// Name returns the full name of v.
 func (v *Reference) Name() string {
 	ret := C.GoString(C.git_reference_name(v.ptr))
 	runtime.KeepAlive(v)
@@ -455,10 +456,12 @@ func (v *ReferenceIterator) Next() (*Reference, error) {
 }
 
 func newReferenceIteratorFromC(ptr *C.git_reference_iterator, r *Repository) *ReferenceIterator {
-	return &ReferenceIterator{
+	iter := &ReferenceIterator{
 		ptr:  ptr,
 		repo: r,
 	}
+	runtime.SetFinalizer(iter, (*ReferenceIterator).Free)
+	return iter
 }
 
 // Free the reference iterator

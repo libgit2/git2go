@@ -47,17 +47,18 @@ func newTreeEntry(entry *C.git_tree_entry) *TreeEntry {
 	}
 }
 
-func (t Tree) EntryByName(filename string) *TreeEntry {
+func (t *Tree) EntryByName(filename string) *TreeEntry {
 	cname := C.CString(filename)
 	defer C.free(unsafe.Pointer(cname))
 
 	entry := C.git_tree_entry_byname(t.cast_ptr, cname)
-	runtime.KeepAlive(t)
 	if entry == nil {
 		return nil
 	}
 
-	return newTreeEntry(entry)
+	goEntry := newTreeEntry(entry)
+	runtime.KeepAlive(t)
+	return goEntry
 }
 
 // EntryById performs a lookup for a tree entry with the given SHA value.
@@ -66,23 +67,24 @@ func (t Tree) EntryByName(filename string) *TreeEntry {
 // free it, but you must not use it after the Tree is freed.
 //
 // Warning: this must examine every entry in the tree, so it is not fast.
-func (t Tree) EntryById(id *Oid) *TreeEntry {
+func (t *Tree) EntryById(id *Oid) *TreeEntry {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
 	entry := C.git_tree_entry_byid(t.cast_ptr, id.toC())
-	runtime.KeepAlive(t)
 	runtime.KeepAlive(id)
 	if entry == nil {
 		return nil
 	}
 
-	return newTreeEntry(entry)
+	goEntry := newTreeEntry(entry)
+	runtime.KeepAlive(t)
+	return goEntry
 }
 
 // EntryByPath looks up an entry by its full path, recursing into
 // deeper trees if necessary (i.e. if there are slashes in the path)
-func (t Tree) EntryByPath(path string) (*TreeEntry, error) {
+func (t *Tree) EntryByPath(path string) (*TreeEntry, error) {
 	cpath := C.CString(path)
 	defer C.free(unsafe.Pointer(cpath))
 	var entry *C.git_tree_entry
@@ -100,17 +102,18 @@ func (t Tree) EntryByPath(path string) (*TreeEntry, error) {
 	return newTreeEntry(entry), nil
 }
 
-func (t Tree) EntryByIndex(index uint64) *TreeEntry {
+func (t *Tree) EntryByIndex(index uint64) *TreeEntry {
 	entry := C.git_tree_entry_byindex(t.cast_ptr, C.size_t(index))
-	runtime.KeepAlive(t)
 	if entry == nil {
 		return nil
 	}
 
-	return newTreeEntry(entry)
+	goEntry := newTreeEntry(entry)
+	runtime.KeepAlive(t)
+	return goEntry
 }
 
-func (t Tree) EntryCount() uint64 {
+func (t *Tree) EntryCount() uint64 {
 	num := C.git_tree_entrycount(t.cast_ptr)
 	runtime.KeepAlive(t)
 	return uint64(num)
@@ -119,9 +122,8 @@ func (t Tree) EntryCount() uint64 {
 type TreeWalkCallback func(string, *TreeEntry) int
 
 //export CallbackGitTreeWalk
-func CallbackGitTreeWalk(_root *C.char, _entry unsafe.Pointer, ptr unsafe.Pointer) C.int {
+func CallbackGitTreeWalk(_root *C.char, entry *C.git_tree_entry, ptr unsafe.Pointer) C.int {
 	root := C.GoString(_root)
-	entry := (*C.git_tree_entry)(_entry)
 
 	if callback, ok := pointerHandles.Get(ptr).(TreeWalkCallback); ok {
 		return C.int(callback(root, newTreeEntry(entry)))
@@ -130,7 +132,7 @@ func CallbackGitTreeWalk(_root *C.char, _entry unsafe.Pointer, ptr unsafe.Pointe
 	}
 }
 
-func (t Tree) Walk(callback TreeWalkCallback) error {
+func (t *Tree) Walk(callback TreeWalkCallback) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 

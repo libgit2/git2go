@@ -13,7 +13,7 @@ func setupConfig() (*Config, error) {
 		err error
 	)
 
-	c, err = OpenOndisk(nil, tempConfig)
+	c, err = OpenOndisk(tempConfig)
 	if err != nil {
 		return nil, err
 	}

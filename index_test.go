@@ -3,6 +3,7 @@ package git
 import (
 	"io/ioutil"
 	"os"
+	"path"
 	"runtime"
 	"testing"
 )
@@ -59,14 +60,29 @@ func TestIndexWriteTreeTo(t *testing.T) {
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
-	repo2 := createTestRepo(t)
-	defer cleanupTestRepo(t, repo2)
+	idx, err := NewIndex()
+	checkFatal(t, err)
 
-	idx, err := repo.Index()
+	odb, err := repo.Odb()
 	checkFatal(t, err)
-	err = idx.AddByPath("README")
+
+	content, err := ioutil.ReadFile(path.Join(repo.Workdir(), "README"))
 	checkFatal(t, err)
-	treeId, err := idx.WriteTreeTo(repo2)
+
+	id, err := odb.Write(content, ObjectBlob)
+	checkFatal(t, err)
+
+	err = idx.Add(&IndexEntry{
+		Mode: FilemodeBlob,
+		Uid:  0,
+		Gid:  0,
+		Size: uint32(len(content)),
+		Id:   id,
+		Path: "README",
+	})
+	checkFatal(t, err)
+
+	treeId, err := idx.WriteTreeTo(repo)
 	checkFatal(t, err)
 
 	if treeId.String() != "b7119b11e8ef7a1a5a34d3ac87f5b075228ac81e" {
@@ -146,6 +162,30 @@ func TestIndexRemoveDirectory(t *testing.T) {
 	entryCount = idx.EntryCount()
 	if entryCount != 0 {
 		t.Fatal("Index should count 0 entry")
+	}
+}
+
+func TestIndexAddFromBuffer(t *testing.T) {
+	t.Parallel()
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	idx, err := repo.Index()
+	checkFatal(t, err)
+
+	entry := IndexEntry{
+		Path: "README",
+		Mode: FilemodeBlob,
+	}
+
+	err = idx.AddFromBuffer(&entry, []byte("foo\n"))
+	checkFatal(t, err)
+
+	treeId, err := idx.WriteTreeTo(repo)
+	checkFatal(t, err)
+
+	if treeId.String() != "b7119b11e8ef7a1a5a34d3ac87f5b075228ac81e" {
+		t.Fatalf("%v", treeId.String())
 	}
 }
 
