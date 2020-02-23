@@ -1,8 +1,10 @@
 package git
 
 /*
-#include <git2.h>
 #include <string.h>
+
+#include <git2.h>
+#include <git2/sys/cred.h>
 
 extern void _go_git_setup_callbacks(git_remote_callbacks *callbacks);
 

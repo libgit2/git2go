@@ -35,9 +35,9 @@ If using `master` or building a branch statically, we need to build libgit2 firs
 Run `go get -d github.com/libgit2/git2go` to download the code and go to your `$GOPATH/src/github.com/libgit2/git2go` directory. From there, we need to build the C code and put it into the resulting go binary.
 
     git submodule update --init # get libgit2
-    make install
+    make install-static
 
-will compile libgit2, link it into git2go and install it.
+will compile libgit2, link it into git2go and install it. The `master` branch is set up to follow the specific libgit2 version that is vendored, so trying dynamic linking may or may not work depending on the exact versions involved.
 
 Parallelism and network operations
 ----------------------------------
@@ -47,19 +47,19 @@ libgit2 may use OpenSSL and LibSSH2 for performing encrypted network connections
 Running the tests
 -----------------
 
-For the stable version, `go test` will work as usual. For the `next` branch, similarly to installing, running the tests requires building a local libgit2 library, so the Makefile provides a wrapper that makes sure it's built
+For the stable version, `go test` will work as usual. For the `master` branch, similarly to installing, running the tests requires building a local libgit2 library, so the Makefile provides a wrapper that makes sure it's built
 
-    make test
+    make test-static
 
 Alternatively, you can build the library manually first and then run the tests
 
     ./script/build-libgit2-static.sh
-    go test -v
+    go test -v --tags "static" ./...
 
 License
 -------
 
-M to the I to the T. See the LICENSE file if you've never seen a MIT license before.
+M to the I to the T. See the LICENSE file if you've never seen an MIT license before.
 
 Authors
 -------

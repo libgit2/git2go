@@ -51,7 +51,7 @@ func (patch *Patch) String() (string, error) {
 	if ecode < 0 {
 		return "", MakeGitError(ecode)
 	}
-	defer C.git_buf_free(&buf)
+	defer C.git_buf_dispose(&buf)
 
 	return C.GoString(buf.ptr), nil
 }
@@ -69,7 +69,7 @@ func (v *Repository) PatchFromBuffers(oldPath, newPath string, oldBuf, newBuf []
 	var patchPtr *C.git_patch
 
 	oldPtr := toPointer(oldBuf)
-	newPtr := (*C.char)(toPointer(newBuf))
+	newPtr := toPointer(newBuf)
 
 	cOldPath := C.CString(oldPath)
 	defer C.free(unsafe.Pointer(cOldPath))

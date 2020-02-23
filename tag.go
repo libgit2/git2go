@@ -21,26 +21,26 @@ func (t *Tag) AsObject() *Object {
 	return &t.Object
 }
 
-func (t Tag) Message() string {
+func (t *Tag) Message() string {
 	ret := C.GoString(C.git_tag_message(t.cast_ptr))
 	runtime.KeepAlive(t)
 	return ret
 }
 
-func (t Tag) Name() string {
+func (t *Tag) Name() string {
 	ret := C.GoString(C.git_tag_name(t.cast_ptr))
 	runtime.KeepAlive(t)
 	return ret
 }
 
-func (t Tag) Tagger() *Signature {
+func (t *Tag) Tagger() *Signature {
 	cast_ptr := C.git_tag_tagger(t.cast_ptr)
 	ret := newSignatureFromC(cast_ptr)
 	runtime.KeepAlive(t)
 	return ret
 }
 
-func (t Tag) Target() *Object {
+func (t *Tag) Target() *Object {
 	var ptr *C.git_object
 	ret := C.git_tag_target(&ptr, t.cast_ptr)
 	runtime.KeepAlive(t)
@@ -51,13 +51,13 @@ func (t Tag) Target() *Object {
 	return allocObject(ptr, t.repo)
 }
 
-func (t Tag) TargetId() *Oid {
+func (t *Tag) TargetId() *Oid {
 	ret := newOidFromC(C.git_tag_target_id(t.cast_ptr))
 	runtime.KeepAlive(t)
 	return ret
 }
 
-func (t Tag) TargetType() ObjectType {
+func (t *Tag) TargetType() ObjectType {
 	ret := ObjectType(C.git_tag_target_type(t.cast_ptr))
 	runtime.KeepAlive(t)
 	return ret

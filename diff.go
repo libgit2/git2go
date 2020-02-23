@@ -39,6 +39,8 @@ const (
 	DeltaConflicted Delta = C.GIT_DELTA_CONFLICTED
 )
 
+//go:generate stringer -type Delta -trimprefix Delta -tags static
+
 type DiffLineType int
 
 const (
@@ -53,6 +55,8 @@ const (
 	DiffLineHunkHdr DiffLineType = C.GIT_DIFF_LINE_HUNK_HDR
 	DiffLineBinary  DiffLineType = C.GIT_DIFF_LINE_BINARY
 )
+
+//go:generate stringer -type DiffLineType -trimprefix DiffLine -tags static
 
 type DiffFile struct {
 	Path  string
@@ -246,7 +250,7 @@ const (
 func (stats *DiffStats) String(format DiffStatsFormat,
 	width uint) (string, error) {
 	buf := C.git_buf{}
-	defer C.git_buf_free(&buf)
+	defer C.git_buf_dispose(&buf)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -284,7 +288,7 @@ type diffForEachData struct {
 	Error        error
 }
 
-type DiffForEachFileCallback func(DiffDelta, float64) (DiffForEachHunkCallback, error)
+type DiffForEachFileCallback func(delta DiffDelta, progress float64) (DiffForEachHunkCallback, error)
 
 type DiffDetail int
 
@@ -405,6 +409,36 @@ func (diff *Diff) Patch(deltaIndex int) (*Patch, error) {
 	return newPatchFromC(patchPtr), nil
 }
 
+type DiffFormat int
+
+const (
+	DiffFormatPatch       DiffFormat = C.GIT_DIFF_FORMAT_PATCH
+	DiffFormatPatchHeader DiffFormat = C.GIT_DIFF_FORMAT_PATCH_HEADER
+	DiffFormatRaw         DiffFormat = C.GIT_DIFF_FORMAT_RAW
+	DiffFormatNameOnly    DiffFormat = C.GIT_DIFF_FORMAT_NAME_ONLY
+	DiffFormatNameStatus  DiffFormat = C.GIT_DIFF_FORMAT_NAME_STATUS
+)
+
+func (diff *Diff) ToBuf(format DiffFormat) ([]byte, error) {
+	if diff.ptr == nil {
+		return nil, ErrInvalid
+	}
+
+	diffBuf := C.git_buf{}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C.git_diff_to_buf(&diffBuf, diff.ptr, C.git_diff_format_t(format))
+	runtime.KeepAlive(diff)
+	if ecode < 0 {
+		return nil, MakeGitError(ecode)
+	}
+	defer C.git_buf_free(&diffBuf)
+
+	return C.GoBytes(unsafe.Pointer(diffBuf.ptr), C.int(diffBuf.size)), nil
+}
+
 type DiffOptionsFlag int
 
 const (
@@ -437,6 +471,8 @@ const (
 	DiffShowUnmodified       DiffOptionsFlag = C.GIT_DIFF_SHOW_UNMODIFIED
 	DiffPatience             DiffOptionsFlag = C.GIT_DIFF_PATIENCE
 	DiffMinimal              DiffOptionsFlag = C.GIT_DIFF_MINIMAL
+	DiffShowBinary           DiffOptionsFlag = C.GIT_DIFF_SHOW_BINARY
+	DiffIndentHeuristic      DiffOptionsFlag = C.GIT_DIFF_INDENT_HEURISTIC
 )
 
 type DiffNotifyCallback func(diffSoFar *Diff, deltaToAdd DiffDelta, matchedPathspec string) error

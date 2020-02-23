@@ -13,12 +13,12 @@ import (
 type ObjectType int
 
 const (
-	ObjectAny    ObjectType = C.GIT_OBJ_ANY
-	ObjectBad    ObjectType = C.GIT_OBJ_BAD
-	ObjectCommit ObjectType = C.GIT_OBJ_COMMIT
-	ObjectTree   ObjectType = C.GIT_OBJ_TREE
-	ObjectBlob   ObjectType = C.GIT_OBJ_BLOB
-	ObjectTag    ObjectType = C.GIT_OBJ_TAG
+	ObjectAny     ObjectType = C.GIT_OBJECT_ANY
+	ObjectInvalid ObjectType = C.GIT_OBJECT_INVALID
+	ObjectCommit  ObjectType = C.GIT_OBJECT_COMMIT
+	ObjectTree    ObjectType = C.GIT_OBJECT_TREE
+	ObjectBlob    ObjectType = C.GIT_OBJECT_BLOB
+	ObjectTag     ObjectType = C.GIT_OBJECT_TAG
 )
 
 type Object struct {
@@ -35,8 +35,8 @@ func (t ObjectType) String() string {
 	switch t {
 	case ObjectAny:
 		return "Any"
-	case ObjectBad:
-		return "Bad"
+	case ObjectInvalid:
+		return "Invalid"
 	case ObjectCommit:
 		return "Commit"
 	case ObjectTree:
@@ -67,7 +67,7 @@ func (o *Object) ShortId() (string, error) {
 	if ecode < 0 {
 		return "", MakeGitError(ecode)
 	}
-	defer C.git_buf_free(&resultBuf)
+	defer C.git_buf_dispose(&resultBuf)
 	return C.GoString(resultBuf.ptr), nil
 }
 
@@ -217,7 +217,7 @@ func (o *Object) Peel(t ObjectType) (*Object, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	err := C.git_object_peel(&cobj, o.ptr, C.git_otype(t))
+	err := C.git_object_peel(&cobj, o.ptr, C.git_object_t(t))
 	runtime.KeepAlive(o)
 	if err < 0 {
 		return nil, MakeGitError(err)

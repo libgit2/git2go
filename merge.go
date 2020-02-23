@@ -132,7 +132,7 @@ func (mo *MergeOptions) toC() *C.git_merge_options {
 	}
 	return &C.git_merge_options{
 		version:          C.uint(mo.Version),
-		flags:            C.git_merge_flag_t(mo.TreeFlags),
+		flags:            C.uint32_t(mo.TreeFlags),
 		rename_threshold: C.uint(mo.RenameThreshold),
 		target_limit:     C.uint(mo.TargetLimit),
 		file_favor:       C.git_merge_file_favor_t(mo.FileFavor),
@@ -344,9 +344,29 @@ type MergeFileFlags int
 const (
 	MergeFileDefault MergeFileFlags = C.GIT_MERGE_FILE_DEFAULT
 
-	MergeFileStyleMerge         MergeFileFlags = C.GIT_MERGE_FILE_STYLE_MERGE
-	MergeFileStyleDiff          MergeFileFlags = C.GIT_MERGE_FILE_STYLE_DIFF3
+	// Create standard conflicted merge files
+	MergeFileStyleMerge MergeFileFlags = C.GIT_MERGE_FILE_STYLE_MERGE
+
+	// Create diff3-style files
+	MergeFileStyleDiff MergeFileFlags = C.GIT_MERGE_FILE_STYLE_DIFF3
+
+	// Condense non-alphanumeric regions for simplified diff file
 	MergeFileStyleSimplifyAlnum MergeFileFlags = C.GIT_MERGE_FILE_SIMPLIFY_ALNUM
+
+	// Ignore all whitespace
+	MergeFileIgnoreWhitespace MergeFileFlags = C.GIT_MERGE_FILE_IGNORE_WHITESPACE
+
+	// Ignore changes in amount of whitespace
+	MergeFileIgnoreWhitespaceChange MergeFileFlags = C.GIT_MERGE_FILE_IGNORE_WHITESPACE_CHANGE
+
+	// Ignore whitespace at end of line
+	MergeFileIgnoreWhitespaceEOL MergeFileFlags = C.GIT_MERGE_FILE_IGNORE_WHITESPACE_EOL
+
+	// Use the "patience diff" algorithm
+	MergeFileDiffPatience MergeFileFlags = C.GIT_MERGE_FILE_DIFF_PATIENCE
+
+	// Take extra time to find minimal diff
+	MergeFileDiffMinimal MergeFileFlags = C.GIT_MERGE_FILE_DIFF_MINIMAL
 )
 
 type MergeFileOptions struct {
@@ -355,6 +375,7 @@ type MergeFileOptions struct {
 	TheirLabel    string
 	Favor         MergeFileFavor
 	Flags         MergeFileFlags
+	MarkerSize    uint16
 }
 
 func mergeFileOptionsFromC(c C.git_merge_file_options) MergeFileOptions {
@@ -364,6 +385,7 @@ func mergeFileOptionsFromC(c C.git_merge_file_options) MergeFileOptions {
 		TheirLabel:    C.GoString(c.their_label),
 		Favor:         MergeFileFavor(c.favor),
 		Flags:         MergeFileFlags(c.flags),
+		MarkerSize:    uint16(c.marker_size),
 	}
 }
 
@@ -372,7 +394,8 @@ func populateCMergeFileOptions(c *C.git_merge_file_options, options MergeFileOpt
 	c.our_label = C.CString(options.OurLabel)
 	c.their_label = C.CString(options.TheirLabel)
 	c.favor = C.git_merge_file_favor_t(options.Favor)
-	c.flags = C.git_merge_file_flag_t(options.Flags)
+	c.flags = C.uint32_t(options.Flags)
+	c.marker_size = C.ushort(options.MarkerSize)
 }
 
 func freeCMergeFileOptions(c *C.git_merge_file_options) {
