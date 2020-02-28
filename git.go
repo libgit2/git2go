@@ -61,6 +61,8 @@ const (
 	// Object exists preventing operation
 	ErrExists ErrorCode = C.GIT_EEXISTS
 	// More than one object matches
+	ErrAmbiguous ErrorCode = C.GIT_EAMBIGUOUS
+	// (backwards compatibility misspelling)
 	ErrAmbigious ErrorCode = C.GIT_EAMBIGUOUS
 	// Output buffer too short to hold data
 	ErrBuffs ErrorCode = C.GIT_EBUFS
