@@ -5,15 +5,8 @@ sudo: required
 install: ./script/install-libgit2.sh
 
 go:
-  - 1.1
-  - 1.2
   - 1.3
   - 1.4
   - 1.5
   - 1.6
   - 1.7
-  - tip
-
-matrix:
-  allow_failures:
-    - go: tip
