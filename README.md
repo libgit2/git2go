@@ -4,15 +4,30 @@ git2go
 
 Go bindings for [libgit2](http://libgit2.github.com/).
 
-### Which branch to use
+### Which Go version to use
 
-The numbered branches work against the version of libgit2 as specified by their number. You can import them in your project via gopkg.in, e.g. if you have libgit2 v0.25 installed you'd import with
+Due to the fact that Go 1.11 module versions have semantic meaning and don't necessarily align with libgit2's release schedule, please consult the following table for a mapping between libgit2 and git2go module versions:
 
-    import "gopkg.in/libgit2/git2go.v25"
+| libgit2 | git2go        |
+|---------|---------------|
+| master  | (will be v30) |
+| 0.99    | v29           |
+| 0.28    | v28           |
+| 0.27    | v27           |
+
+You can import them in your project via `go get` or a regular `import` with the version number as a suffix. For example, if you have libgit2 v0.27 installed, you'd import with
+
+```go
+import "github.com/libgit2/git2go/v27"
+```
 
 which will ensure there are no sudden changes to the API.
 
-The `master` branch follows the tip of libgit2 itself (with some lag) and as such has no guarantees on its own API nor does it have expectations the stability of libgit2's. Thus this only supports statically linking against libgit2.
+The `master` branch follows the tip of libgit2 itself (with some lag) and as such has no guarantees on the stability of libgit2's API. Thus this only supports statically linking against libgit2.
+
+### Which branch to send Pull requests to
+
+If there's something version-specific that you'd want to contribute to, you can send them to the `release-${MAJOR}-${MINOR}` branches, which follow libgit2's releases.
 
 Installing
 ----------
@@ -24,9 +39,11 @@ This project wraps the functionality provided by libgit2. If you're using a vers
 
 ### Versioned branch, dynamic linking
 
-When linking dynamically against a released version of libgit2, install it via your system's package manager. CGo will take care of finding its pkg-config file and set up the linking. Import via gopkg.in, e.g. to work against libgit2 v0.25
+When linking dynamically against a released version of libgit2, install it via your system's package manager. CGo will take care of finding its pkg-config file and set up the linking. Import via Go modules, e.g. to work against libgit2 v0.27
 
-    import "gopkg.in/libgit2/git2go.v25"
+```go
+import "github.com/libgit2/git2go/v27"
+```
 
 ### Master branch, or static linking
 
