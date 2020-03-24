@@ -15,8 +15,11 @@ Due to the fact that Go 1.11 module versions have semantic meaning and don't nec
 | 0.28    | v28           |
 | 0.27    | v27           |
 
-You can import them in your project via `go get` or a regular `import` with the version number as a suffix. For example, if you have libgit2 v0.99 installed, you'd import with
+You can import them in your project with the version's major number as a suffix. For example, if you have libgit2 v0.99 installed, you'd import git2go v29 with
 
+```sh
+go get github.com/libgit2/git2go/v29
+```
 ```go
 import "github.com/libgit2/git2go/v29"
 ```
