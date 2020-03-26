@@ -254,6 +254,8 @@ func credentialsCallback(_cred **C.git_cred, _url *C.char, _username_from_url *C
 		return C.GIT_EUSER
 	}
 	if cred != nil {
+		// we are transferring ownership to libgit, have to disable  
+		runtime.SetFinalizer(cred, nil)
 		*_cred = cred.ptr
 	}
 	return 0
