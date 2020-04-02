@@ -8,8 +8,8 @@ package git
 #cgo !windows pkg-config: --static ${SRCDIR}/static-build/install/lib/pkgconfig/libgit2.pc
 #include <git2.h>
 
-#if LIBGIT2_VER_MAJOR != 0 || LIBGIT2_VER_MINOR != 99
-# error "Invalid libgit2 version; this git2go supports libgit2 v0.99"
+#if LIBGIT2_VER_MAJOR != 1 || LIBGIT2_VER_MINOR != 0
+# error "Invalid libgit2 version; this git2go supports libgit2 v1.0"
 #endif
 
 */

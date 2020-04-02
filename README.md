@@ -10,18 +10,19 @@ Due to the fact that Go 1.11 module versions have semantic meaning and don't nec
 
 | libgit2 | git2go        |
 |---------|---------------|
-| master  | (will be v30) |
+| master  | (will be v31) |
+| 1.0     | v30           |
 | 0.99    | v29           |
 | 0.28    | v28           |
 | 0.27    | v27           |
 
-You can import them in your project with the version's major number as a suffix. For example, if you have libgit2 v0.99 installed, you'd import git2go v29 with
+You can import them in your project with the version's major number as a suffix. For example, if you have libgit2 v1.0 installed, you'd import git2go v30 with
 
 ```sh
-go get github.com/libgit2/git2go/v29
+go get github.com/libgit2/git2go/v30
 ```
 ```go
-import "github.com/libgit2/git2go/v29"
+import "github.com/libgit2/git2go/v30"
 ```
 
 which will ensure there are no sudden changes to the API.
@@ -42,10 +43,10 @@ This project wraps the functionality provided by libgit2. If you're using a vers
 
 ### Versioned branch, dynamic linking
 
-When linking dynamically against a released version of libgit2, install it via your system's package manager. CGo will take care of finding its pkg-config file and set up the linking. Import via Go modules, e.g. to work against libgit2 v0.99
+When linking dynamically against a released version of libgit2, install it via your system's package manager. CGo will take care of finding its pkg-config file and set up the linking. Import via Go modules, e.g. to work against libgit2 v1.0
 
 ```go
-import "github.com/libgit2/git2go/v29"
+import "github.com/libgit2/git2go/v30"
 ```
 
 ### Master branch, or static linking
