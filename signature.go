@@ -17,6 +17,10 @@ type Signature struct {
 }
 
 func newSignatureFromC(sig *C.git_signature) *Signature {
+	if sig == nil {
+		return nil
+	}
+
 	// git stores minutes, go wants seconds
 	loc := time.FixedZone("", int(sig.when.offset)*60)
 	return &Signature{
