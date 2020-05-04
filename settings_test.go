@@ -48,3 +48,36 @@ func TestMmapSizes(t *testing.T) {
 		t.Fatal("Sizes don't match")
 	}
 }
+
+func TestEnableCaching(t *testing.T) {
+	err := EnableCaching(false)
+	checkFatal(t, err)
+
+	err = EnableCaching(true)
+	checkFatal(t, err)
+}
+
+func TestGetCachedMemory(t *testing.T) {
+	current, allowed, err := GetCachedMemory()
+	checkFatal(t, err)
+
+	if current < 0 {
+		t.Fatal("current < 0")
+	}
+
+	if allowed < 0 {
+		t.Fatal("allowed < 0")
+	}
+}
+
+func TestSetCacheMaxSize(t *testing.T) {
+	err := SetCacheMaxSize(0)
+	checkFatal(t, err)
+
+	err = SetCacheMaxSize(1024 * 1024)
+	checkFatal(t, err)
+
+	// revert to default 256MB
+	err = SetCacheMaxSize(256 * 1024 * 1024)
+	checkFatal(t, err)
+}

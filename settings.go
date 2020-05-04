@@ -86,14 +86,14 @@ func SetMwindowMappedLimit(size int) error {
 }
 
 func EnableCaching(enabled bool) error {
-	       if enabled {
-		               return setSizet(C.GIT_OPT_ENABLE_CACHING, 1)
-		       } else {
-		               return setSizet(C.GIT_OPT_ENABLE_CACHING, 0)
-		       }
+	if enabled {
+		return setSizet(C.GIT_OPT_ENABLE_CACHING, 1)
+	} else {
+		return setSizet(C.GIT_OPT_ENABLE_CACHING, 0)
+	}
 }
 
-func GetCachedMemory() (int, int, error) {
+func GetCachedMemory() (current int, allowed int, err error) {
 	return getSizetSizet(C.GIT_OPT_GET_CACHED_MEMORY)
 }
 
@@ -130,8 +130,7 @@ func getSizetSizet(opt C.int) (int, int, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	var val1 C.size_t
-	var val2 C.size_t
+	var val1, val2 C.size_t
 	err := C._go_git_opts_get_size_t_size_t(opt, &val1, &val2)
 	if err < 0 {
 		return 0, 0, MakeGitError(err)
