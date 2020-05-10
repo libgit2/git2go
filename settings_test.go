@@ -57,8 +57,8 @@ func TestEnableCaching(t *testing.T) {
 	checkFatal(t, err)
 }
 
-func TestGetCachedMemory(t *testing.T) {
-	current, allowed, err := GetCachedMemory()
+func TestCachedMemory(t *testing.T) {
+	current, allowed, err := CachedMemory()
 	checkFatal(t, err)
 
 	if current < 0 {
