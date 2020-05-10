@@ -528,7 +528,7 @@ type IndexConflict struct {
 	Their    *IndexEntry
 }
 
-func (v *Index) GetConflict(path string) (IndexConflict, error) {
+func (v *Index) Conflict(path string) (IndexConflict, error) {
 
 	var cancestor *C.git_index_entry
 	var cour *C.git_index_entry
@@ -551,6 +551,11 @@ func (v *Index) GetConflict(path string) (IndexConflict, error) {
 	}
 	runtime.KeepAlive(v)
 	return ret, nil
+}
+
+// deprecated: You should use `Index.Conflict()` instead.
+func (v *Index) GetConflict(path string) (IndexConflict, error) {
+	return v.Conflict(path)
 }
 
 func (v *Index) RemoveConflict(path string) error {
