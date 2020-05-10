@@ -144,7 +144,7 @@ func (diff *Diff) NumDeltas() (int, error) {
 	return ret, nil
 }
 
-func (diff *Diff) GetDelta(index int) (DiffDelta, error) {
+func (diff *Diff) Delta(index int) (DiffDelta, error) {
 	if diff.ptr == nil {
 		return DiffDelta{}, ErrInvalid
 	}
@@ -152,6 +152,11 @@ func (diff *Diff) GetDelta(index int) (DiffDelta, error) {
 	ret := diffDeltaFromC(ptr)
 	runtime.KeepAlive(diff)
 	return ret, nil
+}
+
+// deprecated: You should use `Diff.Delta()` instead.
+func (diff *Diff) GetDelta(index int) (DiffDelta, error) {
+	return diff.Delta(index)
 }
 
 func newDiffFromC(ptr *C.git_diff, repo *Repository) *Diff {
