@@ -109,7 +109,7 @@ func TestMergeTreesWithoutAncestor(t *testing.T) {
 	if !index.HasConflicts() {
 		t.Fatal("expected conflicts in the index")
 	}
-	_, err = index.GetConflict("README")
+	_, err = index.Conflict("README")
 	checkFatal(t, err)
 
 }
