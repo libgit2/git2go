@@ -93,8 +93,13 @@ func EnableCaching(enabled bool) error {
 	}
 }
 
-func GetCachedMemory() (current int, allowed int, err error) {
+func CachedMemory() (current int, allowed int, err error) {
 	return getSizetSizet(C.GIT_OPT_GET_CACHED_MEMORY)
+}
+
+// deprecated: You should use `CachedMemory()` instead.
+func GetCachedMemory() (current int, allowed int, err error) {
+	return CachedMemory()
 }
 
 func SetCacheMaxSize(maxSize int) error {
