@@ -34,10 +34,9 @@ func MessageTrailers(message string) ([]Trailer, error) {
 	defer C.git_message_trailer_array_free(&trailersC)
 	trailers := make([]Trailer, trailersC.count)
 	var trailer *C.git_message_trailer
-	for i, p := 0, uintptr(unsafe.Pointer(trailersC.trailers)); i < int(trailersC.count); p += unsafe.Sizeof(C.git_message_trailer{}) {
+	for i, p := 0, uintptr(unsafe.Pointer(trailersC.trailers)); i < int(trailersC.count); i, p = i+1, p+unsafe.Sizeof(C.git_message_trailer{}) {
 		trailer = (*C.git_message_trailer)(unsafe.Pointer(p))
 		trailers[i] = Trailer{Key: C.GoString(trailer.key), Value: C.GoString(trailer.value)}
-		i++
 	}
 	return trailers, nil
 }
