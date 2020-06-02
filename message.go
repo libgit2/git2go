@@ -19,7 +19,6 @@ type Trailer struct {
 // Trailer structs. Trailers are key/value pairs in the last paragraph of a
 // message, not including any patches or conflicts that may be present.
 func MessageTrailers(message string) ([]Trailer, error) {
-
 	var trailersC C.git_message_trailer_array
 
 	messageC := C.CString(message)
