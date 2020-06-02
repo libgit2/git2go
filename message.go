@@ -9,11 +9,15 @@ import (
 	"unsafe"
 )
 
+// Trailer represents a single git message trailer.
 type Trailer struct {
 	key   string
 	value string
 }
 
+// MessageTrailers parses trailers out of a message, returning a slice of
+// Trailer structs. Trailers are key/value pairs in the last paragraph of a
+// message, not including any patches or conflicts that may be present.
 func MessageTrailers(message string) ([]Trailer, error) {
 
 	var trailersC C.git_message_trailer_array
