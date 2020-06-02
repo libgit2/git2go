@@ -11,8 +11,8 @@ import (
 
 // Trailer represents a single git message trailer.
 type Trailer struct {
-	key   string
-	value string
+	Key   string
+	Value string
 }
 
 // MessageTrailers parses trailers out of a message, returning a slice of
@@ -37,7 +37,7 @@ func MessageTrailers(message string) ([]Trailer, error) {
 	var trailer *C.git_message_trailer
 	for i, p := 0, uintptr(unsafe.Pointer(trailersC.trailers)); i < int(trailersC.count); p += unsafe.Sizeof(C.git_message_trailer{}) {
 		trailer = (*C.git_message_trailer)(unsafe.Pointer(p))
-		trailers[i] = Trailer{key: C.GoString(trailer.key), value: C.GoString(trailer.value)}
+		trailers[i] = Trailer{Key: C.GoString(trailer.key), Value: C.GoString(trailer.value)}
 		i++
 	}
 	return trailers, nil
