@@ -126,12 +126,13 @@ const (
 	// continue resolving conflicts.  The merge operation will fail with
 	// GIT_EMERGECONFLICT and no index will be returned.
 	MergeTreeFailOnConflict MergeTreeFlag = C.GIT_MERGE_FAIL_ON_CONFLICT
-	// Do not write the REUC extension on the generated index
+	// MergeTreeSkipREUC specifies not to write the REUC extension on the
+	// generated index.
 	MergeTreeSkipREUC MergeTreeFlag = C.GIT_MERGE_SKIP_REUC
-	// If the commits being merged have multiple merge bases, do not build
-	// a recursive merge base (by merging the multiple merge bases),
-	// instead simply use the first base.  This flag provides a similar
-	// merge base to `git-merge-resolve`.
+	// MergeTreeNoRecursive specifies not to build a recursive merge base (by
+	// merging the multiple merge bases) if the commits being merged have
+	// multiple merge bases. Instead, the first base is used.
+	// This flag provides a similar merge base to `git-merge-resolve`.
 	MergeTreeNoRecursive MergeTreeFlag = C.GIT_MERGE_NO_RECURSIVE
 )
 
