@@ -59,6 +59,16 @@ Run `go get -d github.com/libgit2/git2go` to download the code and go to your `$
 
 will compile libgit2, link it into git2go and install it. The `master` branch is set up to follow the specific libgit2 version that is vendored, so trying dynamic linking may or may not work depending on the exact versions involved.
 
+In order to let Go pass the correct flags to `pkg-config`, `-tags static` needs to be passed to all `go` commands that build any binaries. For instance:
+
+    go build -tags static github.com/my/project/...
+    go test -tags static github.com/my/project/...
+    go install -tags static github.com/my/project/...
+
+One thing to take into account is that since Go expects the `pkg-config` file to be within the same directory where `make install-static` was called, so the `go.mod` file may need to have a [`replace` directive](https://github.com/golang/go/wiki/Modules#when-should-i-use-the-replace-directive) so that the correct setup is achieved. So if `git2go` is checked out at `$GOPATH/src/github.com/libgit2/git2go` and your project at `$GOPATH/src/github.com/my/project`, the `go.mod` file of `github.com/my/project` might need to have a line like
+
+    replace github.com/libgit2/git2go/v27 ../../libgit2/git2go
+
 Parallelism and network operations
 ----------------------------------
 
@@ -74,7 +84,7 @@ For the stable version, `go test` will work as usual. For the `master` branch, s
 Alternatively, you can build the library manually first and then run the tests
 
     ./script/build-libgit2-static.sh
-    go test -v --tags "static" ./...
+    go test -v -tags static ./...
 
 License
 -------
