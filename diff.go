@@ -131,8 +131,9 @@ func diffLineFromC(line *C.git_diff_line) DiffLine {
 }
 
 type Diff struct {
-	ptr  *C.git_diff
-	repo *Repository
+	ptr          *C.git_diff
+	repo         *Repository
+	runFinalizer bool
 }
 
 func (diff *Diff) NumDeltas() (int, error) {
@@ -165,8 +166,9 @@ func newDiffFromC(ptr *C.git_diff, repo *Repository) *Diff {
 	}
 
 	diff := &Diff{
-		ptr:  ptr,
-		repo: repo,
+		ptr:          ptr,
+		repo:         repo,
+		runFinalizer: true,
 	}
 
 	runtime.SetFinalizer(diff, (*Diff).Free)
@@ -176,6 +178,11 @@ func newDiffFromC(ptr *C.git_diff, repo *Repository) *Diff {
 func (diff *Diff) Free() error {
 	if diff.ptr == nil {
 		return ErrInvalid
+	}
+	if !diff.runFinalizer {
+		// This is the case with the Diff objects that are involved in the DiffNotifyCallback.
+		diff.ptr = nil
+		return nil
 	}
 	runtime.SetFinalizer(diff, nil)
 	C.git_diff_free(diff.ptr)
@@ -579,9 +586,9 @@ var (
 )
 
 type diffNotifyData struct {
-	Callback DiffNotifyCallback
-	Diff     *Diff
-	Error    error
+	Callback   DiffNotifyCallback
+	Repository *Repository
+	Error      error
 }
 
 //export diffNotifyCb
@@ -595,11 +602,20 @@ func diffNotifyCb(_diff_so_far unsafe.Pointer, delta_to_add *C.git_diff_delta, m
 	}
 
 	if data != nil {
-		if data.Diff == nil {
-			data.Diff = newDiffFromC(diff_so_far, nil)
+		// We are not taking ownership of this diff pointer, so no finalizer is set.
+		diff := &Diff{
+			ptr:          diff_so_far,
+			repo:         data.Repository,
+			runFinalizer: false,
 		}
 
-		err := data.Callback(data.Diff, diffDeltaFromC(delta_to_add), C.GoString(matched_pathspec))
+		err := data.Callback(diff, diffDeltaFromC(delta_to_add), C.GoString(matched_pathspec))
+
+		// Since the callback could theoretically keep a reference to the diff
+		// (which could be freed by libgit2 if an error occurs later during the
+		// diffing process), this converts a use-after-free (terrible!) into a nil
+		// dereference ("just" pretty bad).
+		diff.ptr = nil
 
 		if err == ErrDeltaSkip {
 			return 1
@@ -613,11 +629,12 @@ func diffNotifyCb(_diff_so_far unsafe.Pointer, delta_to_add *C.git_diff_delta, m
 	return 0
 }
 
-func diffOptionsToC(opts *DiffOptions) (copts *C.git_diff_options, notifyData *diffNotifyData) {
+func diffOptionsToC(opts *DiffOptions, repo *Repository) (copts *C.git_diff_options) {
 	cpathspec := C.git_strarray{}
 	if opts != nil {
-		notifyData = &diffNotifyData{
-			Callback: opts.NotifyCallback,
+		notifyData := &diffNotifyData{
+			Callback:   opts.NotifyCallback,
+			Repository: repo,
 		}
 
 		if opts.Pathspec != nil {
@@ -670,7 +687,7 @@ func (v *Repository) DiffTreeToTree(oldTree, newTree *Tree, opts *DiffOptions) (
 		newPtr = newTree.cast_ptr
 	}
 
-	copts, notifyData := diffOptionsToC(opts)
+	copts := diffOptionsToC(opts, v)
 	defer freeDiffOptions(copts)
 
 	runtime.LockOSThread()
@@ -681,10 +698,6 @@ func (v *Repository) DiffTreeToTree(oldTree, newTree *Tree, opts *DiffOptions) (
 	runtime.KeepAlive(newTree)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
-	}
-
-	if notifyData != nil && notifyData.Diff != nil {
-		return notifyData.Diff, nil
 	}
 	return newDiffFromC(diffPtr, v), nil
 }
@@ -697,7 +710,7 @@ func (v *Repository) DiffTreeToWorkdir(oldTree *Tree, opts *DiffOptions) (*Diff,
 		oldPtr = oldTree.cast_ptr
 	}
 
-	copts, notifyData := diffOptionsToC(opts)
+	copts := diffOptionsToC(opts, v)
 	defer freeDiffOptions(copts)
 
 	runtime.LockOSThread()
@@ -707,10 +720,6 @@ func (v *Repository) DiffTreeToWorkdir(oldTree *Tree, opts *DiffOptions) (*Diff,
 	runtime.KeepAlive(oldTree)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
-	}
-
-	if notifyData != nil && notifyData.Diff != nil {
-		return notifyData.Diff, nil
 	}
 	return newDiffFromC(diffPtr, v), nil
 }
@@ -728,7 +737,7 @@ func (v *Repository) DiffTreeToIndex(oldTree *Tree, index *Index, opts *DiffOpti
 		indexPtr = index.ptr
 	}
 
-	copts, notifyData := diffOptionsToC(opts)
+	copts := diffOptionsToC(opts, v)
 	defer freeDiffOptions(copts)
 
 	runtime.LockOSThread()
@@ -739,10 +748,6 @@ func (v *Repository) DiffTreeToIndex(oldTree *Tree, index *Index, opts *DiffOpti
 	runtime.KeepAlive(index)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
-	}
-
-	if notifyData != nil && notifyData.Diff != nil {
-		return notifyData.Diff, nil
 	}
 	return newDiffFromC(diffPtr, v), nil
 }
@@ -755,7 +760,7 @@ func (v *Repository) DiffTreeToWorkdirWithIndex(oldTree *Tree, opts *DiffOptions
 		oldPtr = oldTree.cast_ptr
 	}
 
-	copts, notifyData := diffOptionsToC(opts)
+	copts := diffOptionsToC(opts, v)
 	defer freeDiffOptions(copts)
 
 	runtime.LockOSThread()
@@ -765,10 +770,6 @@ func (v *Repository) DiffTreeToWorkdirWithIndex(oldTree *Tree, opts *DiffOptions
 	runtime.KeepAlive(oldTree)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
-	}
-
-	if notifyData != nil && notifyData.Diff != nil {
-		return notifyData.Diff, nil
 	}
 	return newDiffFromC(diffPtr, v), nil
 }
@@ -781,7 +782,7 @@ func (v *Repository) DiffIndexToWorkdir(index *Index, opts *DiffOptions) (*Diff,
 		indexPtr = index.ptr
 	}
 
-	copts, notifyData := diffOptionsToC(opts)
+	copts := diffOptionsToC(opts, v)
 	defer freeDiffOptions(copts)
 
 	runtime.LockOSThread()
@@ -791,10 +792,6 @@ func (v *Repository) DiffIndexToWorkdir(index *Index, opts *DiffOptions) (*Diff,
 	runtime.KeepAlive(index)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
-	}
-
-	if notifyData != nil && notifyData.Diff != nil {
-		return notifyData.Diff, nil
 	}
 	return newDiffFromC(diffPtr, v), nil
 }
@@ -819,12 +816,15 @@ func DiffBlobs(oldBlob *Blob, oldAsPath string, newBlob *Blob, newAsPath string,
 	handle := pointerHandles.Track(data)
 	defer pointerHandles.Untrack(handle)
 
+	var repo *Repository
 	var oldBlobPtr, newBlobPtr *C.git_blob
 	if oldBlob != nil {
 		oldBlobPtr = oldBlob.cast_ptr
+		repo = oldBlob.repo
 	}
 	if newBlob != nil {
 		newBlobPtr = newBlob.cast_ptr
+		repo = newBlob.repo
 	}
 
 	oldBlobPath := C.CString(oldAsPath)
@@ -832,7 +832,7 @@ func DiffBlobs(oldBlob *Blob, oldAsPath string, newBlob *Blob, newAsPath string,
 	newBlobPath := C.CString(newAsPath)
 	defer C.free(unsafe.Pointer(newBlobPath))
 
-	copts, _ := diffOptionsToC(opts)
+	copts := diffOptionsToC(opts, repo)
 	defer freeDiffOptions(copts)
 
 	runtime.LockOSThread()

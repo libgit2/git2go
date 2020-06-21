@@ -77,7 +77,7 @@ func (v *Repository) PatchFromBuffers(oldPath, newPath string, oldBuf, newBuf []
 	cNewPath := C.CString(newPath)
 	defer C.free(unsafe.Pointer(cNewPath))
 
-	copts, _ := diffOptionsToC(opts)
+	copts := diffOptionsToC(opts, v)
 	defer freeDiffOptions(copts)
 
 	runtime.LockOSThread()
