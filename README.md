@@ -48,9 +48,17 @@ When linking dynamically against a released version of libgit2, install it via y
 import "github.com/libgit2/git2go/v27"
 ```
 
-### Master branch, or static linking
+### Versioned branch, static linking
 
-If using `master` or building a branch statically, we need to build libgit2 first. In order to build it, you need `cmake`, `pkg-config` and a C compiler. You will also need the development packages for OpenSSL (outside of Windows or macOS) and LibSSH2 installed if you want libgit2 to support HTTPS and SSH respectively. Note that even if libgit2 is included in the resulting binary, its dependencies will not be.
+Follow the instructions for [Versioned branch, dynamic linking](#versioned-branch-dynamic-linking), but pass the `-tags static,system_libgit2` flag to all `go` commands that build any binaries. For instance:
+
+    go build -tags static,system_libgit2 github.com/my/project/...
+    go test -tags static,system_libgit2 github.com/my/project/...
+    go install -tags static,system_libgit2 github.com/my/project/...
+
+### Master branch, or vendored static linking
+
+If using `master` or building a branch with the vendored libgit2 statically, we need to build libgit2 first. In order to build it, you need `cmake`, `pkg-config` and a C compiler. You will also need the development packages for OpenSSL (outside of Windows or macOS) and LibSSH2 installed if you want libgit2 to support HTTPS and SSH respectively. Note that even if libgit2 is included in the resulting binary, its dependencies will not be.
 
 Run `go get -d github.com/libgit2/git2go` to download the code and go to your `$GOPATH/src/github.com/libgit2/git2go` directory. From there, we need to build the C code and put it into the resulting go binary.
 
@@ -83,7 +91,7 @@ For the stable version, `go test` will work as usual. For the `master` branch, s
 
 Alternatively, you can build the library manually first and then run the tests
 
-    ./script/build-libgit2-static.sh
+    make install-static
     go test -v -tags static ./...
 
 License
