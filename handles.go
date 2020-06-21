@@ -43,6 +43,16 @@ func (v *HandleList) Untrack(handle unsafe.Pointer) {
 	v.Unlock()
 }
 
+// Clear stops tracking all the managed pointers.
+func (v *HandleList) Clear() {
+	v.Lock()
+	for handle := range v.handles {
+		delete(v.handles, handle)
+		C.free(handle)
+	}
+	v.Unlock()
+}
+
 // Get retrieves the pointer from the given handle
 func (v *HandleList) Get(handle unsafe.Pointer) interface{} {
 	v.RLock()
