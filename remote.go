@@ -697,7 +697,6 @@ func populateFetchOptions(options *C.git_fetch_options, opts *FetchOptions) {
 	options.custom_headers = C.git_strarray{}
 	options.custom_headers.count = C.size_t(len(opts.Headers))
 	options.custom_headers.strings = makeCStringsFromStrings(opts.Headers)
-	options.proxy_opts = C.git_proxy_options{}
 	populateProxyOptions(&options.proxy_opts, &opts.ProxyOptions)
 }
 
