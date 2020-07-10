@@ -119,7 +119,7 @@ type FetchOptions struct {
 	Headers []string
 
 	// Proxy options to use for this fetch operation
-	*ProxyOptions
+	ProxyOptions ProxyOptions
 }
 
 type ProxyType uint
@@ -698,7 +698,7 @@ func populateFetchOptions(options *C.git_fetch_options, opts *FetchOptions) {
 	options.custom_headers.count = C.size_t(len(opts.Headers))
 	options.custom_headers.strings = makeCStringsFromStrings(opts.Headers)
 	options.proxy_opts = C.git_proxy_options{}
-	populateProxyOptions(&options.proxy_opts, opts.ProxyOptions)
+	populateProxyOptions(&options.proxy_opts, &opts.ProxyOptions)
 }
 
 func populatePushOptions(options *C.git_push_options, opts *PushOptions) {
