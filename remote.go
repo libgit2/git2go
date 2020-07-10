@@ -116,6 +116,9 @@ type FetchOptions struct {
 
 	// Headers are extra headers for the fetch operation.
 	Headers []string
+
+	// Proxy options to use for this fetch operation
+	ProxyOptions ProxyOptions
 }
 
 type ProxyType uint
@@ -687,6 +690,7 @@ func populateFetchOptions(options *C.git_fetch_options, opts *FetchOptions) {
 	options.custom_headers = C.git_strarray{}
 	options.custom_headers.count = C.size_t(len(opts.Headers))
 	options.custom_headers.strings = makeCStringsFromStrings(opts.Headers)
+	populateProxyOptions(&options.proxy_opts, &opts.ProxyOptions)
 }
 
 func populatePushOptions(options *C.git_push_options, opts *PushOptions) {
