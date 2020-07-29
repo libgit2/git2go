@@ -40,6 +40,12 @@ func (v *Blob) Contents() []byte {
 	return goBytes
 }
 
+func (v *Blob) IsBinary() bool {
+	ret := C.git_blob_is_binary(v.cast_ptr) == 1
+	runtime.KeepAlive(v)
+	return ret
+}
+
 func (repo *Repository) CreateBlobFromBuffer(data []byte) (*Oid, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
