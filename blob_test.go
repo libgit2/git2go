@@ -28,7 +28,21 @@ func TestCreateBlobFromBuffer(t *testing.T) {
 		t.Fatal("Empty buffer did not deliver empty blob id")
 	}
 
-	for _, data := range []([]byte){[]byte("hello there"), doublePointerBytes()} {
+	tests := []struct {
+		data     []byte
+		isBinary bool
+	}{
+		{
+			data:     []byte("hello there"),
+			isBinary: false,
+		},
+		{
+			data:     doublePointerBytes(),
+			isBinary: true,
+		},
+	}
+	for _, tt := range tests {
+		data := tt.data
 		id, err = repo.CreateBlobFromBuffer(data)
 		checkFatal(t, err)
 
@@ -37,6 +51,10 @@ func TestCreateBlobFromBuffer(t *testing.T) {
 		if !bytes.Equal(blob.Contents(), data) {
 			t.Fatal("Loaded bytes don't match original bytes:",
 				blob.Contents(), "!=", data)
+		}
+		want := tt.isBinary
+		if got := blob.IsBinary(); got != want {
+			t.Fatalf("IsBinary() = %v, want %v", got, want)
 		}
 	}
 }
