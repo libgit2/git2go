@@ -236,3 +236,65 @@ func TestDiffBlobs(t *testing.T) {
 		t.Fatalf("Bad number of lines iterated")
 	}
 }
+
+func Test_ApplyDiff_Addfile(t *testing.T) {
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	seedTestRepo(t, repo)
+
+	addFirstFileCommit, addFileTree := addAndGetTree(t, repo, "file1", `hello`)
+	addSecondFileCommit, addSecondFileTree := addAndGetTree(t, repo, "file2", `hello2`)
+
+	diff, err := repo.DiffTreeToTree(addFileTree, addSecondFileTree, nil)
+	checkFatal(t, err)
+
+	t.Run("check does not apply to current tree because file exists", func(t *testing.T) {
+		err = repo.ResetToCommit(addSecondFileCommit, ResetHard, &CheckoutOpts{})
+		checkFatal(t, err)
+
+		err = repo.ApplyDiff(diff, GitApplyLocationBoth, nil)
+		if err == nil {
+			t.Error("expecting applying patch to current repo to fail")
+		}
+	})
+
+	t.Run("check apply to correct commit", func(t *testing.T) {
+		err = repo.ResetToCommit(addFirstFileCommit, ResetHard, &CheckoutOpts{})
+		checkFatal(t, err)
+
+		err = repo.ApplyDiff(diff, GitApplyLocationBoth, nil)
+		checkFatal(t, err)
+	})
+
+	t.Run("check convert to raw buffer and apply", func(t *testing.T) {
+		err = repo.ResetToCommit(addFirstFileCommit, ResetHard, &CheckoutOpts{})
+		checkFatal(t, err)
+
+		raw, err := diff.ToBuf(DiffFormatPatch)
+		checkFatal(t, err)
+
+		if len(raw) == 0 {
+			t.Error("empty diff created")
+		}
+
+		diff2, err := DiffFromBuffer(raw, repo)
+		checkFatal(t, err)
+
+		err = repo.ApplyDiff(diff2, GitApplyLocationBoth, nil)
+		checkFatal(t, err)
+	})
+}
+
+func addAndGetTree(t *testing.T, repo *Repository, filename string, content string) (*Commit, *Tree) {
+	commitId, err := commitSomething(repo, filename, content)
+	checkFatal(t, err)
+
+	commit, err := repo.LookupCommit(commitId)
+	checkFatal(t, err)
+
+	tree, err := commit.Tree()
+	checkFatal(t, err)
+
+	return commit, tree
+}
