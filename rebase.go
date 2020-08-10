@@ -2,6 +2,8 @@ package git
 
 /*
 #include <git2.h>
+
+extern void _go_git_populate_commit_sign_cb(git_rebase_options *opts);
 */
 import "C"
 import (
@@ -69,6 +71,59 @@ func newRebaseOperationFromC(c *C.git_rebase_operation) *RebaseOperation {
 	return operation
 }
 
+//export commitSignCallback
+func commitSignCallback(_signature *C.git_buf, _signature_field *C.git_buf, _commit_content *C.char, _payload unsafe.Pointer) C.int {
+	opts, ok := pointerHandles.Get(_payload).(RebaseOptions)
+	if !ok {
+		panic("invalid sign payload")
+	}
+
+	if opts.SigningCallback == nil {
+		return C.GIT_PASSTHROUGH
+	}
+
+	commitContent := C.GoString(_commit_content)
+
+	signature, signatureField, err := opts.SigningCallback(commitContent)
+	if err != nil {
+		return C.int(-1)
+	}
+
+	fillBuf := func(bufData string, buf *C.git_buf) error {
+		clen := C.size_t(len(bufData))
+		cstr := unsafe.Pointer(C.CString(bufData))
+
+		// over-assign by a byte (see below)
+		if int(C.git_buf_grow(buf, clen+1)) != 0 {
+			return errors.New("could not grow buffer")
+		}
+
+		if int(C.git_buf_set(buf, cstr, clen)) != 0 {
+			return errors.New("could not set buffer")
+		}
+
+		// git_buf_set sets 'size' to the 'size' of the buffer to 'clen', but we want it to be clen+1 because after returning it asserts that the buffer ends with a null byte, which Go strings don't
+		// This avoids having to convert the string to a []byte, then adding a null byte, then doing another copy
+		buf.size += 1
+
+		return nil
+	}
+
+	if signatureField != "" {
+		err := fillBuf(signatureField, _signature_field)
+		if err != nil {
+			return C.int(-1)
+		}
+	}
+
+	err = fillBuf(signature, _signature)
+	if err != nil {
+		return C.int(-1)
+	}
+
+	return C.GIT_OK
+}
+
 // RebaseOptions are used to tell the rebase machinery how to operate
 type RebaseOptions struct {
 	Version         uint
@@ -77,6 +132,7 @@ type RebaseOptions struct {
 	RewriteNotesRef string
 	MergeOptions    MergeOptions
 	CheckoutOptions CheckoutOpts
+	SigningCallback CommitSigningCb
 }
 
 // DefaultRebaseOptions returns a RebaseOptions with default values.
@@ -101,6 +157,7 @@ func rebaseOptionsFromC(opts *C.git_rebase_options) RebaseOptions {
 		RewriteNotesRef: C.GoString(opts.rewrite_notes_ref),
 		MergeOptions:    mergeOptionsFromC(&opts.merge_options),
 		CheckoutOptions: checkoutOptionsFromC(&opts.checkout_options),
+		// 	TODO: is it possible to take the callback from C and have it be meaningful in Go? Would we ever want to do it?
 	}
 }
 
@@ -108,7 +165,7 @@ func (ro *RebaseOptions) toC() *C.git_rebase_options {
 	if ro == nil {
 		return nil
 	}
-	return &C.git_rebase_options{
+	opts := &C.git_rebase_options{
 		version:           C.uint(ro.Version),
 		quiet:             C.int(ro.Quiet),
 		inmemory:          C.int(ro.InMemory),
@@ -116,6 +173,13 @@ func (ro *RebaseOptions) toC() *C.git_rebase_options {
 		merge_options:     *ro.MergeOptions.toC(),
 		checkout_options:  *ro.CheckoutOptions.toC(),
 	}
+
+	if ro.SigningCallback != nil {
+		C._go_git_populate_commit_sign_cb(opts)
+		opts.payload = pointerHandles.Track(*ro)
+	}
+
+	return opts
 }
 
 func mapEmptyStringToNull(ref string) *C.char {
