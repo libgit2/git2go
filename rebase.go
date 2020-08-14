@@ -105,13 +105,9 @@ func commitSignCallback(_signature *C.git_buf, _signature_field *C.git_buf, _com
 
 		C._go_git_buf_fill_null(buf)
 
-		if int(C.git_buf_set(buf, cstr, clen)) != 0 {
+		if int(C.git_buf_set(buf, cstr, clen+1)) != 0 {
 			return errors.New("could not set buffer")
 		}
-
-		// git_buf_set sets 'size' to the 'size' of the buffer to 'clen', but we want it to be clen+1 because after returning it asserts that the buffer ends with a null byte, which Go strings don't
-		// This avoids having to convert the string to a []byte, then adding a null byte, then doing another copy
-		buf.size += 1
 
 		return nil
 	}
