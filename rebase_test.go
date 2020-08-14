@@ -239,6 +239,8 @@ func checkAllCommitsSigned(t *testing.T, entity *openpgp.Entity, repo *Repositor
 }
 
 func checkCommitSigned(t *testing.T, entity *openpgp.Entity, commit *Commit) error {
+	t.Helper()
+
 	signature, signedData, err := commit.ExtractSignature()
 	if err != nil {
 		t.Logf("No signature on commit\n%s", commit.ContentToSign())
