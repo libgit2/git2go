@@ -160,7 +160,6 @@ func rebaseOptionsFromC(opts *C.git_rebase_options) RebaseOptions {
 		RewriteNotesRef: C.GoString(opts.rewrite_notes_ref),
 		MergeOptions:    mergeOptionsFromC(&opts.merge_options),
 		CheckoutOptions: checkoutOptionsFromC(&opts.checkout_options),
-		// 	TODO: is it possible to take the callback from C and have it be meaningful in Go? Would we ever want to do it?
 	}
 }
 
