@@ -551,7 +551,7 @@ const (
 	DiffFindRemoveUnmodified            DiffFindOptionsFlag = C.GIT_DIFF_FIND_REMOVE_UNMODIFIED
 )
 
-//TODO implement git_diff_similarity_metric
+// TODO implement git_diff_similarity_metric
 type DiffFindOptions struct {
 	Flags                      DiffFindOptionsFlag
 	RenameThreshold            uint16
@@ -849,10 +849,63 @@ func DiffBlobs(oldBlob *Blob, oldAsPath string, newBlob *Blob, newAsPath string,
 	return nil
 }
 
+type ApplyHunkCallback func(*DiffHunk) (apply bool, err error)
+type ApplyDeltaCallback func(*DiffDelta) (apply bool, err error)
+
+// ApplyOptions has 2 callbacks that are called for hunks or deltas
+// If these functions return an error, abort the apply process immediately.
+// If the first resutnr value is true, the delta/hunk will be applied. If it is false, the  delta/hunk will not be applied. In either case, the rest of the apply process will continue.
 type ApplyOptions struct {
 	Version uint
-	Flags   uint
-	// TODO: there are some more flags, not currently used
+	ApplyHunkCallback
+	ApplyDeltaCallback
+	Flags uint
+}
+
+//export hunkApplyCallback
+func hunkApplyCallback(_hunk *C.git_diff_hunk, _payload unsafe.Pointer) C.int {
+	opts, ok := pointerHandles.Get(_payload).(ApplyOptions)
+	if !ok {
+		panic("invalid apply options payload")
+	}
+
+	if opts.ApplyHunkCallback == nil {
+		return 0
+	}
+
+	hunk := diffHunkFromC(_hunk)
+
+	apply, err := opts.ApplyHunkCallback(&hunk)
+	if err != nil {
+		return -1
+	} else if apply {
+		return 0
+	} else {
+		return 1
+	}
+}
+
+//export deltaApplyCallback
+func deltaApplyCallback(_delta *C.git_diff_delta, _payload unsafe.Pointer) C.int {
+	opts, ok := pointerHandles.Get(_payload).(ApplyOptions)
+	if !ok {
+		panic("invalid apply options payload")
+	}
+
+	if opts.ApplyDeltaCallback == nil {
+		return 0
+	}
+
+	delta := diffDeltaFromC(_delta)
+
+	apply, err := opts.ApplyDeltaCallback(&delta)
+	if err != nil {
+		return -1
+	} else if apply {
+		return 0
+	} else {
+		return 1
+	}
 }
 
 func DefaultApplyOptions() (*ApplyOptions, error) {
@@ -874,6 +927,11 @@ func (a *ApplyOptions) toC() *C.git_apply_options {
 	opts := &C.git_apply_options{
 		version: C.uint(a.Version),
 		flags:   C.uint(a.Flags),
+	}
+
+	if a.ApplyDeltaCallback != nil || a.ApplyHunkCallback != nil {
+		C._go_git_populate_apply_cb(opts)
+		opts.payload = pointerHandles.Track(*a)
 	}
 
 	return opts
