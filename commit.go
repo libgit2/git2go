@@ -79,11 +79,16 @@ func (c *Commit) WithSignature(signature string, signatureField string) (*Oid, e
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
+	cTotalCommit:=C.CString(totalCommit)
+	cSignature := C.CString(signature)
+	defer C.free(unsafe.Pointer(cTotalCommit))
+	defer C.free(unsafe.Pointer(cSignature))
+
 	ret := C.git_commit_create_with_signature(
 		oid.toC(),
 		c.Owner().ptr,
-		C.CString(totalCommit),
-		C.CString(signature),
+		cTotalCommit,
+		cSignature,
 		csf,
 	)
 
