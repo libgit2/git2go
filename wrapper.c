@@ -6,6 +6,12 @@
 
 typedef int (*gogit_submodule_cbk)(git_submodule *sm, const char *name, void *payload);
 
+void _go_git_apply_init_options(git_apply_options *options)
+{
+  git_apply_options opts = GIT_APPLY_OPTIONS_INIT;
+  *options = opts;
+}
+
 void _go_git_populate_remote_cb(git_clone_options *opts)
 {
 	opts->remote_cb = (git_remote_create_cb)remoteCreateCallback;
