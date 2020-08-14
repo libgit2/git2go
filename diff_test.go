@@ -252,11 +252,6 @@ func Test_ApplyDiff_Addfile(t *testing.T) {
 	diff, err := repo.DiffTreeToTree(addFileTree, addSecondFileTree, nil)
 	checkFatal(t, err)
 
-	opts := StatusOptions{
-		Show:  StatusShowIndexAndWorkdir,
-		Flags: StatusOptIncludeUntracked,
-	}
-
 	t.Run("check does not apply to current tree because file exists", func(t *testing.T) {
 		err = repo.ResetToCommit(addSecondFileCommit, ResetHard, &CheckoutOpts{})
 		checkFatal(t, err)
@@ -275,29 +270,7 @@ func Test_ApplyDiff_Addfile(t *testing.T) {
 		checkFatal(t, err)
 
 		t.Run("Check that diff only changed one file", func(t *testing.T) {
-			statuses, err := repo.StatusList(&opts)
-			checkFatal(t, err)
-
-			count, err := statuses.EntryCount()
-			checkFatal(t, err)
-
-			if count != 1 {
-				t.Error("diff should affect exactly one file")
-			}
-			if count == 0 {
-				t.Fatal("no statuses, cannot continue test")
-			}
-
-			entry, err := statuses.ByIndex(0)
-			checkFatal(t, err)
-
-			if entry.Status != StatusIndexNew {
-				t.Error("status should be 'new' as file has been added between commits")
-			}
-
-			if entry.HeadToIndex.NewFile.Path != "file2" {
-				t.Error("new file should be 'file2")
-			}
+			checkSecondFileStaged(t, repo)
 
 			index, err := repo.Index()
 			checkFatal(t, err)
@@ -358,8 +331,181 @@ func Test_ApplyDiff_Addfile(t *testing.T) {
 		err = repo.ApplyDiff(diff2, GitApplyLocationBoth, nil)
 		checkFatal(t, err)
 	})
+
+	t.Run("check apply callbacks work", func(t *testing.T) {
+		// reset the state and get new default options for test
+		resetAndGetOpts := func(t *testing.T) *ApplyOptions {
+			err = repo.ResetToCommit(addFirstFileCommit, ResetHard, &CheckoutOpts{})
+			checkFatal(t, err)
+
+			opts, err := DefaultApplyOptions()
+			checkFatal(t, err)
+
+			return opts
+		}
+
+		t.Run("Check hunk callback working applies patch", func(t *testing.T) {
+			opts := resetAndGetOpts(t)
+
+			called := false
+			opts.ApplyHunkCallback = func(hunk *DiffHunk) (apply bool, err error) {
+				called = true
+				return true, nil
+			}
+
+			err = repo.ApplyDiff(diff, GitApplyLocationBoth, opts)
+			checkFatal(t, err)
+
+			if called == false {
+				t.Error("apply hunk callback was not called")
+			}
+
+			checkSecondFileStaged(t, repo)
+		})
+
+		t.Run("Check delta callback working applies patch", func(t *testing.T) {
+			opts := resetAndGetOpts(t)
+
+			called := false
+			opts.ApplyDeltaCallback = func(hunk *DiffDelta) (apply bool, err error) {
+				if hunk.NewFile.Path != "file2" {
+					t.Error("Unexpected delta in diff application")
+				}
+				called = true
+				return true, nil
+			}
+
+			err = repo.ApplyDiff(diff, GitApplyLocationBoth, opts)
+			checkFatal(t, err)
+
+			if called == false {
+				t.Error("apply hunk callback was not called")
+			}
+
+			checkSecondFileStaged(t, repo)
+		})
+
+		t.Run("Check delta callback returning false does not apply patch", func(t *testing.T) {
+			opts := resetAndGetOpts(t)
+
+			called := false
+			opts.ApplyDeltaCallback = func(hunk *DiffDelta) (apply bool, err error) {
+				if hunk.NewFile.Path != "file2" {
+					t.Error("Unexpected hunk in diff application")
+				}
+				called = true
+				return false, nil
+			}
+
+			err = repo.ApplyDiff(diff, GitApplyLocationBoth, opts)
+			checkFatal(t, err)
+
+			if called == false {
+				t.Error("apply hunk callback was not called")
+			}
+
+			checkNoFilesStaged(t, repo)
+		})
+
+		t.Run("Check hunk callback returning causes application to fail", func(t *testing.T) {
+			opts := resetAndGetOpts(t)
+
+			called := false
+			opts.ApplyHunkCallback = func(hunk *DiffHunk) (apply bool, err error) {
+				called = true
+				return false, errors.New("something happened")
+			}
+
+			err = repo.ApplyDiff(diff, GitApplyLocationBoth, opts)
+			if err == nil {
+				t.Error("expected an error after trying to apply")
+			}
+
+			if called == false {
+				t.Error("apply hunk callback was not called")
+			}
+
+			checkNoFilesStaged(t, repo)
+		})
+
+		t.Run("Check delta callback returning causes application to fail", func(t *testing.T) {
+			opts := resetAndGetOpts(t)
+
+			called := false
+			opts.ApplyDeltaCallback = func(hunk *DiffDelta) (apply bool, err error) {
+				if hunk.NewFile.Path != "file2" {
+					t.Error("Unexpected delta in diff application")
+				}
+				called = true
+				return false, errors.New("something happened")
+			}
+
+			err = repo.ApplyDiff(diff, GitApplyLocationBoth, opts)
+			if err == nil {
+				t.Error("expected an error after trying to apply")
+			}
+
+			if called == false {
+				t.Error("apply hunk callback was not called")
+			}
+
+			checkNoFilesStaged(t, repo)
+		})
+	})
 }
 
+// checkSecondFileStaged checks that there is a single file called "file2" uncommitted in the repo
+func checkSecondFileStaged(t *testing.T, repo *Repository) {
+	opts := StatusOptions{
+		Show:  StatusShowIndexAndWorkdir,
+		Flags: StatusOptIncludeUntracked,
+	}
+
+	statuses, err := repo.StatusList(&opts)
+	checkFatal(t, err)
+
+	count, err := statuses.EntryCount()
+	checkFatal(t, err)
+
+	if count != 1 {
+		t.Error("diff should affect exactly one file")
+	}
+	if count == 0 {
+		t.Fatal("no statuses, cannot continue test")
+	}
+
+	entry, err := statuses.ByIndex(0)
+	checkFatal(t, err)
+
+	if entry.Status != StatusIndexNew {
+		t.Error("status should be 'new' as file has been added between commits")
+	}
+
+	if entry.HeadToIndex.NewFile.Path != "file2" {
+		t.Error("new file should be 'file2")
+	}
+	return
+}
+
+// checkNoFilesStaged checks that there is a single file called "file2" uncommitted in the repo
+func checkNoFilesStaged(t *testing.T, repo *Repository) {
+	opts := StatusOptions{
+		Show:  StatusShowIndexAndWorkdir,
+		Flags: StatusOptIncludeUntracked,
+	}
+
+	statuses, err := repo.StatusList(&opts)
+	checkFatal(t, err)
+
+	count, err := statuses.EntryCount()
+	checkFatal(t, err)
+
+	if count != 0 {
+		t.Error("files changed unexpectedly")
+	}
+}
+
+// addAndGetTree creates a file and commits it, returning the commit and tree
 func addAndGetTree(t *testing.T, repo *Repository, filename string, content string) (*Commit, *Tree) {
 	headCommit, err := headCommit(repo)
 	checkFatal(t, err)
