@@ -2,6 +2,9 @@ package git
 
 import (
 	"errors"
+	"fmt"
+	"io/ioutil"
+	"path"
 	"strings"
 	"testing"
 )
@@ -249,6 +252,11 @@ func Test_ApplyDiff_Addfile(t *testing.T) {
 	diff, err := repo.DiffTreeToTree(addFileTree, addSecondFileTree, nil)
 	checkFatal(t, err)
 
+	opts := StatusOptions{
+		Show:  StatusShowIndexAndWorkdir,
+		Flags: StatusOptIncludeUntracked,
+	}
+
 	t.Run("check does not apply to current tree because file exists", func(t *testing.T) {
 		err = repo.ResetToCommit(addSecondFileCommit, ResetHard, &CheckoutOpts{})
 		checkFatal(t, err)
@@ -265,6 +273,72 @@ func Test_ApplyDiff_Addfile(t *testing.T) {
 
 		err = repo.ApplyDiff(diff, GitApplyLocationBoth, nil)
 		checkFatal(t, err)
+
+		t.Run("Check that diff only changed one file", func(t *testing.T) {
+			statuses, err := repo.StatusList(&opts)
+			checkFatal(t, err)
+
+			count, err := statuses.EntryCount()
+			checkFatal(t, err)
+
+			if count != 1 {
+				t.Error("diff should affect exactly one file")
+			}
+			if count == 0 {
+				t.Fatal("no statuses, cannot continue test")
+			}
+
+			entry, err := statuses.ByIndex(0)
+			checkFatal(t, err)
+
+			if entry.Status != StatusIndexNew {
+				t.Error("status should be 'new' as file has been added between commits")
+			}
+
+			if entry.HeadToIndex.NewFile.Path != "file2" {
+				t.Error("new file should be 'file2")
+			}
+
+			index, err := repo.Index()
+			checkFatal(t, err)
+			defer index.Free()
+
+			newTreeOID, err := index.WriteTreeTo(repo)
+			checkFatal(t, err)
+
+			newTree, err := repo.LookupTree(newTreeOID)
+			checkFatal(t, err)
+			defer newTree.Free()
+
+			_, err = repo.CreateCommit("HEAD", signature(), signature(), fmt.Sprintf("patch apply"), newTree, addFirstFileCommit)
+			checkFatal(t, err)
+		})
+
+		t.Run("test applying patch produced the same diff", func(t *testing.T) {
+			head, err := repo.Head()
+			checkFatal(t, err)
+
+			commit, err := repo.LookupCommit(head.Target())
+			checkFatal(t, err)
+
+			tree, err := commit.Tree()
+			checkFatal(t, err)
+
+			newDiff, err := repo.DiffTreeToTree(addFileTree, tree, nil)
+			checkFatal(t, err)
+
+			raw1b, err := diff.ToBuf(DiffFormatPatch)
+			checkFatal(t, err)
+			raw2b, err := newDiff.ToBuf(DiffFormatPatch)
+			checkFatal(t, err)
+
+			raw1 := string(raw1b)
+			raw2 := string(raw2b)
+
+			if raw1 != raw2 {
+				t.Error("diffs should be the same")
+			}
+		})
 	})
 
 	t.Run("check convert to raw buffer and apply", func(t *testing.T) {
@@ -287,7 +361,32 @@ func Test_ApplyDiff_Addfile(t *testing.T) {
 }
 
 func addAndGetTree(t *testing.T, repo *Repository, filename string, content string) (*Commit, *Tree) {
-	commitId, err := commitSomething(repo, filename, content)
+	headCommit, err := headCommit(repo)
+	checkFatal(t, err)
+	defer headCommit.Free()
+
+	p := repo.Path()
+	p = strings.TrimSuffix(p, ".git")
+	p = strings.TrimSuffix(p, ".git/")
+
+	err = ioutil.WriteFile(path.Join(p, filename), []byte((content)), 0777)
+	checkFatal(t, err)
+
+	index, err := repo.Index()
+	checkFatal(t, err)
+	defer index.Free()
+
+	err = index.AddByPath(filename)
+	checkFatal(t, err)
+
+	newTreeOID, err := index.WriteTreeTo(repo)
+	checkFatal(t, err)
+
+	newTree, err := repo.LookupTree(newTreeOID)
+	checkFatal(t, err)
+	defer newTree.Free()
+
+	commitId, err := repo.CreateCommit("HEAD", signature(), signature(), fmt.Sprintf("add %s", filename), newTree, headCommit)
 	checkFatal(t, err)
 
 	commit, err := repo.LookupCommit(commitId)
