@@ -81,7 +81,7 @@ func TestStatusNothing(t *testing.T) {
 	checkFatal(t, err)
 
 	if entryCount != 0 {
-		t.Error("expected no statuses in empty repo")
+		t.Fatal("expected no statuses in empty repo")
 	}
 
 	_, err = statusList.ByIndex(0)
