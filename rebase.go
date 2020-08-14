@@ -178,7 +178,7 @@ func (ro *RebaseOptions) toC() *C.git_rebase_options {
 
 	if ro.SigningCallback != nil {
 		C._go_git_populate_commit_sign_cb(opts)
-		opts.payload = pointerHandles.Track(*ro)
+		opts.payload = pointerHandles.Track(ro)
 	}
 
 	return opts
