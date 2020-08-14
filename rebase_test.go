@@ -241,13 +241,13 @@ func checkAllCommitsSigned(t *testing.T, entity *openpgp.Entity, repo *Repositor
 func checkCommitSigned(t *testing.T, entity *openpgp.Entity, commit *Commit) error {
 	signature, signedData, err := commit.ExtractSignature()
 	if err != nil {
-		t.Logf("No signature on commit\n%s", commit.RawHeader()+"\n"+commit.RawMessage())
+		t.Logf("No signature on commit\n%s", commit.ContentToSign())
 		return err
 	}
 
 	_, err = openpgp.CheckArmoredDetachedSignature(openpgp.EntityList{entity}, strings.NewReader(signedData), bytes.NewBufferString(signature))
 	if err != nil {
-		t.Logf("Commit is not signed correctly\n%s", commit.RawHeader()+"\n"+commit.RawMessage())
+		t.Logf("Commit is not signed correctly\n%s", commit.ContentToSign())
 		return err
 	}
 
