@@ -6,6 +6,11 @@
 
 typedef int (*gogit_submodule_cbk)(git_submodule *sm, const char *name, void *payload);
 
+void _go_git_buf_fill_null(git_buf *buf)
+{
+  memset(buf->ptr, '\0', buf->asize*sizeof(char));
+}
+
 void _go_git_populate_commit_sign_cb(git_rebase_options *opts)
 {
   opts->signing_cb = (git_commit_signing_cb)commitSignCallback;
