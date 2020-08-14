@@ -61,3 +61,31 @@ func TestStatusList(t *testing.T) {
 		t.Fatal("Incorrect entry path: ", entry.IndexToWorkdir.NewFile.Path)
 	}
 }
+
+func TestStatusNothing(t *testing.T) {
+	t.Parallel()
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	seedTestRepo(t, repo)
+
+	opts := &StatusOptions{
+		Show:  StatusShowIndexAndWorkdir,
+		Flags: StatusOptIncludeUntracked | StatusOptRenamesHeadToIndex | StatusOptSortCaseSensitively,
+	}
+
+	statusList, err := repo.StatusList(opts)
+	checkFatal(t, err)
+
+	entryCount, err := statusList.EntryCount()
+	checkFatal(t, err)
+
+	if entryCount != 0 {
+		t.Fatal("expected no statuses in empty repo")
+	}
+
+	_, err = statusList.ByIndex(0)
+	if err == nil {
+		t.Error("expected error getting status by index")
+	}
+}
