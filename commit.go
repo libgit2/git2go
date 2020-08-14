@@ -73,6 +73,7 @@ func (c *Commit) WithSignature(signature string, signatureField string) (*Oid, e
 	var csf *C.char = nil
 	if signatureField != "" {
 		csf = C.CString(signatureField)
+		defer C.free(unsafe.Pointer(csf))
 	}
 
 	runtime.LockOSThread()
