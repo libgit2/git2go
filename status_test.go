@@ -69,9 +69,10 @@ func TestStatusNothing(t *testing.T) {
 
 	seedTestRepo(t, repo)
 
-	opts := &StatusOptions{}
-	opts.Show = StatusShowIndexAndWorkdir
-	opts.Flags = StatusOptIncludeUntracked | StatusOptRenamesHeadToIndex | StatusOptSortCaseSensitively
+	opts := &StatusOptions{
+		Show:  StatusShowIndexAndWorkdir,
+		Flags: StatusOptIncludeUntracked | StatusOptRenamesHeadToIndex | StatusOptSortCaseSensitively,
+	}
 
 	statusList, err := repo.StatusList(opts)
 	checkFatal(t, err)
