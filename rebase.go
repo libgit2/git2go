@@ -95,6 +95,7 @@ func commitSignCallback(_signature *C.git_buf, _signature_field *C.git_buf, _com
 	fillBuf := func(bufData string, buf *C.git_buf) error {
 		clen := C.size_t(len(bufData))
 		cstr := unsafe.Pointer(C.CString(bufData))
+		defer C.free(cstr)
 
 		// over-assign by a byte (see below)
 		if int(C.git_buf_grow(buf, clen+1)) != 0 {
