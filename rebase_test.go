@@ -38,12 +38,12 @@ func TestRebaseAbort(t *testing.T) {
 	seedTestRepo(t, repo)
 
 	// Setup a repo with 2 branches and a different tree
-	err := setupRepoForRebase(repo, masterCommit, branchName)
+	err := setupRepoForRebase(repo, masterCommit, branchName, commitOpts{})
 	checkFatal(t, err)
 
 	// Create several commits in emile
 	for _, commit := range emileCommits {
-		_, err = commitSomething(repo, commit, commit)
+		_, err = commitSomething(repo, commit, commit, commitOpts{})
 		checkFatal(t, err)
 	}
 
@@ -99,12 +99,12 @@ func TestRebaseNoConflicts(t *testing.T) {
 	}
 
 	// Setup a repo with 2 branches and a different tree
-	err = setupRepoForRebase(repo, masterCommit, branchName)
+	err = setupRepoForRebase(repo, masterCommit, branchName, commitOpts{})
 	checkFatal(t, err)
 
 	// Create several commits in emile
 	for _, commit := range emileCommits {
-		_, err = commitSomething(repo, commit, commit)
+		_, err = commitSomething(repo, commit, commit, commitOpts{})
 		checkFatal(t, err)
 	}
 
@@ -191,12 +191,12 @@ func TestRebaseGpgSigned(t *testing.T) {
 	}
 
 	// Setup a repo with 2 branches and a different tree
-	err = setupRepoForRebaseOpts(repo, masterCommit, branchName, commitOpts)
+	err = setupRepoForRebase(repo, masterCommit, branchName, commitOpts)
 	checkFatal(t, err)
 
 	// Create several commits in emile
 	for _, commit := range emileCommits {
-		_, err = commitSomethingOpts(repo, commit, commit, commitOpts)
+		_, err = commitSomething(repo, commit, commit, commitOpts)
 		checkFatal(t, err)
 	}
 
@@ -255,11 +255,7 @@ func checkCommitSigned(t *testing.T, entity *openpgp.Entity, commit *Commit) err
 }
 
 // Utils
-func setupRepoForRebase(repo *Repository, masterCommit, branchName string) error {
-	return setupRepoForRebaseOpts(repo, masterCommit, branchName, commitOpts{})
-}
-
-func setupRepoForRebaseOpts(repo *Repository, masterCommit, branchName string, opts commitOpts) error {
+func setupRepoForRebase(repo *Repository, masterCommit, branchName string, opts commitOpts) error {
 	// Create a new branch from master
 	err := createBranch(repo, branchName)
 	if err != nil {
@@ -267,7 +263,7 @@ func setupRepoForRebaseOpts(repo *Repository, masterCommit, branchName string, o
 	}
 
 	// Create a commit in master
-	_, err = commitSomethingOpts(repo, masterCommit, masterCommit, opts)
+	_, err = commitSomething(repo, masterCommit, masterCommit, opts)
 	if err != nil {
 		return err
 	}
@@ -401,11 +397,7 @@ func headTree(repo *Repository) (*Tree, error) {
 	return tree, nil
 }
 
-func commitSomething(repo *Repository, something, content string) (*Oid, error) {
-	return commitSomethingOpts(repo, something, content, commitOpts{})
-}
-
-func commitSomethingOpts(repo *Repository, something, content string, commitOpts commitOpts) (*Oid, error) {
+func commitSomething(repo *Repository, something, content string, commitOpts commitOpts) (*Oid, error) {
 	headCommit, err := headCommit(repo)
 	if err != nil {
 		return nil, err
