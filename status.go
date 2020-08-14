@@ -86,6 +86,9 @@ func (statusList *StatusList) ByIndex(index int) (StatusEntry, error) {
 		return StatusEntry{}, ErrInvalid
 	}
 	ptr := C.git_status_byindex(statusList.ptr, C.size_t(index))
+	if ptr == nil {
+		return StatusEntry{}, MakeGitError(C.int(ErrNotFound))
+	}
 	entry := statusEntryFromC(ptr)
 	runtime.KeepAlive(statusList)
 
