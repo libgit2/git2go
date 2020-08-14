@@ -87,9 +87,7 @@ func (statusList *StatusList) ByIndex(index int) (StatusEntry, error) {
 	}
 	ptr := C.git_status_byindex(statusList.ptr, C.size_t(index))
 	if ptr == nil {
-		runtime.LockOSThread()
-		defer runtime.UnlockOSThread()
-		return StatusEntry{}, MakeGitError(C.int(ErrNotFound))
+		return StatusEntry{}, fmt.Errorf("Index out of Bounds")
 	}
 	entry := statusEntryFromC(ptr)
 	runtime.KeepAlive(statusList)
