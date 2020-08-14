@@ -3,6 +3,7 @@ package git
 /*
 #include <git2.h>
 
+extern void _go_git_populate_apply_cb(git_apply_options *options);
 extern void _go_git_apply_init_options(git_apply_options *options);
 extern int _go_git_diff_foreach(git_diff *diff, int eachFile, int eachHunk, int eachLine, void *payload);
 extern void _go_git_setup_diff_notify_callbacks(git_diff_options* opts);
