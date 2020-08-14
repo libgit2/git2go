@@ -6,6 +6,7 @@ package git
 import "C"
 
 import (
+	"errors"
 	"runtime"
 	"unsafe"
 )
@@ -87,7 +88,7 @@ func (statusList *StatusList) ByIndex(index int) (StatusEntry, error) {
 	}
 	ptr := C.git_status_byindex(statusList.ptr, C.size_t(index))
 	if ptr == nil {
-		return StatusEntry{}, fmt.Errorf("Index out of Bounds")
+		return StatusEntry{}, errors.New("index out of Bounds")
 	}
 	entry := statusEntryFromC(ptr)
 	runtime.KeepAlive(statusList)
