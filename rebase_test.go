@@ -220,11 +220,9 @@ func TestRebaseGpgSigned(t *testing.T) {
 func checkAllCommitsSigned(t *testing.T, entity *openpgp.Entity, repo *Repository) {
 	head, err := headCommit(repo)
 	checkFatal(t, err)
-
 	defer head.Free()
 
-	parent := head.Parent(0)
-	defer parent.Free()
+	parent := head
 
 	err = checkCommitSigned(t, entity, parent)
 	checkFatal(t, err)
