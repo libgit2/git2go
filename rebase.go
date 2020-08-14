@@ -74,7 +74,7 @@ func newRebaseOperationFromC(c *C.git_rebase_operation) *RebaseOperation {
 
 //export commitSignCallback
 func commitSignCallback(_signature *C.git_buf, _signature_field *C.git_buf, _commit_content *C.char, _payload unsafe.Pointer) C.int {
-	opts, ok := pointerHandles.Get(_payload).(RebaseOptions)
+	opts, ok := pointerHandles.Get(_payload).(*RebaseOptions)
 	if !ok {
 		panic("invalid sign payload")
 	}
