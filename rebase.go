@@ -86,6 +86,9 @@ func commitSignCallback(_signature *C.git_buf, _signature_field *C.git_buf, _com
 
 	signature, signatureField, err := opts.SigningCallback(commitContent)
 	if err != nil {
+		if gitError, ok := err.(*GitError); ok {
+			return C.int(gitError.Code)
+		}
 		return C.int(-1)
 	}
 
