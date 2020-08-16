@@ -1,0 +1,53 @@
+name: Backport to older releases
+on:
+  push:
+    branches:
+    - master
+
+jobs:
+
+  backport:
+    strategy:
+      fail-fast: false
+      matrix:
+        branch: [ 'release-0.28', 'release-0.27' ]
+    name: Backport change to branch ${{ matrix.branch }}
+
+    runs-on: ubuntu-20.04
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v1
+      with:
+        fetch-depth: 0
+    - name: Create a cherry-pick PR
+      run: |
+        if ! git diff --quiet HEAD^ HEAD -- vendor/libgit2; then
+          echo '::warning::Skipping cherry-pick since it is a vendored libgit2 bump'
+          exit 0
+        fi
+
+        BRANCH_NAME="cherry-pick-${{ github.run_id }}-${{ matrix.branch }}"
+
+        # Setup usernames and authentication
+        git config --global user.name "${{ github.actor }}"
+        git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+        cat <<- EOF > $HOME/.netrc
+        machine github.com
+        login ${{ github.actor }}
+        password ${{ secrets.GITHUB_TOKEN }}
+        machine api.github.com
+        login ${{ github.actor }}
+        password ${{ secrets.GITHUB_TOKEN }}
+        EOF
+        chmod 600 $HOME/.netrc
+
+        # Create the cherry-pick commit and create the PR for it.
+        git checkout "${{ matrix.branch }}"
+        git switch -c "${BRANCH_NAME}"
+        git cherry-pick -x "${{ github.sha }}"
+        git push --set-upstream origin "${BRANCH_NAME}"
+        GITHUB_TOKEN="${{ secrets.GITHUB_TOKEN }}" gh pr create \
+          --base "${{ matrix.branch }}" \
+          --title "$(git --no-pager show --format="%s" --no-patch HEAD)" \
+          --body "$(git --no-pager show --format="%b" --no-patch HEAD)"

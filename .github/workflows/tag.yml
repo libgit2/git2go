@@ -1,0 +1,28 @@
+name: Tag new releases
+on:
+  push:
+    branches:
+    - master
+    - release-*
+
+jobs:
+
+  tag-release:
+    name: Bump tag in ${{ github.ref }}
+
+    runs-on: ubuntu-20.04
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v1
+      with:
+        fetch-depth: 0
+    - name: Bump version and push tag
+      id: bump-version
+      uses: anothrNick/github-tag-action@9aaabdb5e989894e95288328d8b17a6347217ae3
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        WITH_V: true
+        DEFAULT_BUMP: patch
+        TAG_CONTEXT: branch
+        RELEASE_BRANCHES: .*
