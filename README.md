@@ -30,7 +30,7 @@ The `master` branch follows the tip of libgit2 itself (with some lag) and as suc
 
 ### Which branch to send Pull requests to
 
-If there's something version-specific that you'd want to contribute to, you can send them to the `release-${MAJOR}-${MINOR}` branches, which follow libgit2's releases.
+If there's something version-specific that you'd want to contribute to, you can send them to the `release-${MAJOR}.${MINOR}` branches, which follow libgit2's releases.
 
 Installing
 ----------
