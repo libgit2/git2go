@@ -969,10 +969,13 @@ func (v *Repository) ApplyDiff(diff *Diff, location GitApplyLocation, opts *Appl
 func DiffFromBuffer(buffer []byte, repo *Repository) (*Diff, error) {
 	var diff *C.git_diff
 
+	cBuffer := C.CBytes(buffer)
+	defer C.free(unsafe.Pointer(cBuffer))
+
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_diff_from_buffer(&diff, C.CString(string(buffer)), C.size_t(len(buffer)))
+	ecode := C.git_diff_from_buffer(&diff, (*C.char)(cBuffer), C.size_t(len(buffer)))
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
