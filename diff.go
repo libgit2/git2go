@@ -878,6 +878,9 @@ func hunkApplyCallback(_hunk *C.git_diff_hunk, _payload unsafe.Pointer) C.int {
 
 	apply, err := opts.ApplyHunkCallback(&hunk)
 	if err != nil {
+		if gitError, ok := err.(*GitError); ok {
+			return C.int(gitError.Code)
+		}
 		return -1
 	} else if apply {
 		return 0
@@ -901,6 +904,9 @@ func deltaApplyCallback(_delta *C.git_diff_delta, _payload unsafe.Pointer) C.int
 
 	apply, err := opts.ApplyDeltaCallback(&delta)
 	if err != nil {
+		if gitError, ok := err.(*GitError); ok {
+			return C.int(gitError.Code)
+		}
 		return -1
 	} else if apply {
 		return 0
