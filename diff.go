@@ -850,17 +850,17 @@ func DiffBlobs(oldBlob *Blob, oldAsPath string, newBlob *Blob, newAsPath string,
 	return nil
 }
 
-type ApplyHunkCallback func(*DiffHunk) (apply bool, err error)
-type ApplyDeltaCallback func(*DiffDelta) (apply bool, err error)
+type ApplyHunkCb func(*DiffHunk) (apply bool, err error)
+type ApplyDeltaCb func(*DiffDelta) (apply bool, err error)
 
 // ApplyOptions has 2 callbacks that are called for hunks or deltas
 // If these functions return an error, abort the apply process immediately.
-// If the first resutnr value is true, the delta/hunk will be applied. If it is false, the  delta/hunk will not be applied. In either case, the rest of the apply process will continue.
+// If the first return value is true, the delta/hunk will be applied. If it is false, the  delta/hunk will not be applied. In either case, the rest of the apply process will continue.
 type ApplyOptions struct {
-	Version uint
-	ApplyHunkCallback
-	ApplyDeltaCallback
-	Flags uint
+	Version            uint
+	ApplyHunkCallback  ApplyHunkCb
+	ApplyDeltaCallback ApplyDeltaCb
+	Flags              uint
 }
 
 //export hunkApplyCallback
