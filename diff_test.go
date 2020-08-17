@@ -240,7 +240,7 @@ func TestDiffBlobs(t *testing.T) {
 	}
 }
 
-func Test_ApplyDiff_Addfile(t *testing.T) {
+func TestApplyDiffAddfile(t *testing.T) {
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
