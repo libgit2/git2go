@@ -957,8 +957,11 @@ func (v *Repository) ApplyDiff(diff *Diff, location GitApplyLocation, opts *Appl
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_apply(v.ptr, diff.ptr, C.git_apply_location_t(location), opts.toC())
+	cOpts := opts.toC()
+	ecode := C.git_apply(v.ptr, diff.ptr, C.git_apply_location_t(location), cOpts)
 	runtime.KeepAlive(v)
+	runtime.KeepAlive(diff)
+	runtime.KeepAlive(cOpts)
 	if ecode < 0 {
 		return MakeGitError(ecode)
 	}
