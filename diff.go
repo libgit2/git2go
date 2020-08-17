@@ -865,7 +865,7 @@ type ApplyOptions struct {
 
 //export hunkApplyCallback
 func hunkApplyCallback(_hunk *C.git_diff_hunk, _payload unsafe.Pointer) C.int {
-	opts, ok := pointerHandles.Get(_payload).(ApplyOptions)
+	opts, ok := pointerHandles.Get(_payload).(*ApplyOptions)
 	if !ok {
 		panic("invalid apply options payload")
 	}
@@ -888,7 +888,7 @@ func hunkApplyCallback(_hunk *C.git_diff_hunk, _payload unsafe.Pointer) C.int {
 
 //export deltaApplyCallback
 func deltaApplyCallback(_delta *C.git_diff_delta, _payload unsafe.Pointer) C.int {
-	opts, ok := pointerHandles.Get(_payload).(ApplyOptions)
+	opts, ok := pointerHandles.Get(_payload).(*ApplyOptions)
 	if !ok {
 		panic("invalid apply options payload")
 	}
@@ -929,7 +929,7 @@ func (a *ApplyOptions) toC() *C.git_apply_options {
 
 	if a.ApplyDeltaCallback != nil || a.ApplyHunkCallback != nil {
 		C._go_git_populate_apply_cb(opts)
-		opts.payload = pointerHandles.Track(*a)
+		opts.payload = pointerHandles.Track(a)
 	}
 
 	return opts
