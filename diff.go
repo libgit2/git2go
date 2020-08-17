@@ -4,7 +4,6 @@ package git
 #include <git2.h>
 
 extern void _go_git_populate_apply_cb(git_apply_options *options);
-extern void _go_git_apply_init_options(git_apply_options *options);
 extern int _go_git_diff_foreach(git_diff *diff, int eachFile, int eachHunk, int eachLine, void *payload);
 extern void _go_git_setup_diff_notify_callbacks(git_diff_options* opts);
 extern int _go_git_diff_blobs(git_blob *old, const char *old_path, git_blob *new, const char *new_path, git_diff_options *opts, int eachFile, int eachHunk, int eachLine, void *payload);
@@ -918,7 +917,13 @@ func deltaApplyCallback(_delta *C.git_diff_delta, _payload unsafe.Pointer) C.int
 func DefaultApplyOptions() (*ApplyOptions, error) {
 	opts := C.git_apply_options{}
 
-	C._go_git_apply_init_options(&opts)
+	ecode := C.git_apply_options_init(&opts, C.GIT_APPLY_OPTIONS_VERSION)
+	if int(ecode) != 0 {
+		runtime.LockOSThread()
+		defer runtime.UnlockOSThread()
+
+		return nil, MakeGitError(ecode)
+	}
 
 	return applyOptionsFromC(&opts), nil
 }
