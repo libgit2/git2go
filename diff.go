@@ -861,7 +861,6 @@ type ApplyDeltaCallback func(*DiffDelta) (apply bool, err error)
 type ApplyOptions struct {
 	ApplyHunkCallback  ApplyHunkCallback
 	ApplyDeltaCallback ApplyDeltaCallback
-	Flags              uint
 }
 
 //export hunkApplyCallback
@@ -918,15 +917,8 @@ func deltaApplyCallback(_delta *C.git_diff_delta, _payload unsafe.Pointer) C.int
 
 // DefaultApplyOptions returns default options for applying diffs or patches.
 func DefaultApplyOptions() (*ApplyOptions, error) {
-	opts := C.git_apply_options{}
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ecode := C.git_apply_options_init(&opts, C.GIT_APPLY_OPTIONS_VERSION)
-	if int(ecode) != 0 {
-
-		return nil, MakeGitError(ecode)
+	opts := C.git_apply_options{
+		version: C.GIT_APPLY_OPTIONS_VERSION,
 	}
 
 	return applyOptionsFromC(&opts), nil
@@ -939,7 +931,6 @@ func (a *ApplyOptions) toC() *C.git_apply_options {
 
 	opts := &C.git_apply_options{
 		version: C.GIT_APPLY_OPTIONS_VERSION,
-		flags:   C.uint(a.Flags),
 	}
 
 	if a.ApplyDeltaCallback != nil || a.ApplyHunkCallback != nil {
@@ -951,9 +942,7 @@ func (a *ApplyOptions) toC() *C.git_apply_options {
 }
 
 func applyOptionsFromC(opts *C.git_apply_options) *ApplyOptions {
-	return &ApplyOptions{
-		Flags: uint(opts.flags),
-	}
+	return &ApplyOptions{}
 }
 
 // ApplyLocation represents the possible application locations for applying
