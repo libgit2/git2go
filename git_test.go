@@ -45,7 +45,16 @@ func createBareTestRepo(t *testing.T) *Repository {
 	return repo
 }
 
+// commitOpts contains any extra options for creating commits in the seed repo
+type commitOpts struct {
+	CommitSigningCallback
+}
+
 func seedTestRepo(t *testing.T, repo *Repository) (*Oid, *Oid) {
+	return seedTestRepoOpt(t, repo, commitOpts{})
+}
+
+func seedTestRepoOpt(t *testing.T, repo *Repository, opts commitOpts) (*Oid, *Oid) {
 	loc, err := time.LoadLocation("Europe/Berlin")
 	checkFatal(t, err)
 	sig := &Signature{
@@ -68,6 +77,28 @@ func seedTestRepo(t *testing.T, repo *Repository) (*Oid, *Oid) {
 	checkFatal(t, err)
 	commitId, err := repo.CreateCommit("HEAD", sig, sig, message, tree)
 	checkFatal(t, err)
+
+	if opts.CommitSigningCallback != nil {
+		commit, err := repo.LookupCommit(commitId)
+		checkFatal(t, err)
+
+		signature, signatureField, err := opts.CommitSigningCallback(commit.ContentToSign())
+		checkFatal(t, err)
+
+		oid, err := commit.WithSignature(signature, signatureField)
+		checkFatal(t, err)
+		newCommit, err := repo.LookupCommit(oid)
+		checkFatal(t, err)
+		head, err := repo.Head()
+		checkFatal(t, err)
+		_, err = repo.References.Create(
+			head.Name(),
+			newCommit.Id(),
+			true,
+			"repoint to signed commit",
+		)
+		checkFatal(t, err)
+	}
 
 	return commitId, treeId
 }

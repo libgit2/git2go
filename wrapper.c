@@ -12,6 +12,11 @@ void _go_git_populate_apply_cb(git_apply_options *options)
 	options->hunk_cb = (git_apply_hunk_cb)hunkApplyCallback;
 }
 
+void _go_git_populate_commit_sign_cb(git_rebase_options *opts)
+{
+	opts->signing_cb = (git_commit_signing_cb)commitSignCallback;
+}
+
 void _go_git_populate_remote_cb(git_clone_options *opts)
 {
 	opts->remote_cb = (git_remote_create_cb)remoteCreateCallback;
