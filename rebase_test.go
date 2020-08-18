@@ -1,15 +1,10 @@
 package git
 
 import (
-	"bytes"
 	"errors"
 	"strconv"
-	"strings"
 	"testing"
 	"time"
-
-	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/packet"
 )
 
 // Tests
@@ -135,123 +130,6 @@ func TestRebaseNoConflicts(t *testing.T) {
 	actualHistory, err := commitMsgsList(repo)
 	checkFatal(t, err)
 	assertStringList(t, expectedHistory, actualHistory)
-}
-
-func TestRebaseGpgSigned(t *testing.T) {
-	// TEST DATA
-
-	entity, err := openpgp.NewEntity("Namey mcnameface", "test comment", "test@example.com", nil)
-	checkFatal(t, err)
-
-	opts, err := DefaultRebaseOptions()
-	checkFatal(t, err)
-
-	signCommitContent := func(commitContent string) (string, string, error) {
-		cipherText := new(bytes.Buffer)
-		err := openpgp.ArmoredDetachSignText(cipherText, entity, strings.NewReader(commitContent), &packet.Config{})
-		if err != nil {
-			return "", "", errors.New("error signing payload")
-		}
-
-		return cipherText.String(), "", nil
-	}
-	opts.CommitSigningCallback = signCommitContent
-
-	commitOpts := commitOpts{
-		CommitSigningCallback: signCommitContent,
-	}
-
-	// Inputs
-	branchName := "emile"
-	masterCommit := "something"
-	emileCommits := []string{
-		"fou",
-		"barre",
-		"ouich",
-	}
-
-	// Outputs
-	expectedHistory := []string{
-		"Test rebase, Baby! " + emileCommits[2],
-		"Test rebase, Baby! " + emileCommits[1],
-		"Test rebase, Baby! " + emileCommits[0],
-		"Test rebase, Baby! " + masterCommit,
-		"This is a commit\n",
-	}
-
-	// TEST
-	repo := createTestRepo(t)
-	defer cleanupTestRepo(t, repo)
-	seedTestRepoOpt(t, repo, commitOpts)
-
-	// Try to open existing rebase
-	_, err = repo.OpenRebase(nil)
-	if err == nil {
-		t.Fatal("Did not expect to find a rebase in progress")
-	}
-
-	// Setup a repo with 2 branches and a different tree
-	err = setupRepoForRebase(repo, masterCommit, branchName, commitOpts)
-	checkFatal(t, err)
-
-	// Create several commits in emile
-	for _, commit := range emileCommits {
-		_, err = commitSomething(repo, commit, commit, commitOpts)
-		checkFatal(t, err)
-	}
-
-	// Rebase onto master
-	rebase, err := performRebaseOnto(repo, "master", &opts)
-	checkFatal(t, err)
-	defer rebase.Free()
-
-	// Finish the rebase properly
-	err = rebase.Finish()
-	checkFatal(t, err)
-
-	// Check history is in correct order
-	actualHistory, err := commitMsgsList(repo)
-	checkFatal(t, err)
-	assertStringList(t, expectedHistory, actualHistory)
-
-	checkAllCommitsSigned(t, entity, repo)
-}
-
-func checkAllCommitsSigned(t *testing.T, entity *openpgp.Entity, repo *Repository) {
-	head, err := headCommit(repo)
-	checkFatal(t, err)
-	defer head.Free()
-
-	parent := head
-
-	err = checkCommitSigned(t, entity, parent)
-	checkFatal(t, err)
-
-	for parent.ParentCount() != 0 {
-		parent = parent.Parent(0)
-		defer parent.Free()
-
-		err = checkCommitSigned(t, entity, parent)
-		checkFatal(t, err)
-	}
-}
-
-func checkCommitSigned(t *testing.T, entity *openpgp.Entity, commit *Commit) error {
-	t.Helper()
-
-	signature, signedData, err := commit.ExtractSignature()
-	if err != nil {
-		t.Logf("No signature on commit\n%s", commit.ContentToSign())
-		return err
-	}
-
-	_, err = openpgp.CheckArmoredDetachedSignature(openpgp.EntityList{entity}, strings.NewReader(signedData), bytes.NewBufferString(signature))
-	if err != nil {
-		t.Logf("Commit is not signed correctly\n%s", commit.ContentToSign())
-		return err
-	}
-
-	return nil
 }
 
 // Utils
