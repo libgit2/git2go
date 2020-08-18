@@ -40,6 +40,7 @@ func (c *Commit) RawMessage() string {
 	return ret
 }
 
+// RawHeader gets the full raw text of the commit header.
 func (c *Commit) RawHeader() string {
 	ret := C.GoString(C.git_commit_raw_header(c.cast_ptr))
 	runtime.KeepAlive(c)
