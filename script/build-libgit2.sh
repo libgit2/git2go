@@ -6,33 +6,54 @@
 
 set -e
 
-if [ "$#" -eq "0" ]; then
-	echo "Usage: $0 <--dynamic|--static>">&2
+usage() {
+	echo "Usage: $0 <--dynamic|--static> [--system]">&2
 	exit 1
+}
+
+if [ "$#" -eq "0" ]; then
+	usage
 fi
 
 ROOT="$(cd "$(dirname "$0")/.." && echo "${PWD}")"
 VENDORED_PATH="${ROOT}/vendor/libgit2"
+BUILD_SYSTEM=OFF
 
-case "$1" in
-	--static)
-		BUILD_PATH="${ROOT}/static-build"
-		BUILD_SHARED_LIBS=OFF
-		;;
+while [ $# -gt 0 ]; do
+	case "$1" in
+		--static)
+			BUILD_PATH="${ROOT}/static-build"
+			BUILD_SHARED_LIBS=OFF
+			;;
 
-	--dynamic)
-		BUILD_PATH="${ROOT}/dynamic-build"
-		BUILD_SHARED_LIBS=ON
-		;;
+		--dynamic)
+			BUILD_PATH="${ROOT}/dynamic-build"
+			BUILD_SHARED_LIBS=ON
+			;;
 
-	*)
-		echo "Usage: $0 <--dynamic|--static>">&2
-		exit 1
-		;;
-esac
+		--system)
+			BUILD_SYSTEM=ON
+			;;
 
-mkdir -p "${BUILD_PATH}/build" "${BUILD_PATH}/install/lib"
+		*)
+			usage
+			;;
+	esac
+	shift
+done
 
+if [ -z "${BUILD_SHARED_LIBS}" ]; then
+	usage
+fi
+
+if [ "${BUILD_SYSTEM}" = "ON" ]; then
+	BUILD_INSTALL_PREFIX="/usr"
+else
+	BUILD_INSTALL_PREFIX="${BUILD_PATH}/install"
+	mkdir -p "${BUILD_PATH}/install/lib"
+fi
+
+mkdir -p "${BUILD_PATH}/build" &&
 cd "${BUILD_PATH}/build" &&
 cmake -DTHREADSAFE=ON \
       -DBUILD_CLAR=OFF \
@@ -40,7 +61,7 @@ cmake -DTHREADSAFE=ON \
       -DREGEX_BACKEND=builtin \
       -DCMAKE_C_FLAGS=-fPIC \
       -DCMAKE_BUILD_TYPE="RelWithDebInfo" \
-      -DCMAKE_INSTALL_PREFIX="${BUILD_PATH}/install" \
+      -DCMAKE_INSTALL_PREFIX="${BUILD_INSTALL_PREFIX}" \
       -DCMAKE_INSTALL_LIBDIR="lib" \
       "${VENDORED_PATH}" &&
 
