@@ -108,7 +108,7 @@ func (ro *RebaseOptions) toC() *C.git_rebase_options {
 	if ro == nil {
 		return nil
 	}
-	opts := &C.git_rebase_options{
+	return &C.git_rebase_options{
 		version:           C.uint(ro.Version),
 		quiet:             C.int(ro.Quiet),
 		inmemory:          C.int(ro.InMemory),
@@ -116,8 +116,6 @@ func (ro *RebaseOptions) toC() *C.git_rebase_options {
 		merge_options:     *ro.MergeOptions.toC(),
 		checkout_options:  *ro.CheckoutOptions.toC(),
 	}
-
-	return opts
 }
 
 func mapEmptyStringToNull(ref string) *C.char {
