@@ -98,14 +98,7 @@ func commitSignCallback(_signature *C.git_buf, _signature_field *C.git_buf, _com
 		cstr := unsafe.Pointer(C.CString(bufData))
 		defer C.free(cstr)
 
-		// over-assign by a byte (see below)
-		if int(C.git_buf_grow(buf, clen+1)) != 0 {
-			return errors.New("could not grow buffer")
-		}
-
-		C._go_git_buf_fill_null(buf)
-
-		if int(C.git_buf_set(buf, cstr, clen+1)) != 0 {
+		if int(C.git_buf_set(buf, cstr, clen)) != 0 {
 			return errors.New("could not set buffer")
 		}
 
