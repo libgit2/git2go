@@ -40,6 +40,69 @@ func (c *Commit) RawMessage() string {
 	return ret
 }
 
+// RawHeader gets the full raw text of the commit header.
+func (c *Commit) RawHeader() string {
+	ret := C.GoString(C.git_commit_raw_header(c.cast_ptr))
+	runtime.KeepAlive(c)
+	return ret
+}
+
+// ContentToSign returns the content that will be passed to a signing function for this commit
+func (c *Commit) ContentToSign() string {
+	return c.RawHeader() + "\n" + c.RawMessage()
+}
+
+// CommitSigningCallback defines a function type that takes some data to sign and returns (signature, signature_field, error)
+type CommitSigningCallback func(string) (signature, signatureField string, err error)
+
+// WithSignatureUsing creates a new signed commit from this one using the given signing callback
+func (c *Commit) WithSignatureUsing(f CommitSigningCallback) (*Oid, error) {
+	signature, signatureField, err := f(c.ContentToSign())
+	if err != nil {
+		return nil, err
+	}
+
+	return c.WithSignature(signature, signatureField)
+}
+
+// WithSignature creates a new signed commit from the given signature and signature field
+func (c *Commit) WithSignature(signature string, signatureField string) (*Oid, error) {
+	totalCommit := c.ContentToSign()
+
+	oid := new(Oid)
+
+	var csf *C.char = nil
+	if signatureField != "" {
+		csf = C.CString(signatureField)
+		defer C.free(unsafe.Pointer(csf))
+	}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	cTotalCommit := C.CString(totalCommit)
+	cSignature := C.CString(signature)
+	defer C.free(unsafe.Pointer(cTotalCommit))
+	defer C.free(unsafe.Pointer(cSignature))
+
+	ret := C.git_commit_create_with_signature(
+		oid.toC(),
+		c.Owner().ptr,
+		cTotalCommit,
+		cSignature,
+		csf,
+	)
+
+	runtime.KeepAlive(c)
+	runtime.KeepAlive(oid)
+
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return oid, nil
+}
+
 func (c *Commit) ExtractSignature() (string, string, error) {
 
 	var c_signed C.git_buf
