@@ -155,10 +155,10 @@ func TestRebaseGpgSigned(t *testing.T) {
 
 		return cipherText.String(), "", nil
 	}
-	opts.SigningCallback = signCommitContent
+	opts.CommitSigningCallback = signCommitContent
 
 	commitOpts := commitOpts{
-		CommitSigningCb: signCommitContent,
+		CommitSigningCallback: signCommitContent,
 	}
 
 	// Inputs
@@ -441,13 +441,13 @@ func commitSomething(repo *Repository, something, content string, commitOpts com
 		return nil, err
 	}
 
-	if commitOpts.CommitSigningCb != nil {
+	if commitOpts.CommitSigningCallback != nil {
 		commit, err := repo.LookupCommit(commit)
 		if err != nil {
 			return nil, err
 		}
 
-		oid, err := commit.WithSignatureUsing(commitOpts.CommitSigningCb)
+		oid, err := commit.WithSignatureUsing(commitOpts.CommitSigningCallback)
 		if err != nil {
 			return nil, err
 		}

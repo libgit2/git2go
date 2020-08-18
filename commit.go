@@ -51,11 +51,11 @@ func (c *Commit) ContentToSign() string {
 	return c.RawHeader() + "\n" + c.RawMessage()
 }
 
-// CommitSigningCb defines a function type that takes some data to sign and returns (signature, signature_field, error)
-type CommitSigningCb func(string) (string, string, error)
+// CommitSigningCallback defines a function type that takes some data to sign and returns (signature, signature_field, error)
+type CommitSigningCallback func(string) (signature, signatureField string, err error)
 
 // WithSignatureUsing creates a new signed commit from this one using the given signing callback
-func (c *Commit) WithSignatureUsing(f CommitSigningCb) (*Oid, error) {
+func (c *Commit) WithSignatureUsing(f CommitSigningCallback) (*Oid, error) {
 	signature, signatureField, err := f(c.ContentToSign())
 	if err != nil {
 		return nil, err

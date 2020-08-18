@@ -79,13 +79,13 @@ func commitSignCallback(_signature *C.git_buf, _signature_field *C.git_buf, _com
 		panic("invalid sign payload")
 	}
 
-	if opts.SigningCallback == nil {
+	if opts.CommitSigningCallback == nil {
 		return C.GIT_PASSTHROUGH
 	}
 
 	commitContent := C.GoString(_commit_content)
 
-	signature, signatureField, err := opts.SigningCallback(commitContent)
+	signature, signatureField, err := opts.CommitSigningCallback(commitContent)
 	if err != nil {
 		if gitError, ok := err.(*GitError); ok {
 			return C.int(gitError.Code)
@@ -129,13 +129,13 @@ func commitSignCallback(_signature *C.git_buf, _signature_field *C.git_buf, _com
 
 // RebaseOptions are used to tell the rebase machinery how to operate
 type RebaseOptions struct {
-	Version         uint
-	Quiet           int
-	InMemory        int
-	RewriteNotesRef string
-	MergeOptions    MergeOptions
-	CheckoutOptions CheckoutOpts
-	SigningCallback CommitSigningCb
+	Version               uint
+	Quiet                 int
+	InMemory              int
+	RewriteNotesRef       string
+	MergeOptions          MergeOptions
+	CheckoutOptions       CheckoutOpts
+	CommitSigningCallback CommitSigningCallback
 }
 
 // DefaultRebaseOptions returns a RebaseOptions with default values.
@@ -176,7 +176,7 @@ func (ro *RebaseOptions) toC() *C.git_rebase_options {
 		checkout_options:  *ro.CheckoutOptions.toC(),
 	}
 
-	if ro.SigningCallback != nil {
+	if ro.CommitSigningCallback != nil {
 		C._go_git_populate_commit_sign_cb(opts)
 		opts.payload = pointerHandles.Track(ro)
 	}

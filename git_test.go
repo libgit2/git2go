@@ -47,7 +47,7 @@ func createBareTestRepo(t *testing.T) *Repository {
 
 // commitOpts contains any extra options for creating commits in the seed repo
 type commitOpts struct {
-	CommitSigningCb
+	CommitSigningCallback
 }
 
 func seedTestRepo(t *testing.T, repo *Repository) (*Oid, *Oid) {
@@ -78,11 +78,11 @@ func seedTestRepoOpt(t *testing.T, repo *Repository, opts commitOpts) (*Oid, *Oi
 	commitId, err := repo.CreateCommit("HEAD", sig, sig, message, tree)
 	checkFatal(t, err)
 
-	if opts.CommitSigningCb != nil {
+	if opts.CommitSigningCallback != nil {
 		commit, err := repo.LookupCommit(commitId)
 		checkFatal(t, err)
 
-		signature, signatureField, err := opts.CommitSigningCb(commit.ContentToSign())
+		signature, signatureField, err := opts.CommitSigningCallback(commit.ContentToSign())
 		checkFatal(t, err)
 
 		oid, err := commit.WithSignature(signature, signatureField)
