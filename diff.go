@@ -916,10 +916,11 @@ func deltaApplyCallback(_delta *C.git_diff_delta, _payload unsafe.Pointer) C.int
 func DefaultApplyOptions() (*ApplyOptions, error) {
 	opts := C.git_apply_options{}
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ecode := C.git_apply_options_init(&opts, C.GIT_APPLY_OPTIONS_VERSION)
 	if int(ecode) != 0 {
-		runtime.LockOSThread()
-		defer runtime.UnlockOSThread()
 
 		return nil, MakeGitError(ecode)
 	}
