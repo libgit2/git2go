@@ -1,10 +1,15 @@
 package git
 
 import (
+	"bytes"
 	"errors"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
+
+	"golang.org/x/crypto/openpgp"
+	"golang.org/x/crypto/openpgp/packet"
 )
 
 // Tests
@@ -33,12 +38,12 @@ func TestRebaseAbort(t *testing.T) {
 	seedTestRepo(t, repo)
 
 	// Setup a repo with 2 branches and a different tree
-	err := setupRepoForRebase(repo, masterCommit, branchName)
+	err := setupRepoForRebase(repo, masterCommit, branchName, commitOpts{})
 	checkFatal(t, err)
 
 	// Create several commits in emile
 	for _, commit := range emileCommits {
-		_, err = commitSomething(repo, commit, commit)
+		_, err = commitSomething(repo, commit, commit, commitOpts{})
 		checkFatal(t, err)
 	}
 
@@ -48,7 +53,7 @@ func TestRebaseAbort(t *testing.T) {
 	assertStringList(t, expectedHistory, actualHistory)
 
 	// Rebase onto master
-	rebase, err := performRebaseOnto(repo, "master")
+	rebase, err := performRebaseOnto(repo, "master", nil)
 	checkFatal(t, err)
 	defer rebase.Free()
 
@@ -94,17 +99,17 @@ func TestRebaseNoConflicts(t *testing.T) {
 	}
 
 	// Setup a repo with 2 branches and a different tree
-	err = setupRepoForRebase(repo, masterCommit, branchName)
+	err = setupRepoForRebase(repo, masterCommit, branchName, commitOpts{})
 	checkFatal(t, err)
 
 	// Create several commits in emile
 	for _, commit := range emileCommits {
-		_, err = commitSomething(repo, commit, commit)
+		_, err = commitSomething(repo, commit, commit, commitOpts{})
 		checkFatal(t, err)
 	}
 
 	// Rebase onto master
-	rebase, err := performRebaseOnto(repo, "master")
+	rebase, err := performRebaseOnto(repo, "master", nil)
 	checkFatal(t, err)
 	defer rebase.Free()
 
@@ -130,11 +135,127 @@ func TestRebaseNoConflicts(t *testing.T) {
 	actualHistory, err := commitMsgsList(repo)
 	checkFatal(t, err)
 	assertStringList(t, expectedHistory, actualHistory)
+}
 
+func TestRebaseGpgSigned(t *testing.T) {
+	// TEST DATA
+
+	entity, err := openpgp.NewEntity("Namey mcnameface", "test comment", "test@example.com", nil)
+	checkFatal(t, err)
+
+	opts, err := DefaultRebaseOptions()
+	checkFatal(t, err)
+
+	signCommitContent := func(commitContent string) (string, string, error) {
+		cipherText := new(bytes.Buffer)
+		err := openpgp.ArmoredDetachSignText(cipherText, entity, strings.NewReader(commitContent), &packet.Config{})
+		if err != nil {
+			return "", "", errors.New("error signing payload")
+		}
+
+		return cipherText.String(), "", nil
+	}
+	opts.CommitSigningCallback = signCommitContent
+
+	commitOpts := commitOpts{
+		CommitSigningCallback: signCommitContent,
+	}
+
+	// Inputs
+	branchName := "emile"
+	masterCommit := "something"
+	emileCommits := []string{
+		"fou",
+		"barre",
+		"ouich",
+	}
+
+	// Outputs
+	expectedHistory := []string{
+		"Test rebase, Baby! " + emileCommits[2],
+		"Test rebase, Baby! " + emileCommits[1],
+		"Test rebase, Baby! " + emileCommits[0],
+		"Test rebase, Baby! " + masterCommit,
+		"This is a commit\n",
+	}
+
+	// TEST
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+	seedTestRepoOpt(t, repo, commitOpts)
+
+	// Try to open existing rebase
+	_, err = repo.OpenRebase(nil)
+	if err == nil {
+		t.Fatal("Did not expect to find a rebase in progress")
+	}
+
+	// Setup a repo with 2 branches and a different tree
+	err = setupRepoForRebase(repo, masterCommit, branchName, commitOpts)
+	checkFatal(t, err)
+
+	// Create several commits in emile
+	for _, commit := range emileCommits {
+		_, err = commitSomething(repo, commit, commit, commitOpts)
+		checkFatal(t, err)
+	}
+
+	// Rebase onto master
+	rebase, err := performRebaseOnto(repo, "master", &opts)
+	checkFatal(t, err)
+	defer rebase.Free()
+
+	// Finish the rebase properly
+	err = rebase.Finish()
+	checkFatal(t, err)
+
+	// Check history is in correct order
+	actualHistory, err := commitMsgsList(repo)
+	checkFatal(t, err)
+	assertStringList(t, expectedHistory, actualHistory)
+
+	checkAllCommitsSigned(t, entity, repo)
+}
+
+func checkAllCommitsSigned(t *testing.T, entity *openpgp.Entity, repo *Repository) {
+	head, err := headCommit(repo)
+	checkFatal(t, err)
+	defer head.Free()
+
+	parent := head
+
+	err = checkCommitSigned(t, entity, parent)
+	checkFatal(t, err)
+
+	for parent.ParentCount() != 0 {
+		parent = parent.Parent(0)
+		defer parent.Free()
+
+		err = checkCommitSigned(t, entity, parent)
+		checkFatal(t, err)
+	}
+}
+
+func checkCommitSigned(t *testing.T, entity *openpgp.Entity, commit *Commit) error {
+	t.Helper()
+
+	signature, signedData, err := commit.ExtractSignature()
+	if err != nil {
+		t.Logf("No signature on commit\n%s", commit.ContentToSign())
+		return err
+	}
+
+	_, err = openpgp.CheckArmoredDetachedSignature(openpgp.EntityList{entity}, strings.NewReader(signedData), bytes.NewBufferString(signature))
+	if err != nil {
+		t.Logf("Commit is not signed correctly\n%s", commit.ContentToSign())
+		return err
+	}
+
+	return nil
 }
 
 // Utils
-func setupRepoForRebase(repo *Repository, masterCommit, branchName string) error {
+func setupRepoForRebase(repo *Repository, masterCommit, branchName string, opts commitOpts) error {
 	// Create a new branch from master
 	err := createBranch(repo, branchName)
 	if err != nil {
@@ -142,7 +263,7 @@ func setupRepoForRebase(repo *Repository, masterCommit, branchName string) error
 	}
 
 	// Create a commit in master
-	_, err = commitSomething(repo, masterCommit, masterCommit)
+	_, err = commitSomething(repo, masterCommit, masterCommit, opts)
 	if err != nil {
 		return err
 	}
@@ -161,7 +282,7 @@ func setupRepoForRebase(repo *Repository, masterCommit, branchName string) error
 	return nil
 }
 
-func performRebaseOnto(repo *Repository, branch string) (*Rebase, error) {
+func performRebaseOnto(repo *Repository, branch string, opts *RebaseOptions) (*Rebase, error) {
 	master, err := repo.LookupBranch(branch, BranchLocal)
 	if err != nil {
 		return nil, err
@@ -175,7 +296,7 @@ func performRebaseOnto(repo *Repository, branch string) (*Rebase, error) {
 	defer onto.Free()
 
 	// Init rebase
-	rebase, err := repo.InitRebase(nil, nil, onto, nil)
+	rebase, err := repo.InitRebase(nil, nil, onto, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -276,7 +397,7 @@ func headTree(repo *Repository) (*Tree, error) {
 	return tree, nil
 }
 
-func commitSomething(repo *Repository, something, content string) (*Oid, error) {
+func commitSomething(repo *Repository, something, content string, commitOpts commitOpts) (*Oid, error) {
 	headCommit, err := headCommit(repo)
 	if err != nil {
 		return nil, err
@@ -315,12 +436,38 @@ func commitSomething(repo *Repository, something, content string) (*Oid, error) 
 	}
 	defer newTree.Free()
 
-	if err != nil {
-		return nil, err
-	}
 	commit, err := repo.CreateCommit("HEAD", signature(), signature(), "Test rebase, Baby! "+something, newTree, headCommit)
 	if err != nil {
 		return nil, err
+	}
+
+	if commitOpts.CommitSigningCallback != nil {
+		commit, err := repo.LookupCommit(commit)
+		if err != nil {
+			return nil, err
+		}
+
+		oid, err := commit.WithSignatureUsing(commitOpts.CommitSigningCallback)
+		if err != nil {
+			return nil, err
+		}
+		newCommit, err := repo.LookupCommit(oid)
+		if err != nil {
+			return nil, err
+		}
+		head, err := repo.Head()
+		if err != nil {
+			return nil, err
+		}
+		_, err = repo.References.Create(
+			head.Name(),
+			newCommit.Id(),
+			true,
+			"repoint to signed commit",
+		)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	opts := &CheckoutOpts{

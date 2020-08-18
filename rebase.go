@@ -2,6 +2,8 @@ package git
 
 /*
 #include <git2.h>
+
+extern void _go_git_populate_commit_sign_cb(git_rebase_options *opts);
 */
 import "C"
 import (
@@ -69,14 +71,66 @@ func newRebaseOperationFromC(c *C.git_rebase_operation) *RebaseOperation {
 	return operation
 }
 
+//export commitSignCallback
+func commitSignCallback(_signature *C.git_buf, _signature_field *C.git_buf, _commit_content *C.char, _payload unsafe.Pointer) C.int {
+	opts, ok := pointerHandles.Get(_payload).(*RebaseOptions)
+	if !ok {
+		panic("invalid sign payload")
+	}
+
+	if opts.CommitSigningCallback == nil {
+		return C.GIT_PASSTHROUGH
+	}
+
+	commitContent := C.GoString(_commit_content)
+
+	signature, signatureField, err := opts.CommitSigningCallback(commitContent)
+	if err != nil {
+		if gitError, ok := err.(*GitError); ok {
+			return C.int(gitError.Code)
+		}
+		return C.int(-1)
+	}
+
+	fillBuf := func(bufData string, buf *C.git_buf) error {
+		clen := C.size_t(len(bufData))
+		cstr := unsafe.Pointer(C.CString(bufData))
+		defer C.free(cstr)
+
+		// libgit2 requires the contents of the buffer to be NULL-terminated.
+		// C.CString() guarantees that the returned buffer will be
+		// NULL-terminated, so we can safely copy the terminator.
+		if int(C.git_buf_set(buf, cstr, clen+1)) != 0 {
+			return errors.New("could not set buffer")
+		}
+
+		return nil
+	}
+
+	if signatureField != "" {
+		err := fillBuf(signatureField, _signature_field)
+		if err != nil {
+			return C.int(-1)
+		}
+	}
+
+	err = fillBuf(signature, _signature)
+	if err != nil {
+		return C.int(-1)
+	}
+
+	return C.GIT_OK
+}
+
 // RebaseOptions are used to tell the rebase machinery how to operate
 type RebaseOptions struct {
-	Version         uint
-	Quiet           int
-	InMemory        int
-	RewriteNotesRef string
-	MergeOptions    MergeOptions
-	CheckoutOptions CheckoutOpts
+	Version               uint
+	Quiet                 int
+	InMemory              int
+	RewriteNotesRef       string
+	MergeOptions          MergeOptions
+	CheckoutOptions       CheckoutOpts
+	CommitSigningCallback CommitSigningCallback
 }
 
 // DefaultRebaseOptions returns a RebaseOptions with default values.
@@ -108,7 +162,7 @@ func (ro *RebaseOptions) toC() *C.git_rebase_options {
 	if ro == nil {
 		return nil
 	}
-	return &C.git_rebase_options{
+	opts := &C.git_rebase_options{
 		version:           C.uint(ro.Version),
 		quiet:             C.int(ro.Quiet),
 		inmemory:          C.int(ro.InMemory),
@@ -116,6 +170,13 @@ func (ro *RebaseOptions) toC() *C.git_rebase_options {
 		merge_options:     *ro.MergeOptions.toC(),
 		checkout_options:  *ro.CheckoutOptions.toC(),
 	}
+
+	if ro.CommitSigningCallback != nil {
+		C._go_git_populate_commit_sign_cb(opts)
+		opts.payload = pointerHandles.Track(ro)
+	}
+
+	return opts
 }
 
 func mapEmptyStringToNull(ref string) *C.char {
