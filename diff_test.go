@@ -256,7 +256,7 @@ func TestApplyDiffAddfile(t *testing.T) {
 		err = repo.ResetToCommit(addSecondFileCommit, ResetHard, &CheckoutOpts{})
 		checkFatal(t, err)
 
-		err = repo.ApplyDiff(diff, GitApplyLocationBoth, nil)
+		err = repo.ApplyDiff(diff, ApplyLocationBoth, nil)
 		if err == nil {
 			t.Error("expecting applying patch to current repo to fail")
 		}
@@ -266,7 +266,7 @@ func TestApplyDiffAddfile(t *testing.T) {
 		err = repo.ResetToCommit(addFirstFileCommit, ResetHard, &CheckoutOpts{})
 		checkFatal(t, err)
 
-		err = repo.ApplyDiff(diff, GitApplyLocationBoth, nil)
+		err = repo.ApplyDiff(diff, ApplyLocationBoth, nil)
 		checkFatal(t, err)
 
 		t.Run("Check that diff only changed one file", func(t *testing.T) {
@@ -328,7 +328,7 @@ func TestApplyDiffAddfile(t *testing.T) {
 		diff2, err := DiffFromBuffer(raw, repo)
 		checkFatal(t, err)
 
-		err = repo.ApplyDiff(diff2, GitApplyLocationBoth, nil)
+		err = repo.ApplyDiff(diff2, ApplyLocationBoth, nil)
 		checkFatal(t, err)
 	})
 
@@ -353,7 +353,7 @@ func TestApplyDiffAddfile(t *testing.T) {
 				return true, nil
 			}
 
-			err = repo.ApplyDiff(diff, GitApplyLocationBoth, opts)
+			err = repo.ApplyDiff(diff, ApplyLocationBoth, opts)
 			checkFatal(t, err)
 
 			if called == false {
@@ -375,7 +375,7 @@ func TestApplyDiffAddfile(t *testing.T) {
 				return true, nil
 			}
 
-			err = repo.ApplyDiff(diff, GitApplyLocationBoth, opts)
+			err = repo.ApplyDiff(diff, ApplyLocationBoth, opts)
 			checkFatal(t, err)
 
 			if called == false {
@@ -397,7 +397,7 @@ func TestApplyDiffAddfile(t *testing.T) {
 				return false, nil
 			}
 
-			err = repo.ApplyDiff(diff, GitApplyLocationBoth, opts)
+			err = repo.ApplyDiff(diff, ApplyLocationBoth, opts)
 			checkFatal(t, err)
 
 			if called == false {
@@ -416,7 +416,7 @@ func TestApplyDiffAddfile(t *testing.T) {
 				return false, errors.New("something happened")
 			}
 
-			err = repo.ApplyDiff(diff, GitApplyLocationBoth, opts)
+			err = repo.ApplyDiff(diff, ApplyLocationBoth, opts)
 			if err == nil {
 				t.Error("expected an error after trying to apply")
 			}
@@ -440,7 +440,7 @@ func TestApplyDiffAddfile(t *testing.T) {
 				return false, errors.New("something happened")
 			}
 
-			err = repo.ApplyDiff(diff, GitApplyLocationBoth, opts)
+			err = repo.ApplyDiff(diff, ApplyLocationBoth, opts)
 			if err == nil {
 				t.Error("expected an error after trying to apply")
 			}
