@@ -856,7 +856,6 @@ type ApplyDeltaCallback func(*DiffDelta) (apply bool, err error)
 // If these functions return an error, abort the apply process immediately.
 // If the first return value is true, the delta/hunk will be applied. If it is false, the  delta/hunk will not be applied. In either case, the rest of the apply process will continue.
 type ApplyOptions struct {
-	Version            uint
 	ApplyHunkCallback  ApplyHunkCallback
 	ApplyDeltaCallback ApplyDeltaCallback
 	Flags              uint
@@ -934,7 +933,7 @@ func (a *ApplyOptions) toC() *C.git_apply_options {
 	}
 
 	opts := &C.git_apply_options{
-		version: C.uint(a.Version),
+		version: C.GIT_APPLY_OPTIONS_VERSION,
 		flags:   C.uint(a.Flags),
 	}
 
@@ -948,8 +947,7 @@ func (a *ApplyOptions) toC() *C.git_apply_options {
 
 func applyOptionsFromC(opts *C.git_apply_options) *ApplyOptions {
 	return &ApplyOptions{
-		Version: uint(opts.version),
-		Flags:   uint(opts.flags),
+		Flags: uint(opts.flags),
 	}
 }
 
