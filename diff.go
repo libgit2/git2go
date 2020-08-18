@@ -3,7 +3,6 @@ package git
 /*
 #include <git2.h>
 
-extern void _go_git_populate_apply_cb(git_apply_options *options);
 extern int _go_git_diff_foreach(git_diff *diff, int eachFile, int eachHunk, int eachLine, void *payload);
 extern void _go_git_setup_diff_notify_callbacks(git_diff_options* opts);
 extern int _go_git_diff_blobs(git_blob *old, const char *old_path, git_blob *new, const char *new_path, git_diff_options *opts, int eachFile, int eachHunk, int eachLine, void *payload);
@@ -551,7 +550,7 @@ const (
 	DiffFindRemoveUnmodified            DiffFindOptionsFlag = C.GIT_DIFF_FIND_REMOVE_UNMODIFIED
 )
 
-// TODO implement git_diff_similarity_metric
+//TODO implement git_diff_similarity_metric
 type DiffFindOptions struct {
 	Flags                      DiffFindOptionsFlag
 	RenameThreshold            uint16
@@ -847,175 +846,4 @@ func DiffBlobs(oldBlob *Blob, oldAsPath string, newBlob *Blob, newAsPath string,
 	}
 
 	return nil
-}
-
-// ApplyHunkCallback is a callback that will be made per delta (file) when applying a patch.
-type ApplyHunkCallback func(*DiffHunk) (apply bool, err error)
-
-// ApplyDeltaCallback is a callback that will be made per hunk when applying a patch.
-type ApplyDeltaCallback func(*DiffDelta) (apply bool, err error)
-
-// ApplyOptions has 2 callbacks that are called for hunks or deltas
-// If these functions return an error, abort the apply process immediately.
-// If the first return value is true, the delta/hunk will be applied. If it is false, the  delta/hunk will not be applied. In either case, the rest of the apply process will continue.
-type ApplyOptions struct {
-	ApplyHunkCallback  ApplyHunkCallback
-	ApplyDeltaCallback ApplyDeltaCallback
-	Flags              uint
-}
-
-//export hunkApplyCallback
-func hunkApplyCallback(_hunk *C.git_diff_hunk, _payload unsafe.Pointer) C.int {
-	opts, ok := pointerHandles.Get(_payload).(*ApplyOptions)
-	if !ok {
-		panic("invalid apply options payload")
-	}
-
-	if opts.ApplyHunkCallback == nil {
-		return 0
-	}
-
-	hunk := diffHunkFromC(_hunk)
-
-	apply, err := opts.ApplyHunkCallback(&hunk)
-	if err != nil {
-		if gitError, ok := err.(*GitError); ok {
-			return C.int(gitError.Code)
-		}
-		return -1
-	} else if apply {
-		return 0
-	} else {
-		return 1
-	}
-}
-
-//export deltaApplyCallback
-func deltaApplyCallback(_delta *C.git_diff_delta, _payload unsafe.Pointer) C.int {
-	opts, ok := pointerHandles.Get(_payload).(*ApplyOptions)
-	if !ok {
-		panic("invalid apply options payload")
-	}
-
-	if opts.ApplyDeltaCallback == nil {
-		return 0
-	}
-
-	delta := diffDeltaFromC(_delta)
-
-	apply, err := opts.ApplyDeltaCallback(&delta)
-	if err != nil {
-		if gitError, ok := err.(*GitError); ok {
-			return C.int(gitError.Code)
-		}
-		return -1
-	} else if apply {
-		return 0
-	} else {
-		return 1
-	}
-}
-
-// DefaultApplyOptions returns default options for applying diffs or patches.
-func DefaultApplyOptions() (*ApplyOptions, error) {
-	opts := C.git_apply_options{}
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ecode := C.git_apply_options_init(&opts, C.GIT_APPLY_OPTIONS_VERSION)
-	if int(ecode) != 0 {
-
-		return nil, MakeGitError(ecode)
-	}
-
-	return applyOptionsFromC(&opts), nil
-}
-
-func (a *ApplyOptions) toC() *C.git_apply_options {
-	if a == nil {
-		return nil
-	}
-
-	opts := &C.git_apply_options{
-		version: C.GIT_APPLY_OPTIONS_VERSION,
-		flags:   C.uint(a.Flags),
-	}
-
-	if a.ApplyDeltaCallback != nil || a.ApplyHunkCallback != nil {
-		C._go_git_populate_apply_cb(opts)
-		opts.payload = pointerHandles.Track(a)
-	}
-
-	return opts
-}
-
-func applyOptionsFromC(opts *C.git_apply_options) *ApplyOptions {
-	return &ApplyOptions{
-		Flags: uint(opts.flags),
-	}
-}
-
-// ApplyLocation represents the possible application locations for applying
-// diffs.
-type ApplyLocation int
-
-const (
-	// ApplyLocationWorkdir applies the patch to the workdir, leaving the
-	// index untouched. This is the equivalent of `git apply` with no location
-	// argument.
-	ApplyLocationWorkdir ApplyLocation = C.GIT_APPLY_LOCATION_WORKDIR
-	// ApplyLocationIndex applies the patch to the index, leaving the working
-	// directory untouched. This is the equivalent of `git apply --cached`.
-	ApplyLocationIndex ApplyLocation = C.GIT_APPLY_LOCATION_INDEX
-	// ApplyLocationBoth applies the patch to both the working directory and
-	// the index. This is the equivalent of `git apply --index`.
-	ApplyLocationBoth ApplyLocation = C.GIT_APPLY_LOCATION_BOTH
-)
-
-// ApplyDiff appllies a Diff to the given repository, making changes directly
-// in the working directory, the index, or both.
-func (v *Repository) ApplyDiff(diff *Diff, location ApplyLocation, opts *ApplyOptions) error {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	cOpts := opts.toC()
-	ecode := C.git_apply(v.ptr, diff.ptr, C.git_apply_location_t(location), cOpts)
-	runtime.KeepAlive(v)
-	runtime.KeepAlive(diff)
-	runtime.KeepAlive(cOpts)
-	if ecode < 0 {
-		return MakeGitError(ecode)
-	}
-
-	return nil
-}
-
-// DiffFromBuffer reads the contents of a git patch file into a Diff object.
-//
-// The diff object produced is similar to the one that would be produced if you
-// actually produced it computationally by comparing two trees, however there
-// may be subtle differences. For example, a patch file likely contains
-// abbreviated object IDs, so the object IDs in a git_diff_delta produced by
-// this function will also be abbreviated.
-//
-// This function will only read patch files created by a git implementation, it
-// will not read unified diffs produced by the diff program, nor any other
-// types of patch files.
-func DiffFromBuffer(buffer []byte, repo *Repository) (*Diff, error) {
-	var diff *C.git_diff
-
-	cBuffer := C.CBytes(buffer)
-	defer C.free(unsafe.Pointer(cBuffer))
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ecode := C.git_diff_from_buffer(&diff, (*C.char)(cBuffer), C.size_t(len(buffer)))
-	if ecode < 0 {
-		return nil, MakeGitError(ecode)
-	}
-	runtime.KeepAlive(diff)
-
-	return newDiffFromC(diff, repo), nil
 }
