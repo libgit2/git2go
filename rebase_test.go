@@ -33,12 +33,12 @@ func TestRebaseAbort(t *testing.T) {
 	seedTestRepo(t, repo)
 
 	// Setup a repo with 2 branches and a different tree
-	err := setupRepoForRebase(repo, masterCommit, branchName)
+	err := setupRepoForRebase(repo, masterCommit, branchName, commitOpts{})
 	checkFatal(t, err)
 
 	// Create several commits in emile
 	for _, commit := range emileCommits {
-		_, err = commitSomething(repo, commit, commit)
+		_, err = commitSomething(repo, commit, commit, commitOpts{})
 		checkFatal(t, err)
 	}
 
@@ -48,7 +48,7 @@ func TestRebaseAbort(t *testing.T) {
 	assertStringList(t, expectedHistory, actualHistory)
 
 	// Rebase onto master
-	rebase, err := performRebaseOnto(repo, "master")
+	rebase, err := performRebaseOnto(repo, "master", nil)
 	checkFatal(t, err)
 	defer rebase.Free()
 
@@ -94,17 +94,17 @@ func TestRebaseNoConflicts(t *testing.T) {
 	}
 
 	// Setup a repo with 2 branches and a different tree
-	err = setupRepoForRebase(repo, masterCommit, branchName)
+	err = setupRepoForRebase(repo, masterCommit, branchName, commitOpts{})
 	checkFatal(t, err)
 
 	// Create several commits in emile
 	for _, commit := range emileCommits {
-		_, err = commitSomething(repo, commit, commit)
+		_, err = commitSomething(repo, commit, commit, commitOpts{})
 		checkFatal(t, err)
 	}
 
 	// Rebase onto master
-	rebase, err := performRebaseOnto(repo, "master")
+	rebase, err := performRebaseOnto(repo, "master", nil)
 	checkFatal(t, err)
 	defer rebase.Free()
 
@@ -130,11 +130,10 @@ func TestRebaseNoConflicts(t *testing.T) {
 	actualHistory, err := commitMsgsList(repo)
 	checkFatal(t, err)
 	assertStringList(t, expectedHistory, actualHistory)
-
 }
 
 // Utils
-func setupRepoForRebase(repo *Repository, masterCommit, branchName string) error {
+func setupRepoForRebase(repo *Repository, masterCommit, branchName string, opts commitOpts) error {
 	// Create a new branch from master
 	err := createBranch(repo, branchName)
 	if err != nil {
@@ -142,7 +141,7 @@ func setupRepoForRebase(repo *Repository, masterCommit, branchName string) error
 	}
 
 	// Create a commit in master
-	_, err = commitSomething(repo, masterCommit, masterCommit)
+	_, err = commitSomething(repo, masterCommit, masterCommit, opts)
 	if err != nil {
 		return err
 	}
@@ -161,7 +160,7 @@ func setupRepoForRebase(repo *Repository, masterCommit, branchName string) error
 	return nil
 }
 
-func performRebaseOnto(repo *Repository, branch string) (*Rebase, error) {
+func performRebaseOnto(repo *Repository, branch string, opts *RebaseOptions) (*Rebase, error) {
 	master, err := repo.LookupBranch(branch, BranchLocal)
 	if err != nil {
 		return nil, err
@@ -175,7 +174,7 @@ func performRebaseOnto(repo *Repository, branch string) (*Rebase, error) {
 	defer onto.Free()
 
 	// Init rebase
-	rebase, err := repo.InitRebase(nil, nil, onto, nil)
+	rebase, err := repo.InitRebase(nil, nil, onto, opts)
 	if err != nil {
 		return nil, err
 	}
@@ -276,7 +275,7 @@ func headTree(repo *Repository) (*Tree, error) {
 	return tree, nil
 }
 
-func commitSomething(repo *Repository, something, content string) (*Oid, error) {
+func commitSomething(repo *Repository, something, content string, commitOpts commitOpts) (*Oid, error) {
 	headCommit, err := headCommit(repo)
 	if err != nil {
 		return nil, err
@@ -315,12 +314,38 @@ func commitSomething(repo *Repository, something, content string) (*Oid, error) 
 	}
 	defer newTree.Free()
 
-	if err != nil {
-		return nil, err
-	}
 	commit, err := repo.CreateCommit("HEAD", signature(), signature(), "Test rebase, Baby! "+something, newTree, headCommit)
 	if err != nil {
 		return nil, err
+	}
+
+	if commitOpts.CommitSigningCallback != nil {
+		commit, err := repo.LookupCommit(commit)
+		if err != nil {
+			return nil, err
+		}
+
+		oid, err := commit.WithSignatureUsing(commitOpts.CommitSigningCallback)
+		if err != nil {
+			return nil, err
+		}
+		newCommit, err := repo.LookupCommit(oid)
+		if err != nil {
+			return nil, err
+		}
+		head, err := repo.Head()
+		if err != nil {
+			return nil, err
+		}
+		_, err = repo.References.Create(
+			head.Name(),
+			newCommit.Id(),
+			true,
+			"repoint to signed commit",
+		)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	opts := &CheckoutOpts{
