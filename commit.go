@@ -79,7 +79,7 @@ func (c *Commit) WithSignature(signature string, signatureField string) (*Oid, e
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	cTotalCommit:=C.CString(totalCommit)
+	cTotalCommit := C.CString(totalCommit)
 	cSignature := C.CString(signature)
 	defer C.free(unsafe.Pointer(cTotalCommit))
 	defer C.free(unsafe.Pointer(cSignature))
