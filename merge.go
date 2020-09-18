@@ -142,6 +142,7 @@ type MergeOptions struct {
 
 	RenameThreshold uint
 	TargetLimit     uint
+	RecursionLimit  uint
 	FileFavor       MergeFileFavor
 
 	//TODO: Diff similarity metric
@@ -153,6 +154,7 @@ func mergeOptionsFromC(opts *C.git_merge_options) MergeOptions {
 		TreeFlags:       MergeTreeFlag(opts.flags),
 		RenameThreshold: uint(opts.rename_threshold),
 		TargetLimit:     uint(opts.target_limit),
+		RecursionLimit:  uint(opts.recursion_limit),
 		FileFavor:       MergeFileFavor(opts.file_favor),
 	}
 }
@@ -179,6 +181,7 @@ func (mo *MergeOptions) toC() *C.git_merge_options {
 		flags:            C.uint32_t(mo.TreeFlags),
 		rename_threshold: C.uint(mo.RenameThreshold),
 		target_limit:     C.uint(mo.TargetLimit),
+		recursion_limit:  C.uint(mo.RecursionLimit),
 		file_favor:       C.git_merge_file_favor_t(mo.FileFavor),
 	}
 }
