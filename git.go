@@ -118,6 +118,10 @@ var (
 var pointerHandles *HandleList
 
 func init() {
+	initLibGit2()
+}
+
+func initLibGit2() {
 	pointerHandles = NewHandleList()
 
 	C.git_libgit2_init()
@@ -154,10 +158,8 @@ func Shutdown() {
 // files. This function frees any references to objects, so it should be called
 // before any other functions are called.
 func ReInit() {
-	pointerHandles.Clear()
-	C.git_libgit2_shutdown()
-	pointerHandles = NewHandleList()
-	C.git_libgit2_init()
+	Shutdown()
+	initLibGit2()
 }
 
 // Oid represents the id for a Git object.
