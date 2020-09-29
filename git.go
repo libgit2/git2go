@@ -118,6 +118,10 @@ var (
 var pointerHandles *HandleList
 
 func init() {
+	initLibGit2()
+}
+
+func initLibGit2() {
 	pointerHandles = NewHandleList()
 
 	C.git_libgit2_init()
@@ -147,6 +151,15 @@ func Shutdown() {
 	pointerHandles.Clear()
 
 	C.git_libgit2_shutdown()
+}
+
+// ReInit reinitializes the global state, this is useful if the effective user
+// id has changed and you want to update the stored search paths for gitconfig
+// files. This function frees any references to objects, so it should be called
+// before any other functions are called.
+func ReInit() {
+	Shutdown()
+	initLibGit2()
 }
 
 // Oid represents the id for a Git object.
