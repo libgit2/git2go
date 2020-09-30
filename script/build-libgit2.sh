@@ -15,7 +15,7 @@ if [ "$#" -eq "0" ]; then
 	usage
 fi
 
-ROOT="$(cd "$(dirname "$0")/.." && echo "${PWD}")"
+ROOT=${ROOT-"$(cd "$(dirname "$0")/.." && echo "${PWD}")"}
 VENDORED_PATH=${VENDORED_PATH-"${ROOT}/vendor/libgit2"}
 BUILD_SYSTEM=OFF
 
