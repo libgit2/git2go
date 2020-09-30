@@ -16,7 +16,7 @@ if [ "$#" -eq "0" ]; then
 fi
 
 ROOT="$(cd "$(dirname "$0")/.." && echo "${PWD}")"
-VENDORED_PATH="${ROOT}/vendor/libgit2"
+VENDORED_PATH=${VENDORED_PATH-"${ROOT}/vendor/libgit2"}
 BUILD_SYSTEM=OFF
 
 while [ $# -gt 0 ]; do
