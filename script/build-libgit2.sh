@@ -47,7 +47,7 @@ if [ -z "${BUILD_SHARED_LIBS}" ]; then
 fi
 
 if [ "${BUILD_SYSTEM}" = "ON" ]; then
-	BUILD_INSTALL_PREFIX="/usr"
+	BUILD_INSTALL_PREFIX=${SYSTEM_INSTALL_PREFIX-"/usr"}
 else
 	BUILD_INSTALL_PREFIX="${BUILD_PATH}/install"
 	mkdir -p "${BUILD_PATH}/install/lib"
