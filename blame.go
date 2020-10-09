@@ -23,7 +23,7 @@ func DefaultBlameOptions() (BlameOptions, error) {
 	defer runtime.UnlockOSThread()
 
 	opts := C.git_blame_options{}
-	ecode := C.git_blame_init_options(&opts, C.GIT_BLAME_OPTIONS_VERSION)
+	ecode := C.git_blame_options_init(&opts, C.GIT_BLAME_OPTIONS_VERSION)
 	if ecode < 0 {
 		return BlameOptions{}, MakeGitError(ecode)
 	}

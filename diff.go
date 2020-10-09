@@ -512,7 +512,7 @@ func DefaultDiffOptions() (DiffOptions, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_diff_init_options(&opts, C.GIT_DIFF_OPTIONS_VERSION)
+	ecode := C.git_diff_options_init(&opts, C.GIT_DIFF_OPTIONS_VERSION)
 	if ecode < 0 {
 		return DiffOptions{}, MakeGitError(ecode)
 	}
@@ -567,7 +567,7 @@ func DefaultDiffFindOptions() (DiffFindOptions, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_diff_find_init_options(&opts, C.GIT_DIFF_FIND_OPTIONS_VERSION)
+	ecode := C.git_diff_find_options_init(&opts, C.GIT_DIFF_FIND_OPTIONS_VERSION)
 	if ecode < 0 {
 		return DiffFindOptions{}, MakeGitError(ecode)
 	}

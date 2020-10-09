@@ -77,7 +77,7 @@ func remoteCreateCallback(cremote unsafe.Pointer, crepo unsafe.Pointer, cname, c
 }
 
 func populateCloneOptions(ptr *C.git_clone_options, opts *CloneOptions) {
-	C.git_clone_init_options(ptr, C.GIT_CLONE_OPTIONS_VERSION)
+	C.git_clone_options_init(ptr, C.GIT_CLONE_OPTIONS_VERSION)
 
 	if opts == nil {
 		return

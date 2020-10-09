@@ -140,7 +140,7 @@ func DefaultRebaseOptions() (RebaseOptions, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_rebase_init_options(&opts, C.GIT_REBASE_OPTIONS_VERSION)
+	ecode := C.git_rebase_options_init(&opts, C.GIT_REBASE_OPTIONS_VERSION)
 	if ecode < 0 {
 		return RebaseOptions{}, MakeGitError(ecode)
 	}
