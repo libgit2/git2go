@@ -45,6 +45,7 @@ const (
 	ErrClassRevert     ErrorClass = C.GITERR_REVERT
 	ErrClassCallback   ErrorClass = C.GITERR_CALLBACK
 	ErrClassRebase     ErrorClass = C.GITERR_REBASE
+	ErrClassPatch      ErrorClass = C.GITERR_PATCH
 )
 
 type ErrorCode int
@@ -109,6 +110,8 @@ const (
 	ErrPassthrough ErrorCode = C.GIT_PASSTHROUGH
 	// Signals end of iteration with iterator
 	ErrIterOver ErrorCode = C.GIT_ITEROVER
+	// Patch application failed
+	ErrApplyFail ErrorCode = C.GIT_EAPPLYFAIL
 )
 
 var (
