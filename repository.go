@@ -185,12 +185,43 @@ func (v *Repository) lookupType(id *Oid, t ObjectType) (*Object, error) {
 	return allocObject(ptr, v), nil
 }
 
+func (v *Repository) lookupPrefixType(id *Oid, prefix uint, t ObjectType) (*Object, error) {
+	var ptr *C.git_object
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_object_lookup_prefix(&ptr, v.ptr, id.toC(), C.size_t(prefix), C.git_otype(t))
+	runtime.KeepAlive(id)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return allocObject(ptr, v), nil
+}
+
 func (v *Repository) Lookup(id *Oid) (*Object, error) {
 	return v.lookupType(id, ObjectAny)
 }
 
+// LookupPrefix looks up an object by its OID given a prefix of its identifier.
+func (v *Repository) LookupPrefix(id *Oid, prefix uint) (*Object, error) {
+	return v.lookupPrefixType(id, prefix, ObjectAny)
+}
+
 func (v *Repository) LookupTree(id *Oid) (*Tree, error) {
 	obj, err := v.lookupType(id, ObjectTree)
+	if err != nil {
+		return nil, err
+	}
+	defer obj.Free()
+
+	return obj.AsTree()
+}
+
+// LookupPrefixTree looks up a tree by its OID given a prefix of its identifier.
+func (v *Repository) LookupPrefixTree(id *Oid, prefix uint) (*Tree, error) {
+	obj, err := v.lookupPrefixType(id, prefix, ObjectTree)
 	if err != nil {
 		return nil, err
 	}
@@ -209,6 +240,17 @@ func (v *Repository) LookupCommit(id *Oid) (*Commit, error) {
 	return obj.AsCommit()
 }
 
+// LookupPrefixCommit looks up a commit by its OID given a prefix of its identifier.
+func (v *Repository) LookupPrefixCommit(id *Oid, prefix uint) (*Commit, error) {
+	obj, err := v.lookupPrefixType(id, prefix, ObjectCommit)
+	if err != nil {
+		return nil, err
+	}
+	defer obj.Free()
+
+	return obj.AsCommit()
+}
+
 func (v *Repository) LookupBlob(id *Oid) (*Blob, error) {
 	obj, err := v.lookupType(id, ObjectBlob)
 	if err != nil {
@@ -219,8 +261,30 @@ func (v *Repository) LookupBlob(id *Oid) (*Blob, error) {
 	return obj.AsBlob()
 }
 
+// LookupPrefixBlob looks up a blob by its OID given a prefix of its identifier.
+func (v *Repository) LookupPrefixBlob(id *Oid, prefix uint) (*Blob, error) {
+	obj, err := v.lookupPrefixType(id, prefix, ObjectBlob)
+	if err != nil {
+		return nil, err
+	}
+	defer obj.Free()
+
+	return obj.AsBlob()
+}
+
 func (v *Repository) LookupTag(id *Oid) (*Tag, error) {
 	obj, err := v.lookupType(id, ObjectTag)
+	if err != nil {
+		return nil, err
+	}
+	defer obj.Free()
+
+	return obj.AsTag()
+}
+
+// LookupPrefixTag looks up a tag by its OID given a prefix of its identifier.
+func (v *Repository) LookupPrefixTag(id *Oid, prefix uint) (*Tag, error) {
+	obj, err := v.lookupPrefixType(id, prefix, ObjectTag)
 	if err != nil {
 		return nil, err
 	}
