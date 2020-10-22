@@ -191,7 +191,7 @@ func (v *Repository) lookupPrefixType(id *Oid, prefix uint, t ObjectType) (*Obje
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_object_lookup_prefix(&ptr, v.ptr, id.toC(), C.size_t(prefix), C.git_object_t(t))
+	ret := C.git_object_lookup_prefix(&ptr, v.ptr, id.toC(), C.size_t(prefix), C.git_otype(t))
 	runtime.KeepAlive(id)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
