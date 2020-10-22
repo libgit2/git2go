@@ -246,11 +246,16 @@ func TestApplyDiffAddfile(t *testing.T) {
 
 	seedTestRepo(t, repo)
 
-	addFirstFileCommit, addFileTree := addAndGetTree(t, repo, "file1", `hello`)
+	addFirstFileCommit, addFirstFileTree := addAndGetTree(t, repo, "file1", `hello`)
+	defer addFirstFileCommit.Free()
+	defer addFirstFileTree.Free()
 	addSecondFileCommit, addSecondFileTree := addAndGetTree(t, repo, "file2", `hello2`)
+	defer addSecondFileCommit.Free()
+	defer addSecondFileTree.Free()
 
-	diff, err := repo.DiffTreeToTree(addFileTree, addSecondFileTree, nil)
+	diff, err := repo.DiffTreeToTree(addFirstFileTree, addSecondFileTree, nil)
 	checkFatal(t, err)
+	defer diff.Free()
 
 	t.Run("check does not apply to current tree because file exists", func(t *testing.T) {
 		err = repo.ResetToCommit(addSecondFileCommit, ResetHard, &CheckoutOpts{})
@@ -293,12 +298,15 @@ func TestApplyDiffAddfile(t *testing.T) {
 
 			commit, err := repo.LookupCommit(head.Target())
 			checkFatal(t, err)
+			defer commit.Free()
 
 			tree, err := commit.Tree()
 			checkFatal(t, err)
+			defer tree.Free()
 
-			newDiff, err := repo.DiffTreeToTree(addFileTree, tree, nil)
+			newDiff, err := repo.DiffTreeToTree(addFirstFileTree, tree, nil)
 			checkFatal(t, err)
+			defer newDiff.Free()
 
 			raw1b, err := diff.ToBuf(DiffFormatPatch)
 			checkFatal(t, err)
@@ -327,6 +335,7 @@ func TestApplyDiffAddfile(t *testing.T) {
 
 		diff2, err := DiffFromBuffer(raw, repo)
 		checkFatal(t, err)
+		defer diff2.Free()
 
 		err = repo.ApplyDiff(diff2, ApplyLocationBoth, nil)
 		checkFatal(t, err)
