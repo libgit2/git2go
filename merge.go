@@ -165,7 +165,7 @@ func DefaultMergeOptions() (MergeOptions, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_merge_init_options(&opts, C.GIT_MERGE_OPTIONS_VERSION)
+	ecode := C.git_merge_options_init(&opts, C.GIT_MERGE_OPTIONS_VERSION)
 	if ecode < 0 {
 		return MergeOptions{}, MakeGitError(ecode)
 	}
@@ -477,7 +477,7 @@ func MergeFile(ancestor MergeFileInput, ours MergeFileInput, theirs MergeFileInp
 	var copts *C.git_merge_file_options
 	if options != nil {
 		copts = &C.git_merge_file_options{}
-		ecode := C.git_merge_file_init_options(copts, C.GIT_MERGE_FILE_OPTIONS_VERSION)
+		ecode := C.git_merge_file_options_init(copts, C.GIT_MERGE_FILE_OPTIONS_VERSION)
 		if ecode < 0 {
 			return nil, MakeGitError(ecode)
 		}
