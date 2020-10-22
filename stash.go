@@ -151,7 +151,7 @@ func DefaultStashApplyOptions() (StashApplyOptions, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_stash_apply_init_options(&optsC, C.GIT_STASH_APPLY_OPTIONS_VERSION)
+	ecode := C.git_stash_apply_options_init(&optsC, C.GIT_STASH_APPLY_OPTIONS_VERSION)
 	if ecode < 0 {
 		return StashApplyOptions{}, MakeGitError(ecode)
 	}

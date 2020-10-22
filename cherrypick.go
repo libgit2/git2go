@@ -50,7 +50,7 @@ func DefaultCherrypickOptions() (CherrypickOptions, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_cherrypick_init_options(&c, C.GIT_CHERRYPICK_OPTIONS_VERSION)
+	ecode := C.git_cherrypick_options_init(&c, C.GIT_CHERRYPICK_OPTIONS_VERSION)
 	if ecode < 0 {
 		return CherrypickOptions{}, MakeGitError(ecode)
 	}

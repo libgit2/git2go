@@ -360,7 +360,7 @@ func (sub *Submodule) Update(init bool, opts *SubmoduleUpdateOptions) error {
 }
 
 func populateSubmoduleUpdateOptions(ptr *C.git_submodule_update_options, opts *SubmoduleUpdateOptions) error {
-	C.git_submodule_update_init_options(ptr, C.GIT_SUBMODULE_UPDATE_OPTIONS_VERSION)
+	C.git_submodule_update_options_init(ptr, C.GIT_SUBMODULE_UPDATE_OPTIONS_VERSION)
 
 	if opts == nil {
 		return nil

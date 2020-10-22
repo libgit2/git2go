@@ -159,7 +159,7 @@ func (v *Repository) StatusList(opts *StatusOptions) (*StatusList, error) {
 		}
 	} else {
 		copts = &C.git_status_options{}
-		ret := C.git_status_init_options(copts, C.GIT_STATUS_OPTIONS_VERSION)
+		ret := C.git_status_options_init(copts, C.GIT_STATUS_OPTIONS_VERSION)
 		if ret < 0 {
 			return nil, MakeGitError(ret)
 		}

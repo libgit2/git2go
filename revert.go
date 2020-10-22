@@ -43,7 +43,7 @@ func DefaultRevertOptions() (RevertOptions, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_revert_init_options(&opts, C.GIT_REVERT_OPTIONS_VERSION)
+	ecode := C.git_revert_options_init(&opts, C.GIT_REVERT_OPTIONS_VERSION)
 	if ecode < 0 {
 		return RevertOptions{}, MakeGitError(ecode)
 	}
