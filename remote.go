@@ -354,7 +354,7 @@ func pushUpdateReferenceCallback(refname, status *C.char, data unsafe.Pointer) i
 }
 
 func populateProxyOptions(ptr *C.git_proxy_options, opts *ProxyOptions) {
-	C.git_proxy_init_options(ptr, C.GIT_PROXY_OPTIONS_VERSION)
+	C.git_proxy_options_init(ptr, C.GIT_PROXY_OPTIONS_VERSION)
 	if opts == nil {
 		return
 	}
@@ -678,7 +678,7 @@ func (o *Remote) RefspecCount() uint {
 }
 
 func populateFetchOptions(options *C.git_fetch_options, opts *FetchOptions) {
-	C.git_fetch_init_options(options, C.GIT_FETCH_OPTIONS_VERSION)
+	C.git_fetch_options_init(options, C.GIT_FETCH_OPTIONS_VERSION)
 	if opts == nil {
 		return
 	}
@@ -694,7 +694,7 @@ func populateFetchOptions(options *C.git_fetch_options, opts *FetchOptions) {
 }
 
 func populatePushOptions(options *C.git_push_options, opts *PushOptions) {
-	C.git_push_init_options(options, C.GIT_PUSH_OPTIONS_VERSION)
+	C.git_push_options_init(options, C.GIT_PUSH_OPTIONS_VERSION)
 	if opts == nil {
 		return
 	}

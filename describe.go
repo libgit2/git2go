@@ -43,7 +43,7 @@ func DefaultDescribeOptions() (DescribeOptions, error) {
 	defer runtime.UnlockOSThread()
 
 	opts := C.git_describe_options{}
-	ecode := C.git_describe_init_options(&opts, C.GIT_DESCRIBE_OPTIONS_VERSION)
+	ecode := C.git_describe_options_init(&opts, C.GIT_DESCRIBE_OPTIONS_VERSION)
 	if ecode < 0 {
 		return DescribeOptions{}, MakeGitError(ecode)
 	}
@@ -77,7 +77,7 @@ func DefaultDescribeFormatOptions() (DescribeFormatOptions, error) {
 	defer runtime.UnlockOSThread()
 
 	opts := C.git_describe_format_options{}
-	ecode := C.git_describe_init_format_options(&opts, C.GIT_DESCRIBE_FORMAT_OPTIONS_VERSION)
+	ecode := C.git_describe_format_options_init(&opts, C.GIT_DESCRIBE_FORMAT_OPTIONS_VERSION)
 	if ecode < 0 {
 		return DescribeFormatOptions{}, MakeGitError(ecode)
 	}

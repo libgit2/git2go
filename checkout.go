@@ -135,7 +135,7 @@ func populateCheckoutOpts(ptr *C.git_checkout_options, opts *CheckoutOpts) *C.gi
 		return nil
 	}
 
-	C.git_checkout_init_options(ptr, 1)
+	C.git_checkout_options_init(ptr, 1)
 	ptr.checkout_strategy = C.uint(opts.Strategy)
 	ptr.disable_filters = cbool(opts.DisableFilters)
 	ptr.dir_mode = C.uint(opts.DirMode.Perm())
