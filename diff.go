@@ -980,6 +980,24 @@ func (v *Repository) ApplyDiff(diff *Diff, location ApplyLocation, opts *ApplyOp
 	return nil
 }
 
+// ApplyToTree applies a Diff to a Tree and returns the resulting image as an Index.
+func (v *Repository) ApplyToTree(diff *Diff, tree *Tree, opts *ApplyOptions) (*Index, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var indexPtr *C.git_index
+	cOpts := opts.toC()
+	ecode := C.git_apply_to_tree(&indexPtr, v.ptr, tree.cast_ptr, diff.ptr, cOpts)
+	runtime.KeepAlive(diff)
+	runtime.KeepAlive(tree)
+	runtime.KeepAlive(cOpts)
+	if ecode != 0 {
+		return nil, MakeGitError(ecode)
+	}
+
+	return newIndexFromC(indexPtr, v), nil
+}
+
 // DiffFromBuffer reads the contents of a git patch file into a Diff object.
 //
 // The diff object produced is similar to the one that would be produced if you
