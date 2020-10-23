@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"path"
+	"reflect"
 	"strings"
 	"testing"
 )
@@ -461,6 +462,141 @@ func TestApplyDiffAddfile(t *testing.T) {
 			checkNoFilesStaged(t, repo)
 		})
 	})
+}
+
+func TestApplyToTree(t *testing.T) {
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	seedTestRepo(t, repo)
+
+	commitA, treeA := addAndGetTree(t, repo, "file", "a")
+	defer commitA.Free()
+	defer treeA.Free()
+	commitB, treeB := addAndGetTree(t, repo, "file", "b")
+	defer commitB.Free()
+	defer treeB.Free()
+	commitC, treeC := addAndGetTree(t, repo, "file", "c")
+	defer commitC.Free()
+	defer treeC.Free()
+
+	diffAB, err := repo.DiffTreeToTree(treeA, treeB, nil)
+	checkFatal(t, err)
+
+	diffAC, err := repo.DiffTreeToTree(treeA, treeC, nil)
+	checkFatal(t, err)
+
+	for _, tc := range []struct {
+		name               string
+		tree               *Tree
+		diff               *Diff
+		applyHunkCallback  ApplyHunkCallback
+		applyDeltaCallback ApplyDeltaCallback
+		error              error
+		expectedDiff       *Diff
+	}{
+		{
+			name:         "applying patch produces the same diff",
+			tree:         treeA,
+			diff:         diffAB,
+			expectedDiff: diffAB,
+		},
+		{
+			name: "applying a conflicting patch errors",
+			tree: treeB,
+			diff: diffAC,
+			error: &GitError{
+				Message: "hunk at line 1 did not apply",
+				Code:    ErrApplyFail,
+				Class:   ErrClassPatch,
+			},
+		},
+		{
+			name:               "callbacks succeeding apply the diff",
+			tree:               treeA,
+			diff:               diffAB,
+			applyHunkCallback:  func(*DiffHunk) (bool, error) { return true, nil },
+			applyDeltaCallback: func(*DiffDelta) (bool, error) { return true, nil },
+			expectedDiff:       diffAB,
+		},
+		{
+			name:              "hunk callback returning false does not apply",
+			tree:              treeA,
+			diff:              diffAB,
+			applyHunkCallback: func(*DiffHunk) (bool, error) { return false, nil },
+		},
+		{
+			name:              "hunk callback erroring fails the call",
+			tree:              treeA,
+			diff:              diffAB,
+			applyHunkCallback: func(*DiffHunk) (bool, error) { return true, errors.New("message dropped") },
+			error: &GitError{
+				Code:  ErrGeneric,
+				Class: ErrClassInvalid,
+			},
+		},
+		{
+			name:               "delta callback returning false does not apply",
+			tree:               treeA,
+			diff:               diffAB,
+			applyDeltaCallback: func(*DiffDelta) (bool, error) { return false, nil },
+		},
+		{
+			name:               "delta callback erroring fails the call",
+			tree:               treeA,
+			diff:               diffAB,
+			applyDeltaCallback: func(*DiffDelta) (bool, error) { return true, errors.New("message dropped") },
+			error: &GitError{
+				Code:  ErrGeneric,
+				Class: ErrClassInvalid,
+			},
+		},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			opts, err := DefaultApplyOptions()
+			checkFatal(t, err)
+
+			opts.ApplyHunkCallback = tc.applyHunkCallback
+			opts.ApplyDeltaCallback = tc.applyDeltaCallback
+
+			index, err := repo.ApplyToTree(tc.diff, tc.tree, opts)
+			if tc.error != nil {
+				if !reflect.DeepEqual(err, tc.error) {
+					t.Fatalf("expected error %q but got %q", tc.error, err)
+				}
+
+				return
+			}
+			checkFatal(t, err)
+
+			patchedTreeOID, err := index.WriteTreeTo(repo)
+			checkFatal(t, err)
+
+			patchedTree, err := repo.LookupTree(patchedTreeOID)
+			checkFatal(t, err)
+
+			patchedDiff, err := repo.DiffTreeToTree(tc.tree, patchedTree, nil)
+			checkFatal(t, err)
+
+			appliedRaw, err := patchedDiff.ToBuf(DiffFormatPatch)
+			checkFatal(t, err)
+
+			if tc.expectedDiff == nil {
+				if len(appliedRaw) > 0 {
+					t.Fatalf("expected no diff but got: %s", appliedRaw)
+				}
+
+				return
+			}
+
+			expectedDiff, err := tc.expectedDiff.ToBuf(DiffFormatPatch)
+			checkFatal(t, err)
+
+			if string(expectedDiff) != string(appliedRaw) {
+				t.Fatalf("diffs do not match:\nexpected: %s\n\nactual: %s", expectedDiff, appliedRaw)
+			}
+		})
+	}
 }
 
 // checkSecondFileStaged checks that there is a single file called "file2" uncommitted in the repo
