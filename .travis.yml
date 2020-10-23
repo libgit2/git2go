@@ -1,11 +1,6 @@
 language: go
 
 go:
-  - "1.9"
-  - "1.10"
-  - "1.11"
-  - "1.12"
-  - "1.13"
   - tip
 
 install:
@@ -14,10 +9,6 @@ install:
 
 script:
   - make test-static
-
-matrix:
-  allow_failures:
-    - go: tip
 
 git:
   submodules: true
