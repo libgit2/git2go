@@ -7,11 +7,12 @@ on:
 jobs:
 
   backport:
+    name: Backport change to branch ${{ matrix.branch }}
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:
-        branch: [ 'release-0.28', 'release-0.27' ]
-    name: Backport change to branch ${{ matrix.branch }}
+        branch: [ 'release-0.30', 'release-0.28', 'release-0.27' ]
 
     runs-on: ubuntu-20.04
 

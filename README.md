@@ -10,19 +10,20 @@ Due to the fact that Go 1.11 module versions have semantic meaning and don't nec
 
 | libgit2 | git2go        |
 |---------|---------------|
-| master  | (will be v31) |
+| master  | (will be v32) |
+| 1.1     | v31           |
 | 1.0     | v30           |
 | 0.99    | v29           |
 | 0.28    | v28           |
 | 0.27    | v27           |
 
-You can import them in your project with the version's major number as a suffix. For example, if you have libgit2 v1.0 installed, you'd import git2go v30 with
+You can import them in your project with the version's major number as a suffix. For example, if you have libgit2 v1.1 installed, you'd import git2go v31 with:
 
 ```sh
-go get github.com/libgit2/git2go/v30
+go get github.com/libgit2/git2go/v31
 ```
 ```go
-import "github.com/libgit2/git2go/v30"
+import "github.com/libgit2/git2go/v31"
 ```
 
 which will ensure there are no sudden changes to the API.
@@ -43,10 +44,10 @@ This project wraps the functionality provided by libgit2. If you're using a vers
 
 ### Versioned branch, dynamic linking
 
-When linking dynamically against a released version of libgit2, install it via your system's package manager. CGo will take care of finding its pkg-config file and set up the linking. Import via Go modules, e.g. to work against libgit2 v1.0
+When linking dynamically against a released version of libgit2, install it via your system's package manager. CGo will take care of finding its pkg-config file and set up the linking. Import via Go modules, e.g. to work against libgit2 v1.1
 
 ```go
-import "github.com/libgit2/git2go/v30"
+import "github.com/libgit2/git2go/v31"
 ```
 
 ### Versioned branch, static linking
@@ -76,7 +77,7 @@ In order to let Go pass the correct flags to `pkg-config`, `-tags static` needs 
 
 One thing to take into account is that since Go expects the `pkg-config` file to be within the same directory where `make install-static` was called, so the `go.mod` file may need to have a [`replace` directive](https://github.com/golang/go/wiki/Modules#when-should-i-use-the-replace-directive) so that the correct setup is achieved. So if `git2go` is checked out at `$GOPATH/src/github.com/libgit2/git2go` and your project at `$GOPATH/src/github.com/my/project`, the `go.mod` file of `github.com/my/project` might need to have a line like
 
-    replace github.com/libgit2/git2go/v30 ../../libgit2/git2go
+    replace github.com/libgit2/git2go/v31 ../../libgit2/git2go
 
 Parallelism and network operations
 ----------------------------------
