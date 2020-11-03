@@ -93,6 +93,14 @@ func EnableCaching(enabled bool) error {
 	}
 }
 
+func EnableStrictHashVerification(enabled bool) error {
+	if enabled {
+		return setSizet(C.GIT_OPT_ENABLE_STRICT_HASH_VERIFICATION, 1)
+	} else {
+		return setSizet(C.GIT_OPT_ENABLE_STRICT_HASH_VERIFICATION, 0)
+	}
+}
+
 func CachedMemory() (current int, allowed int, err error) {
 	return getSizetSizet(C.GIT_OPT_GET_CACHED_MEMORY)
 }
