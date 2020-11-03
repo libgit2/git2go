@@ -12,7 +12,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        branch: [ 'release-0.30', 'release-0.28', 'release-0.27' ]
+        branch: [ 'release-1.0', 'release-0.28', 'release-0.27' ]
 
     runs-on: ubuntu-20.04
 
