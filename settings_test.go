@@ -57,6 +57,14 @@ func TestEnableCaching(t *testing.T) {
 	checkFatal(t, err)
 }
 
+func TestEnableStrictHashVerification(t *testing.T) {
+	err := EnableStrictHashVerification(false)
+	checkFatal(t, err)
+
+	err = EnableStrictHashVerification(true)
+	checkFatal(t, err)
+}
+
 func TestCachedMemory(t *testing.T) {
 	current, allowed, err := CachedMemory()
 	checkFatal(t, err)
