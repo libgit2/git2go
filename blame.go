@@ -47,6 +47,7 @@ const (
 	BlameTrackCopiesSameCommitCopies BlameOptionsFlag = C.GIT_BLAME_TRACK_COPIES_SAME_COMMIT_COPIES
 	BlameTrackCopiesAnyCommitCopies  BlameOptionsFlag = C.GIT_BLAME_TRACK_COPIES_ANY_COMMIT_COPIES
 	BlameFirstParent                 BlameOptionsFlag = C.GIT_BLAME_FIRST_PARENT
+	BlameUseMailmap                  BlameOptionsFlag = C.GIT_BLAME_USE_MAILMAP
 	BlameIgnoreWhitespace            BlameOptionsFlag = C.GIT_BLAME_IGNORE_WHITESPACE
 )
 
