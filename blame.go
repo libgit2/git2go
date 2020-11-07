@@ -47,6 +47,7 @@ const (
 	BlameTrackCopiesSameCommitCopies BlameOptionsFlag = C.GIT_BLAME_TRACK_COPIES_SAME_COMMIT_COPIES
 	BlameTrackCopiesAnyCommitCopies  BlameOptionsFlag = C.GIT_BLAME_TRACK_COPIES_ANY_COMMIT_COPIES
 	BlameFirstParent                 BlameOptionsFlag = C.GIT_BLAME_FIRST_PARENT
+	BlameIgnoreWhitespace            BlameOptionsFlag = C.GIT_BLAME_IGNORE_WHITESPACE
 )
 
 func (v *Repository) BlameFile(path string, opts *BlameOptions) (*Blame, error) {
