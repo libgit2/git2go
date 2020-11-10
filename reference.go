@@ -512,7 +512,7 @@ func ReferenceNormalizeName(name string, flags ReferenceFormat) (string, error) 
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 
-	bufSize := C.ulong(1024)
+	bufSize := C.size_t(1024)
 	buf := (*C.char)(C.malloc(bufSize))
 	defer C.free(unsafe.Pointer(buf))
 
