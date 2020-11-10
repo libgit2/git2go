@@ -516,6 +516,9 @@ func ReferenceNormalizeName(name string, flags ReferenceFormat) (string, error) 
 	buf := (*C.char)(C.malloc(bufSize))
 	defer C.free(unsafe.Pointer(buf))
 
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ecode := C.git_reference_normalize_name(buf, bufSize, cname, C.uint(flags))
 	if ecode < 0 {
 		return "", MakeGitError(ecode)
