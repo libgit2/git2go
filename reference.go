@@ -488,3 +488,38 @@ func ReferenceIsValidName(name string) bool {
 	}
 	return false
 }
+
+type ReferenceFormat uint
+
+const (
+	ReferenceFormatNormal           ReferenceFormat = C.GIT_REFERENCE_FORMAT_NORMAL
+	ReferenceFormatAllowOnelevel    ReferenceFormat = C.GIT_REFERENCE_FORMAT_ALLOW_ONELEVEL
+	ReferenceFormatRefspecPattern   ReferenceFormat = C.GIT_REFERENCE_FORMAT_REFSPEC_PATTERN
+	ReferenceFormatRefspecShorthand ReferenceFormat = C.GIT_REFERENCE_FORMAT_REFSPEC_SHORTHAND
+)
+
+// ReferenceNormalizeName normalizes the reference name and checks validity.
+//
+// This will normalize the reference name by removing any leading slash '/'
+// characters and collapsing runs of adjacent slashes between name components
+// into a single slash.
+//
+// Once normalized, if the reference name is valid, it will be returned in the
+// user allocated buffer.
+//
+// See git_reference_symbolic_create() for rules about valid names.
+func ReferenceNormalizeName(name string, flags ReferenceFormat) (string, error) {
+	cname := C.CString(name)
+	defer C.free(unsafe.Pointer(cname))
+
+	bufSize := C.ulong(1024)
+	buf := (*C.char)(C.malloc(bufSize))
+	defer C.free(unsafe.Pointer(buf))
+
+	ecode := C.git_reference_normalize_name(buf, bufSize, cname, C.uint(flags))
+	if ecode < 0 {
+		return "", MakeGitError(ecode)
+	}
+
+	return C.GoString(buf), nil
+}

@@ -224,6 +224,29 @@ func TestReferenceIsValidName(t *testing.T) {
 	}
 }
 
+func TestReferenceNormalizeName(t *testing.T) {
+	t.Parallel()
+
+	ref, err := ReferenceNormalizeName("refs/heads//master", ReferenceFormatNormal)
+	checkFatal(t, err)
+
+	if ref != "refs/heads/master" {
+		t.Errorf("refs/heads//master should be normalized correctly")
+	}
+
+	ref, err = ReferenceNormalizeName("master", ReferenceFormatAllowOnelevel|ReferenceFormatRefspecShorthand)
+	checkFatal(t, err)
+
+	if ref != "master" {
+		t.Errorf("master should be normalized correctly")
+	}
+
+	ref, err = ReferenceNormalizeName("foo^", ReferenceFormatNormal)
+	if !IsErrorCode(err, ErrInvalidSpec) {
+		t.Errorf("foo^ should be invalid")
+	}
+}
+
 func compareStringList(t *testing.T, expected, actual []string) {
 	for i, v := range expected {
 		if actual[i] != v {
