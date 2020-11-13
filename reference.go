@@ -504,9 +504,6 @@ const (
 // characters and collapsing runs of adjacent slashes between name components
 // into a single slash.
 //
-// Once normalized, if the reference name is valid, it will be returned in the
-// user allocated buffer.
-//
 // See git_reference_symbolic_create() for rules about valid names.
 func ReferenceNormalizeName(name string, flags ReferenceFormat) (string, error) {
 	cname := C.CString(name)

@@ -231,7 +231,7 @@ func TestReferenceNormalizeName(t *testing.T) {
 	checkFatal(t, err)
 
 	if ref != "refs/heads/master" {
-		t.Errorf("refs/heads//master should be normalized correctly")
+		t.Errorf("ReferenceNormalizeName(%q) = %q; want %q", "refs/heads//master", ref, want)
 	}
 
 	ref, err = ReferenceNormalizeName("master", ReferenceFormatAllowOnelevel|ReferenceFormatRefspecShorthand)
