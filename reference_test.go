@@ -231,14 +231,14 @@ func TestReferenceNormalizeName(t *testing.T) {
 	checkFatal(t, err)
 
 	if ref != "refs/heads/master" {
-		t.Errorf("ReferenceNormalizeName(%q) = %q; want %q", "refs/heads//master", ref, want)
+		t.Errorf("ReferenceNormalizeName(%q) = %q; want %q", "refs/heads//master", ref, "refs/heads/master")
 	}
 
 	ref, err = ReferenceNormalizeName("master", ReferenceFormatAllowOnelevel|ReferenceFormatRefspecShorthand)
 	checkFatal(t, err)
 
 	if ref != "master" {
-		t.Errorf("master should be normalized correctly")
+		t.Errorf("ReferenceNormalizeName(%q) = %q; want %q", "master", ref, "master")
 	}
 
 	ref, err = ReferenceNormalizeName("foo^", ReferenceFormatNormal)

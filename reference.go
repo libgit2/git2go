@@ -489,6 +489,11 @@ func ReferenceIsValidName(name string) bool {
 	return false
 }
 
+const (
+	// This should match GIT_REFNAME_MAX in src/refs.h
+	refnameMaxLength = 1024
+)
+
 type ReferenceFormat uint
 
 const (
@@ -509,7 +514,7 @@ func ReferenceNormalizeName(name string, flags ReferenceFormat) (string, error) 
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 
-	bufSize := C.size_t(1024)
+	bufSize := C.size_t(refnameMaxLength)
 	buf := (*C.char)(C.malloc(bufSize))
 	defer C.free(unsafe.Pointer(buf))
 
