@@ -497,10 +497,10 @@ const (
 type ReferenceFormat uint
 
 const (
-	ReferenceFormatNormal           ReferenceFormat = C.GIT_REFERENCE_FORMAT_NORMAL
-	ReferenceFormatAllowOnelevel    ReferenceFormat = C.GIT_REFERENCE_FORMAT_ALLOW_ONELEVEL
-	ReferenceFormatRefspecPattern   ReferenceFormat = C.GIT_REFERENCE_FORMAT_REFSPEC_PATTERN
-	ReferenceFormatRefspecShorthand ReferenceFormat = C.GIT_REFERENCE_FORMAT_REFSPEC_SHORTHAND
+	ReferenceFormatNormal           ReferenceFormat = C.GIT_REF_FORMAT_NORMAL
+	ReferenceFormatAllowOnelevel    ReferenceFormat = C.GIT_REF_FORMAT_ALLOW_ONELEVEL
+	ReferenceFormatRefspecPattern   ReferenceFormat = C.GIT_REF_FORMAT_REFSPEC_PATTERN
+	ReferenceFormatRefspecShorthand ReferenceFormat = C.GIT_REF_FORMAT_REFSPEC_SHORTHAND
 )
 
 // ReferenceNormalizeName normalizes the reference name and checks validity.
