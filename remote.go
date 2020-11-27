@@ -172,17 +172,18 @@ type Certificate struct {
 type HostkeyKind uint
 
 const (
-	HostkeyMD5  HostkeyKind = C.GIT_CERT_SSH_MD5
-	HostkeySHA1 HostkeyKind = C.GIT_CERT_SSH_SHA1
+	HostkeyMD5    HostkeyKind = C.GIT_CERT_SSH_MD5
+	HostkeySHA1   HostkeyKind = C.GIT_CERT_SSH_SHA1
+	HostkeySHA256 HostkeyKind = C.GIT_CERT_SSH_SHA256
 )
 
-// Server host key information. If Kind is HostkeyMD5 the MD5 field
-// will be filled. If Kind is HostkeySHA1, then HashSHA1 will be
-// filled.
+// Server host key information. A bitmask containing the available fields.
+// Check for combinations of: HostkeyMD5, HostkeySHA1, HostkeySHA256.
 type HostkeyCertificate struct {
-	Kind     HostkeyKind
-	HashMD5  [16]byte
-	HashSHA1 [20]byte
+	Kind       HostkeyKind
+	HashMD5    [16]byte
+	HashSHA1   [20]byte
+	HashSHA256 [32]byte
 }
 
 type PushOptions struct {
@@ -318,6 +319,7 @@ func certificateCheckCallback(_cert *C.git_cert, _valid C.int, _host *C.char, da
 		cert.Hostkey.Kind = HostkeyKind(ccert._type)
 		C.memcpy(unsafe.Pointer(&cert.Hostkey.HashMD5[0]), unsafe.Pointer(&ccert.hash_md5[0]), C.size_t(len(cert.Hostkey.HashMD5)))
 		C.memcpy(unsafe.Pointer(&cert.Hostkey.HashSHA1[0]), unsafe.Pointer(&ccert.hash_sha1[0]), C.size_t(len(cert.Hostkey.HashSHA1)))
+		C.memcpy(unsafe.Pointer(&cert.Hostkey.HashSHA256[0]), unsafe.Pointer(&ccert.hash_sha256[0]), C.size_t(len(cert.Hostkey.HashSHA256)))
 	} else {
 		cstr := C.CString("Unsupported certificate type")
 		C.giterr_set_str(C.GITERR_NET, cstr)
