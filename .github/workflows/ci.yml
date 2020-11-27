@@ -91,6 +91,8 @@ jobs:
   build-system-dynamic:
     strategy:
       fail-fast: false
+      matrix:
+        libgit2: [ '1.0.0', '1.0.1', '1.1.0' ]
     name: Go (system-wide, dynamic)
 
     runs-on: ubuntu-20.04
@@ -103,10 +105,10 @@ jobs:
       id: go
     - name: Check out code into the Go module directory
       uses: actions/checkout@v1
-    - name: Build libgit2
+    - name: Build libgit2 ${{ matrix.libgit2 }}
       run: |
         git submodule update --init
-        sudo ./script/build-libgit2.sh --dynamic --system
+        sudo env BUILD_LIBGIT_REF=v${{ matrix.libgit2 }} ./script/build-libgit2.sh --dynamic --system
     - name: Test
       run: make test
 

@@ -46,6 +46,11 @@ if [ -z "${BUILD_SHARED_LIBS}" ]; then
 	usage
 fi
 
+if [ -n "${BUILD_LIBGIT_REF}" ]; then
+	git -C "${VENDORED_PATH}" checkout "${BUILD_LIBGIT_REF}"
+	trap "git submodule update --init" EXIT
+fi
+
 if [ "${BUILD_SYSTEM}" = "ON" ]; then
 	BUILD_INSTALL_PREFIX=${SYSTEM_INSTALL_PREFIX-"/usr"}
 else
