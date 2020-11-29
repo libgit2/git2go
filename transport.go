@@ -128,11 +128,21 @@ func (t *Transport) SmartCertificateCheck(cert *Certificate, valid bool, hostnam
 			parent: C.git_cert{
 				cert_type: C.GIT_CERT_HOSTKEY_LIBSSH2,
 			},
-			_type: C.git_cert_ssh_t(cert.Kind),
+			_type:       C.git_cert_ssh_t(cert.Kind),
+			hostkey:     (*C.char)(C.CBytes(cert.Hostkey.Hostkey)),
+			hostkey_len: C.size_t(len(cert.Hostkey.Hostkey)),
 		}
+		defer C.free(unsafe.Pointer(chostkeyCert.hostkey))
 		C.memcpy(unsafe.Pointer(&chostkeyCert.hash_md5[0]), unsafe.Pointer(&cert.Hostkey.HashMD5[0]), C.size_t(len(cert.Hostkey.HashMD5)))
 		C.memcpy(unsafe.Pointer(&chostkeyCert.hash_sha1[0]), unsafe.Pointer(&cert.Hostkey.HashSHA1[0]), C.size_t(len(cert.Hostkey.HashSHA1)))
 		C.memcpy(unsafe.Pointer(&chostkeyCert.hash_sha256[0]), unsafe.Pointer(&cert.Hostkey.HashSHA256[0]), C.size_t(len(cert.Hostkey.HashSHA256)))
+		if cert.Hostkey.SSHPublicKey.Type() == "ssh-rsa" {
+			chostkeyCert.raw_type = C.GIT_CERT_SSH_RAW_TYPE_RSA
+		} else if cert.Hostkey.SSHPublicKey.Type() == "ssh-dss" {
+			chostkeyCert.raw_type = C.GIT_CERT_SSH_RAW_TYPE_DSS
+		} else {
+			chostkeyCert.raw_type = C.GIT_CERT_SSH_RAW_TYPE_UNKNOWN
+		}
 		ccert = (*C.git_cert)(unsafe.Pointer(&chostkeyCert))
 
 	case CertificateX509:
