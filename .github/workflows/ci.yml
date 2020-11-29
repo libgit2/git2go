@@ -92,7 +92,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        libgit2: [ '1.0.0', '1.0.1', '1.1.0' ]
+        libgit2: [ '1.0.0', '1.1.0' ]
     name: Go (system-wide, dynamic)
 
     runs-on: ubuntu-20.04
