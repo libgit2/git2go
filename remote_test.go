@@ -27,7 +27,7 @@ func TestListRemotes(t *testing.T) {
 func assertHostname(cert *Certificate, valid bool, hostname string, t *testing.T) ErrorCode {
 	if hostname != "github.com" {
 		t.Fatal("Hostname does not match")
-		return ErrUser
+		return ErrorCodeUser
 	}
 
 	return 0

@@ -129,7 +129,7 @@ type RebaseOptions struct {
 	InMemory              int
 	RewriteNotesRef       string
 	MergeOptions          MergeOptions
-	CheckoutOptions       CheckoutOpts
+	CheckoutOptions       CheckoutOptions
 	CommitSigningCallback CommitSigningCallback
 }
 

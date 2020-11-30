@@ -53,7 +53,7 @@ func TestMempack(t *testing.T) {
 		if err == nil {
 			t.Errorf("object %s unexpectedly found", obj.Id().String())
 			obj.Free()
-		} else if !IsErrorCode(err, ErrNotFound) {
+		} else if !IsErrorCode(err, ErrorCodeNotFound) {
 			t.Errorf("unexpected error %v", err)
 		}
 	}

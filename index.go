@@ -17,31 +17,33 @@ import (
 
 type IndexMatchedPathCallback func(string, string) int
 
-type IndexAddOpts uint
+// IndexAddOption is a set of flags for APIs that add files matching pathspec.
+type IndexAddOption uint
 
 const (
-	IndexAddDefault              IndexAddOpts = C.GIT_INDEX_ADD_DEFAULT
-	IndexAddForce                IndexAddOpts = C.GIT_INDEX_ADD_FORCE
-	IndexAddDisablePathspecMatch IndexAddOpts = C.GIT_INDEX_ADD_DISABLE_PATHSPEC_MATCH
-	IndexAddCheckPathspec        IndexAddOpts = C.GIT_INDEX_ADD_CHECK_PATHSPEC
+	IndexAddDefault              IndexAddOption = C.GIT_INDEX_ADD_DEFAULT
+	IndexAddForce                IndexAddOption = C.GIT_INDEX_ADD_FORCE
+	IndexAddDisablePathspecMatch IndexAddOption = C.GIT_INDEX_ADD_DISABLE_PATHSPEC_MATCH
+	IndexAddCheckPathspec        IndexAddOption = C.GIT_INDEX_ADD_CHECK_PATHSPEC
 )
 
-type IndexStageOpts int
+// IndexStageState indicates the state of the git index.
+type IndexStageState int
 
 const (
 	// IndexStageAny matches any index stage.
 	//
 	// Some index APIs take a stage to match; pass this value to match
 	// any entry matching the path regardless of stage.
-	IndexStageAny IndexStageOpts = C.GIT_INDEX_STAGE_ANY
+	IndexStageAny IndexStageState = C.GIT_INDEX_STAGE_ANY
 	// IndexStageNormal is a normal staged file in the index.
-	IndexStageNormal IndexStageOpts = C.GIT_INDEX_STAGE_NORMAL
+	IndexStageNormal IndexStageState = C.GIT_INDEX_STAGE_NORMAL
 	// IndexStageAncestor is the ancestor side of a conflict.
-	IndexStageAncestor IndexStageOpts = C.GIT_INDEX_STAGE_ANCESTOR
+	IndexStageAncestor IndexStageState = C.GIT_INDEX_STAGE_ANCESTOR
 	// IndexStageOurs is the "ours" side of a conflict.
-	IndexStageOurs IndexStageOpts = C.GIT_INDEX_STAGE_OURS
+	IndexStageOurs IndexStageState = C.GIT_INDEX_STAGE_OURS
 	// IndexStageTheirs is the "theirs" side of a conflict.
-	IndexStageTheirs IndexStageOpts = C.GIT_INDEX_STAGE_THEIRS
+	IndexStageTheirs IndexStageState = C.GIT_INDEX_STAGE_THEIRS
 )
 
 type Index struct {
@@ -219,7 +221,7 @@ func (v *Index) AddFromBuffer(entry *IndexEntry, buffer []byte) error {
 	return nil
 }
 
-func (v *Index) AddAll(pathspecs []string, flags IndexAddOpts, callback IndexMatchedPathCallback) error {
+func (v *Index) AddAll(pathspecs []string, flags IndexAddOption, callback IndexMatchedPathCallback) error {
 	cpathspecs := C.git_strarray{}
 	cpathspecs.count = C.size_t(len(pathspecs))
 	cpathspecs.strings = makeCStringsFromStrings(pathspecs)

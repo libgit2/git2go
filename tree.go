@@ -121,8 +121,8 @@ func (t *Tree) EntryCount() uint64 {
 
 type TreeWalkCallback func(string, *TreeEntry) int
 
-//export CallbackGitTreeWalk
-func CallbackGitTreeWalk(_root *C.char, entry *C.git_tree_entry, ptr unsafe.Pointer) C.int {
+//export treeWalkCallback
+func treeWalkCallback(_root *C.char, entry *C.git_tree_entry, ptr unsafe.Pointer) C.int {
 	root := C.GoString(_root)
 
 	if callback, ok := pointerHandles.Get(ptr).(TreeWalkCallback); ok {

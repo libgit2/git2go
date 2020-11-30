@@ -259,7 +259,7 @@ func TestApplyDiffAddfile(t *testing.T) {
 	defer diff.Free()
 
 	t.Run("check does not apply to current tree because file exists", func(t *testing.T) {
-		err = repo.ResetToCommit(addSecondFileCommit, ResetHard, &CheckoutOpts{})
+		err = repo.ResetToCommit(addSecondFileCommit, ResetHard, &CheckoutOptions{})
 		checkFatal(t, err)
 
 		err = repo.ApplyDiff(diff, ApplyLocationBoth, nil)
@@ -269,7 +269,7 @@ func TestApplyDiffAddfile(t *testing.T) {
 	})
 
 	t.Run("check apply to correct commit", func(t *testing.T) {
-		err = repo.ResetToCommit(addFirstFileCommit, ResetHard, &CheckoutOpts{})
+		err = repo.ResetToCommit(addFirstFileCommit, ResetHard, &CheckoutOptions{})
 		checkFatal(t, err)
 
 		err = repo.ApplyDiff(diff, ApplyLocationBoth, nil)
@@ -324,7 +324,7 @@ func TestApplyDiffAddfile(t *testing.T) {
 	})
 
 	t.Run("check convert to raw buffer and apply", func(t *testing.T) {
-		err = repo.ResetToCommit(addFirstFileCommit, ResetHard, &CheckoutOpts{})
+		err = repo.ResetToCommit(addFirstFileCommit, ResetHard, &CheckoutOptions{})
 		checkFatal(t, err)
 
 		raw, err := diff.ToBuf(DiffFormatPatch)
@@ -345,7 +345,7 @@ func TestApplyDiffAddfile(t *testing.T) {
 	t.Run("check apply callbacks work", func(t *testing.T) {
 		// reset the state and get new default options for test
 		resetAndGetOpts := func(t *testing.T) *ApplyOptions {
-			err = repo.ResetToCommit(addFirstFileCommit, ResetHard, &CheckoutOpts{})
+			err = repo.ResetToCommit(addFirstFileCommit, ResetHard, &CheckoutOptions{})
 			checkFatal(t, err)
 
 			opts, err := DefaultApplyOptions()
@@ -507,8 +507,8 @@ func TestApplyToTree(t *testing.T) {
 			diff: diffAC,
 			error: &GitError{
 				Message: "hunk at line 1 did not apply",
-				Code:    ErrApplyFail,
-				Class:   ErrClassPatch,
+				Code:    ErrorCodeApplyFail,
+				Class:   ErrorClassPatch,
 			},
 		},
 		{
@@ -531,8 +531,9 @@ func TestApplyToTree(t *testing.T) {
 			diff:              diffAB,
 			applyHunkCallback: func(*DiffHunk) (bool, error) { return true, errors.New("message dropped") },
 			error: &GitError{
-				Code:  ErrGeneric,
-				Class: ErrClassInvalid,
+				Message: "Generic",
+				Code:    ErrorCodeGeneric,
+				Class:   ErrorClassInvalid,
 			},
 		},
 		{
@@ -547,8 +548,9 @@ func TestApplyToTree(t *testing.T) {
 			diff:               diffAB,
 			applyDeltaCallback: func(*DiffDelta) (bool, error) { return true, errors.New("message dropped") },
 			error: &GitError{
-				Code:  ErrGeneric,
-				Class: ErrClassInvalid,
+				Message: "Generic",
+				Code:    ErrorCodeGeneric,
+				Class:   ErrorClassInvalid,
 			},
 		},
 	} {
