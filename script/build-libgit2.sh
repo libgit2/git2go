@@ -69,11 +69,11 @@ cmake -DTHREADSAFE=ON \
       -DCMAKE_INSTALL_PREFIX="${BUILD_INSTALL_PREFIX}" \
       -DCMAKE_INSTALL_LIBDIR="lib" \
       -DDEPRECATE_HARD=ON \
-      "${VENDORED_PATH}" &&
+      "${VENDORED_PATH}"
 
-if which gmake nproc >/dev/null && [ -f Makefile ]; then
-	# Make the build parallel if gmake is available and cmake used Makefiles.
-	exec gmake "-j$(nproc --all)" install
+if which make nproc >/dev/null && [ -f Makefile ]; then
+	# Make the build parallel if make is available and cmake used Makefiles.
+	exec make "-j$(nproc --all)" install
+else
+	exec cmake --build . --target install
 fi
-
-exec cmake --build . --target install
