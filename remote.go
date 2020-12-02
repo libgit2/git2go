@@ -6,12 +6,13 @@ package git
 #include <git2.h>
 #include <git2/sys/cred.h>
 
-extern void _go_git_setup_callbacks(git_remote_callbacks *callbacks);
+extern void _go_git_populate_remote_callbacks(git_remote_callbacks *callbacks);
 
 */
 import "C"
 import (
 	"crypto/x509"
+	"errors"
 	"reflect"
 	"runtime"
 	"strings"
@@ -219,43 +220,55 @@ func populateRemoteCallbacks(ptr *C.git_remote_callbacks, callbacks *RemoteCallb
 	if callbacks == nil {
 		return
 	}
-	C._go_git_setup_callbacks(ptr)
+	C._go_git_populate_remote_callbacks(ptr)
 	ptr.payload = pointerHandles.Track(callbacks)
 }
 
 //export sidebandProgressCallback
-func sidebandProgressCallback(_str *C.char, _len C.int, data unsafe.Pointer) int {
+func sidebandProgressCallback(errorMessage **C.char, _str *C.char, _len C.int, data unsafe.Pointer) C.int {
 	callbacks := pointerHandles.Get(data).(*RemoteCallbacks)
 	if callbacks.SidebandProgressCallback == nil {
-		return 0
+		return C.int(ErrorCodeOK)
 	}
 	str := C.GoStringN(_str, _len)
-	return int(callbacks.SidebandProgressCallback(str))
+	ret := callbacks.SidebandProgressCallback(str)
+	if ret < 0 {
+		return setCallbackError(errorMessage, errors.New(ErrorCode(ret).String()))
+	}
+	return C.int(ErrorCodeOK)
 }
 
 //export completionCallback
-func completionCallback(completion_type C.git_remote_completion_type, data unsafe.Pointer) int {
+func completionCallback(errorMessage **C.char, completion_type C.git_remote_completion_type, data unsafe.Pointer) C.int {
 	callbacks := pointerHandles.Get(data).(*RemoteCallbacks)
 	if callbacks.CompletionCallback == nil {
-		return 0
+		return C.int(ErrorCodeOK)
 	}
-	return int(callbacks.CompletionCallback(RemoteCompletion(completion_type)))
+	ret := callbacks.CompletionCallback(RemoteCompletion(completion_type))
+	if ret < 0 {
+		return setCallbackError(errorMessage, errors.New(ErrorCode(ret).String()))
+	}
+	return C.int(ErrorCodeOK)
 }
 
 //export credentialsCallback
-func credentialsCallback(_cred **C.git_credential, _url *C.char, _username_from_url *C.char, allowed_types uint, data unsafe.Pointer) int {
+func credentialsCallback(
+	errorMessage **C.char,
+	_cred **C.git_credential,
+	_url *C.char,
+	_username_from_url *C.char,
+	allowed_types uint,
+	data unsafe.Pointer,
+) C.int {
 	callbacks, _ := pointerHandles.Get(data).(*RemoteCallbacks)
 	if callbacks.CredentialsCallback == nil {
-		return C.GIT_PASSTHROUGH
+		return C.int(ErrorCodePassthrough)
 	}
 	url := C.GoString(_url)
 	username_from_url := C.GoString(_username_from_url)
 	cred, err := callbacks.CredentialsCallback(url, username_from_url, (CredentialType)(allowed_types))
 	if err != nil {
-		if gitError, ok := err.(*GitError); ok {
-			return int(gitError.Code)
-		}
-		return C.GIT_EUSER
+		return setCallbackError(errorMessage, err)
 	}
 	if cred != nil {
 		*_cred = cred.ptr
@@ -264,41 +277,61 @@ func credentialsCallback(_cred **C.git_credential, _url *C.char, _username_from_
 		cred.ptr = nil
 		runtime.SetFinalizer(cred, nil)
 	}
-	return 0
+	return C.int(ErrorCodeOK)
 }
 
 //export transferProgressCallback
-func transferProgressCallback(stats *C.git_transfer_progress, data unsafe.Pointer) int {
+func transferProgressCallback(errorMessage **C.char, stats *C.git_transfer_progress, data unsafe.Pointer) C.int {
 	callbacks, _ := pointerHandles.Get(data).(*RemoteCallbacks)
 	if callbacks.TransferProgressCallback == nil {
-		return 0
+		return C.int(ErrorCodeOK)
 	}
-	return int(callbacks.TransferProgressCallback(newTransferProgressFromC(stats)))
+	ret := callbacks.TransferProgressCallback(newTransferProgressFromC(stats))
+	if ret < 0 {
+		return setCallbackError(errorMessage, errors.New(ErrorCode(ret).String()))
+	}
+	return C.int(ErrorCodeOK)
 }
 
 //export updateTipsCallback
-func updateTipsCallback(_refname *C.char, _a *C.git_oid, _b *C.git_oid, data unsafe.Pointer) int {
+func updateTipsCallback(
+	errorMessage **C.char,
+	_refname *C.char,
+	_a *C.git_oid,
+	_b *C.git_oid,
+	data unsafe.Pointer,
+) C.int {
 	callbacks, _ := pointerHandles.Get(data).(*RemoteCallbacks)
 	if callbacks.UpdateTipsCallback == nil {
-		return 0
+		return C.int(ErrorCodeOK)
 	}
 	refname := C.GoString(_refname)
 	a := newOidFromC(_a)
 	b := newOidFromC(_b)
-	return int(callbacks.UpdateTipsCallback(refname, a, b))
+	ret := callbacks.UpdateTipsCallback(refname, a, b)
+	if ret < 0 {
+		return setCallbackError(errorMessage, errors.New(ErrorCode(ret).String()))
+	}
+	return C.int(ErrorCodeOK)
 }
 
 //export certificateCheckCallback
-func certificateCheckCallback(_cert *C.git_cert, _valid C.int, _host *C.char, data unsafe.Pointer) int {
+func certificateCheckCallback(
+	errorMessage **C.char,
+	_cert *C.git_cert,
+	_valid C.int,
+	_host *C.char,
+	data unsafe.Pointer,
+) C.int {
 	callbacks, _ := pointerHandles.Get(data).(*RemoteCallbacks)
 	// if there's no callback set, we need to make sure we fail if the library didn't consider this cert valid
 	if callbacks.CertificateCheckCallback == nil {
-		if _valid == 1 {
-			return 0
-		} else {
-			return C.GIT_ECERTIFICATE
+		if _valid == 0 {
+			return C.int(ErrorCodeCertificate)
 		}
+		return C.int(ErrorCodeOK)
 	}
+
 	host := C.GoString(_host)
 	valid := _valid != 0
 
@@ -308,7 +341,10 @@ func certificateCheckCallback(_cert *C.git_cert, _valid C.int, _host *C.char, da
 		ccert := (*C.git_cert_x509)(unsafe.Pointer(_cert))
 		x509_certs, err := x509.ParseCertificates(C.GoBytes(ccert.data, C.int(ccert.len)))
 		if err != nil {
-			return C.GIT_EUSER
+			return setCallbackError(errorMessage, err)
+		}
+		if len(x509_certs) < 1 {
+			return setCallbackError(errorMessage, errors.New("empty certificate list"))
 		}
 
 		// we assume there's only one, which should hold true for any web server we want to talk to
@@ -321,45 +357,56 @@ func certificateCheckCallback(_cert *C.git_cert, _valid C.int, _host *C.char, da
 		C.memcpy(unsafe.Pointer(&cert.Hostkey.HashSHA1[0]), unsafe.Pointer(&ccert.hash_sha1[0]), C.size_t(len(cert.Hostkey.HashSHA1)))
 		C.memcpy(unsafe.Pointer(&cert.Hostkey.HashSHA256[0]), unsafe.Pointer(&ccert.hash_sha256[0]), C.size_t(len(cert.Hostkey.HashSHA256)))
 	} else {
-		cstr := C.CString("Unsupported certificate type")
-		C.git_error_set_str(C.GITERR_NET, cstr)
-		C.free(unsafe.Pointer(cstr))
-		return -1 // we don't support anything else atm
+		return setCallbackError(errorMessage, errors.New("unsupported certificate type"))
 	}
 
-	return int(callbacks.CertificateCheckCallback(&cert, valid, host))
+	ret := callbacks.CertificateCheckCallback(&cert, valid, host)
+	if ret < 0 {
+		return setCallbackError(errorMessage, errors.New(ErrorCode(ret).String()))
+	}
+	return C.int(ErrorCodeOK)
 }
 
 //export packProgressCallback
-func packProgressCallback(stage C.int, current, total C.uint, data unsafe.Pointer) int {
+func packProgressCallback(errorMessage **C.char, stage C.int, current, total C.uint, data unsafe.Pointer) C.int {
 	callbacks, _ := pointerHandles.Get(data).(*RemoteCallbacks)
-
 	if callbacks.PackProgressCallback == nil {
-		return 0
+		return C.int(ErrorCodeOK)
 	}
 
-	return int(callbacks.PackProgressCallback(int32(stage), uint32(current), uint32(total)))
+	ret := callbacks.PackProgressCallback(int32(stage), uint32(current), uint32(total))
+	if ret < 0 {
+		return setCallbackError(errorMessage, errors.New(ErrorCode(ret).String()))
+	}
+	return C.int(ErrorCodeOK)
 }
 
 //export pushTransferProgressCallback
-func pushTransferProgressCallback(current, total C.uint, bytes C.size_t, data unsafe.Pointer) int {
+func pushTransferProgressCallback(errorMessage **C.char, current, total C.uint, bytes C.size_t, data unsafe.Pointer) C.int {
 	callbacks, _ := pointerHandles.Get(data).(*RemoteCallbacks)
 	if callbacks.PushTransferProgressCallback == nil {
-		return 0
+		return C.int(ErrorCodeOK)
 	}
 
-	return int(callbacks.PushTransferProgressCallback(uint32(current), uint32(total), uint(bytes)))
+	ret := callbacks.PushTransferProgressCallback(uint32(current), uint32(total), uint(bytes))
+	if ret < 0 {
+		return setCallbackError(errorMessage, errors.New(ErrorCode(ret).String()))
+	}
+	return C.int(ErrorCodeOK)
 }
 
 //export pushUpdateReferenceCallback
-func pushUpdateReferenceCallback(refname, status *C.char, data unsafe.Pointer) int {
+func pushUpdateReferenceCallback(errorMessage **C.char, refname, status *C.char, data unsafe.Pointer) C.int {
 	callbacks, _ := pointerHandles.Get(data).(*RemoteCallbacks)
-
 	if callbacks.PushUpdateReferenceCallback == nil {
-		return 0
+		return C.int(ErrorCodeOK)
 	}
 
-	return int(callbacks.PushUpdateReferenceCallback(C.GoString(refname), C.GoString(status)))
+	ret := callbacks.PushUpdateReferenceCallback(C.GoString(refname), C.GoString(status))
+	if ret < 0 {
+		return setCallbackError(errorMessage, errors.New(ErrorCode(ret).String()))
+	}
+	return C.int(ErrorCodeOK)
 }
 
 func populateProxyOptions(ptr *C.git_proxy_options, opts *ProxyOptions) {
@@ -373,6 +420,10 @@ func populateProxyOptions(ptr *C.git_proxy_options, opts *ProxyOptions) {
 }
 
 func freeProxyOptions(ptr *C.git_proxy_options) {
+	if ptr == nil {
+		return
+	}
+
 	C.free(unsafe.Pointer(ptr.url))
 }
 

@@ -197,48 +197,48 @@ func (c *TagsCollection) ListWithMatch(pattern string) ([]string, error) {
 // so repo.LookupTag() will return an error for these tags. Use
 // repo.References.Lookup() instead.
 type TagForeachCallback func(name string, id *Oid) error
-type tagForeachData struct {
-	callback TagForeachCallback
-	err      error
+type tagForeachCallbackData struct {
+	callback    TagForeachCallback
+	errorTarget *error
 }
 
-//export gitTagForeachCb
-func gitTagForeachCb(name *C.char, id *C.git_oid, handle unsafe.Pointer) int {
+//export tagForeachCallback
+func tagForeachCallback(name *C.char, id *C.git_oid, handle unsafe.Pointer) C.int {
 	payload := pointerHandles.Get(handle)
-	data, ok := payload.(*tagForeachData)
+	data, ok := payload.(*tagForeachCallbackData)
 	if !ok {
 		panic("could not retrieve tag foreach CB handle")
 	}
 
 	err := data.callback(C.GoString(name), newOidFromC(id))
 	if err != nil {
-		data.err = err
-		return C.GIT_EUSER
+		*data.errorTarget = err
+		return C.int(ErrorCodeUser)
 	}
 
-	return 0
+	return C.int(ErrorCodeOK)
 }
 
 // Foreach calls the callback for each tag in the repository.
 func (c *TagsCollection) Foreach(callback TagForeachCallback) error {
-	data := tagForeachData{
-		callback: callback,
-		err:      nil,
+	var err error
+	data := tagForeachCallbackData{
+		callback:    callback,
+		errorTarget: &err,
 	}
-
 	handle := pointerHandles.Track(&data)
 	defer pointerHandles.Untrack(handle)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	err := C._go_git_tag_foreach(c.repo.ptr, handle)
+	ret := C._go_git_tag_foreach(c.repo.ptr, handle)
 	runtime.KeepAlive(c)
-	if err == C.GIT_EUSER {
-		return data.err
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return err
 	}
-	if err < 0 {
-		return MakeGitError(err)
+	if ret < 0 {
+		return MakeGitError(ret)
 	}
 
 	return nil

@@ -17,8 +17,15 @@ const (
 func (r *Repository) ResetToCommit(commit *Commit, resetType ResetType, opts *CheckoutOptions) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
-	ret := C.git_reset(r.ptr, commit.ptr, C.git_reset_t(resetType), opts.toC())
 
+	var err error
+	cOpts := opts.toC(&err)
+	defer freeCheckoutOptions(cOpts)
+
+	ret := C.git_reset(r.ptr, commit.ptr, C.git_reset_t(resetType), cOpts)
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return err
+	}
 	if ret < 0 {
 		return MakeGitError(ret)
 	}

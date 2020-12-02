@@ -6,7 +6,9 @@ package git
 extern int _go_git_visit_submodule(git_repository *repo, void *fct);
 */
 import "C"
+
 import (
+	"errors"
 	"runtime"
 	"unsafe"
 )
@@ -108,30 +110,50 @@ func (c *SubmoduleCollection) Lookup(name string) (*Submodule, error) {
 
 // SubmoduleCallback is a function that is called for every submodule found in SubmoduleCollection.Foreach.
 type SubmoduleCallback func(sub *Submodule, name string) int
+type submoduleCallbackData struct {
+	callback    SubmoduleCallback
+	errorTarget *error
+}
 
 //export submoduleCallback
 func submoduleCallback(csub unsafe.Pointer, name *C.char, handle unsafe.Pointer) C.int {
 	sub := &Submodule{(*C.git_submodule)(csub), nil}
 
-	if callback, ok := pointerHandles.Get(handle).(SubmoduleCallback); ok {
-		return (C.int)(callback(sub, C.GoString(name)))
-	} else {
+	data, ok := pointerHandles.Get(handle).(submoduleCallbackData)
+	if !ok {
 		panic("invalid submodule visitor callback")
 	}
+
+	ret := data.callback(sub, C.GoString(name))
+	if ret < 0 {
+		*data.errorTarget = errors.New(ErrorCode(ret).String())
+		return C.int(ErrorCodeUser)
+	}
+
+	return C.int(ErrorCodeOK)
 }
 
-func (c *SubmoduleCollection) Foreach(cbk SubmoduleCallback) error {
+func (c *SubmoduleCollection) Foreach(callback SubmoduleCallback) error {
+	var err error
+	data := submoduleCallbackData{
+		callback:    callback,
+		errorTarget: &err,
+	}
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	handle := pointerHandles.Track(cbk)
+	handle := pointerHandles.Track(data)
 	defer pointerHandles.Untrack(handle)
 
 	ret := C._go_git_visit_submodule(c.repo.ptr, handle)
 	runtime.KeepAlive(c)
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return err
+	}
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
+
 	return nil
 }
 
@@ -342,17 +364,18 @@ func (sub *Submodule) Open() (*Repository, error) {
 }
 
 func (sub *Submodule) Update(init bool, opts *SubmoduleUpdateOptions) error {
-	var copts C.git_submodule_update_options
-	err := populateSubmoduleUpdateOptions(&copts, opts)
-	if err != nil {
-		return err
-	}
+	var err error
+	cOpts := populateSubmoduleUpdateOptions(&C.git_submodule_update_options{}, opts, &err)
+	defer freeSubmoduleUpdateOptions(cOpts)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C.git_submodule_update(sub.ptr, cbool(init), &copts)
+	ret := C.git_submodule_update(sub.ptr, cbool(init), cOpts)
 	runtime.KeepAlive(sub)
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return err
+	}
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -360,15 +383,22 @@ func (sub *Submodule) Update(init bool, opts *SubmoduleUpdateOptions) error {
 	return nil
 }
 
-func populateSubmoduleUpdateOptions(ptr *C.git_submodule_update_options, opts *SubmoduleUpdateOptions) error {
+func populateSubmoduleUpdateOptions(ptr *C.git_submodule_update_options, opts *SubmoduleUpdateOptions, errorTarget *error) *C.git_submodule_update_options {
 	C.git_submodule_update_options_init(ptr, C.GIT_SUBMODULE_UPDATE_OPTIONS_VERSION)
 
 	if opts == nil {
 		return nil
 	}
 
-	populateCheckoutOptions(&ptr.checkout_opts, opts.CheckoutOpts)
+	populateCheckoutOptions(&ptr.checkout_opts, opts.CheckoutOpts, errorTarget)
 	populateFetchOptions(&ptr.fetch_opts, opts.FetchOptions)
 
-	return nil
+	return ptr
+}
+
+func freeSubmoduleUpdateOptions(ptr *C.git_submodule_update_options) {
+	if ptr == nil {
+		return
+	}
+	freeCheckoutOptions(&ptr.checkout_opts)
 }
