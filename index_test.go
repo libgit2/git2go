@@ -223,9 +223,9 @@ func TestIndexAddAllCallback(t *testing.T) {
 	checkFatal(t, err)
 
 	cbPath := ""
-	err = idx.AddAll([]string{}, IndexAddDefault, func(p, mP string) int {
+	err = idx.AddAll([]string{}, IndexAddDefault, func(p, mP string) error {
 		cbPath = p
-		return 0
+		return nil
 	})
 	checkFatal(t, err)
 	if cbPath != "README" {

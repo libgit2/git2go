@@ -7,7 +7,6 @@ extern void _go_git_populate_checkout_callbacks(git_checkout_options *opts);
 */
 import "C"
 import (
-	"errors"
 	"os"
 	"runtime"
 	"unsafe"
@@ -49,8 +48,8 @@ const (
 	CheckoutUpdateSubmodulesIfChanged CheckoutStrategy = C.GIT_CHECKOUT_UPDATE_SUBMODULES_IF_CHANGED // Recursively checkout submodules if HEAD moved in super repo (NOT IMPLEMENTED)
 )
 
-type CheckoutNotifyCallback func(why CheckoutNotifyType, path string, baseline, target, workdir DiffFile) ErrorCode
-type CheckoutProgressCallback func(path string, completed, total uint) ErrorCode
+type CheckoutNotifyCallback func(why CheckoutNotifyType, path string, baseline, target, workdir DiffFile) error
+type CheckoutProgressCallback func(path string, completed, total uint)
 
 type CheckoutOptions struct {
 	Strategy         CheckoutStrategy   // Default will be a dry run
@@ -116,9 +115,9 @@ func checkoutNotifyCallback(
 	if data.options.NotifyCallback == nil {
 		return C.int(ErrorCodeOK)
 	}
-	ret := data.options.NotifyCallback(CheckoutNotifyType(why), path, baseline, target, workdir)
-	if ret < 0 {
-		*data.errorTarget = errors.New(ErrorCode(ret).String())
+	err := data.options.NotifyCallback(CheckoutNotifyType(why), path, baseline, target, workdir)
+	if err != nil {
+		*data.errorTarget = err
 		return C.int(ErrorCodeUser)
 	}
 	return C.int(ErrorCodeOK)

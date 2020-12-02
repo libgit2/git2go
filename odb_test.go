@@ -167,9 +167,9 @@ func TestOdbWritepack(t *testing.T) {
 	checkFatal(t, err)
 
 	var finalStats TransferProgress
-	writepack, err := odb.NewWritePack(func(stats TransferProgress) ErrorCode {
+	writepack, err := odb.NewWritePack(func(stats TransferProgress) error {
 		finalStats = stats
-		return ErrorCodeOK
+		return nil
 	})
 	checkFatal(t, err)
 	defer writepack.Free()

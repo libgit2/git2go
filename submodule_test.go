@@ -15,9 +15,9 @@ func TestSubmoduleForeach(t *testing.T) {
 	checkFatal(t, err)
 
 	i := 0
-	err = repo.Submodules.Foreach(func(sub *Submodule, name string) int {
+	err = repo.Submodules.Foreach(func(sub *Submodule, name string) error {
 		i++
-		return 0
+		return nil
 	})
 	checkFatal(t, err)
 
