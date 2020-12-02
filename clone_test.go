@@ -49,15 +49,9 @@ func TestCloneWithCallback(t *testing.T) {
 
 	opts := CloneOptions{
 		Bare: true,
-		RemoteCreateCallback: func(r *Repository, name, url string) (*Remote, ErrorCode) {
+		RemoteCreateCallback: func(r *Repository, name, url string) (*Remote, error) {
 			testPayload += 1
-
-			remote, err := r.Remotes.Create(REMOTENAME, url)
-			if err != nil {
-				return nil, ErrorCodeGeneric
-			}
-
-			return remote, ErrorCodeOK
+			return r.Remotes.Create(REMOTENAME, url)
 		},
 	}
 

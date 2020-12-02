@@ -38,13 +38,13 @@ func TestListRemotes(t *testing.T) {
 	compareStringList(t, expected, actual)
 }
 
-func assertHostname(cert *Certificate, valid bool, hostname string, t *testing.T) ErrorCode {
+func assertHostname(cert *Certificate, valid bool, hostname string, t *testing.T) error {
 	if hostname != "github.com" {
-		t.Fatal("Hostname does not match")
-		return ErrorCodeUser
+		t.Fatal("hostname does not match")
+		return errors.New("hostname does not match")
 	}
 
-	return ErrorCodeOK
+	return nil
 }
 
 func TestCertificateCheck(t *testing.T) {
@@ -58,7 +58,7 @@ func TestCertificateCheck(t *testing.T) {
 
 	options := FetchOptions{
 		RemoteCallbacks: RemoteCallbacks{
-			CertificateCheckCallback: func(cert *Certificate, valid bool, hostname string) ErrorCode {
+			CertificateCheckCallback: func(cert *Certificate, valid bool, hostname string) error {
 				return assertHostname(cert, valid, hostname, t)
 			},
 		},
@@ -479,14 +479,13 @@ func TestRemoteSSH(t *testing.T) {
 	certificateCheckCallbackCalled := false
 	fetchOpts := FetchOptions{
 		RemoteCallbacks: RemoteCallbacks{
-			CertificateCheckCallback: func(cert *Certificate, valid bool, hostname string) ErrorCode {
+			CertificateCheckCallback: func(cert *Certificate, valid bool, hostname string) error {
 				hostkeyFingerprint := fmt.Sprintf("%x", cert.Hostkey.HashMD5[:])
 				if hostkeyFingerprint != publicKeyFingerprint {
-					t.Logf("server hostkey %q, want %q", hostkeyFingerprint, publicKeyFingerprint)
-					return ErrorCodeAuth
+					return fmt.Errorf("server hostkey %q, want %q", hostkeyFingerprint, publicKeyFingerprint)
 				}
 				certificateCheckCallbackCalled = true
-				return ErrorCodeOK
+				return nil
 			},
 			CredentialsCallback: func(url, username string, allowedTypes CredentialType) (*Credential, error) {
 				if allowedTypes&(CredentialTypeSSHKey|CredentialTypeSSHCustom|CredentialTypeSSHMemory) != 0 {

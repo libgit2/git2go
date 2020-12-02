@@ -7,12 +7,11 @@ extern void _go_git_populate_clone_callbacks(git_clone_options *opts);
 */
 import "C"
 import (
-	"errors"
 	"runtime"
 	"unsafe"
 )
 
-type RemoteCreateCallback func(repo *Repository, name, url string) (*Remote, ErrorCode)
+type RemoteCreateCallback func(repo *Repository, name, url string) (*Remote, error)
 
 type CloneOptions struct {
 	*CheckoutOpts
@@ -71,9 +70,10 @@ func remoteCreateCallback(
 		panic("invalid remote create callback")
 	}
 
-	remote, ret := data.options.RemoteCreateCallback(repo, name, url)
-	if ret < 0 {
-		*data.errorTarget = errors.New(ErrorCode(ret).String())
+	remote, err := data.options.RemoteCreateCallback(repo, name, url)
+
+	if err != nil {
+		*data.errorTarget = err
 		return C.int(ErrorCodeUser)
 	}
 	if remote == nil {

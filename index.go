@@ -10,13 +10,12 @@ extern int _go_git_index_remove_all(git_index*, const git_strarray*, void*);
 */
 import "C"
 import (
-	"errors"
 	"fmt"
 	"runtime"
 	"unsafe"
 )
 
-type IndexMatchedPathCallback func(string, string) int
+type IndexMatchedPathCallback func(string, string) error
 type indexMatchedPathCallbackData struct {
 	callback    IndexMatchedPathCallback
 	errorTarget *error
@@ -343,9 +342,9 @@ func indexMatchedPathCallback(cPath, cMatchedPathspec *C.char, payload unsafe.Po
 		panic("invalid matched path callback")
 	}
 
-	ret := data.callback(C.GoString(cPath), C.GoString(cMatchedPathspec))
-	if ret < 0 {
-		*data.errorTarget = errors.New(ErrorCode(ret).String())
+	err := data.callback(C.GoString(cPath), C.GoString(cMatchedPathspec))
+	if err != nil {
+		*data.errorTarget = err
 		return C.int(ErrorCodeUser)
 	}
 

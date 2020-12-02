@@ -8,7 +8,6 @@ extern int _go_git_visit_submodule(git_repository *repo, void *fct);
 import "C"
 
 import (
-	"errors"
 	"runtime"
 	"unsafe"
 )
@@ -111,7 +110,7 @@ func (c *SubmoduleCollection) Lookup(name string) (*Submodule, error) {
 }
 
 // SubmoduleCallback is a function that is called for every submodule found in SubmoduleCollection.Foreach.
-type SubmoduleCallback func(sub *Submodule, name string) int
+type SubmoduleCallback func(sub *Submodule, name string) error
 type submoduleCallbackData struct {
 	callback    SubmoduleCallback
 	errorTarget *error
@@ -126,9 +125,9 @@ func submoduleCallback(csub unsafe.Pointer, name *C.char, handle unsafe.Pointer)
 		panic("invalid submodule visitor callback")
 	}
 
-	ret := data.callback(sub, C.GoString(name))
-	if ret < 0 {
-		*data.errorTarget = errors.New(ErrorCode(ret).String())
+	err := data.callback(sub, C.GoString(name))
+	if err != nil {
+		*data.errorTarget = err
 		return C.int(ErrorCodeUser)
 	}
 

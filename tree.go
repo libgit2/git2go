@@ -8,7 +8,6 @@ extern int _go_git_treewalk(git_tree *tree, git_treewalk_mode mode, void *ptr);
 import "C"
 
 import (
-	"errors"
 	"runtime"
 	"unsafe"
 )
@@ -121,7 +120,7 @@ func (t *Tree) EntryCount() uint64 {
 	return uint64(num)
 }
 
-type TreeWalkCallback func(string, *TreeEntry) int
+type TreeWalkCallback func(string, *TreeEntry) error
 type treeWalkCallbackData struct {
 	callback    TreeWalkCallback
 	errorTarget *error
@@ -134,9 +133,9 @@ func treeWalkCallback(_root *C.char, entry *C.git_tree_entry, ptr unsafe.Pointer
 		panic("invalid treewalk callback")
 	}
 
-	ret := data.callback(C.GoString(_root), newTreeEntry(entry))
-	if ret < 0 {
-		*data.errorTarget = errors.New(ErrorCode(ret).String())
+	err := data.callback(C.GoString(_root), newTreeEntry(entry))
+	if err != nil {
+		*data.errorTarget = err
 		return C.int(ErrorCodeUser)
 	}
 
