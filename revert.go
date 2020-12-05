@@ -12,7 +12,7 @@ import (
 type RevertOptions struct {
 	Mainline     uint
 	MergeOpts    MergeOptions
-	CheckoutOpts CheckoutOpts
+	CheckoutOpts CheckoutOptions
 }
 
 func (opts *RevertOptions) toC() *C.git_revert_options {
@@ -33,7 +33,7 @@ func revertOptionsFromC(opts *C.git_revert_options) RevertOptions {
 }
 
 func freeRevertOptions(opts *C.git_revert_options) {
-	freeCheckoutOpts(&opts.checkout_opts)
+	freeCheckoutOptions(&opts.checkout_opts)
 }
 
 // DefaultRevertOptions initialises a RevertOptions struct with default values

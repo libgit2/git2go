@@ -37,7 +37,7 @@ func TestResetToCommit(t *testing.T) {
 	commitToResetTo, err := repo.LookupCommit(commitId)
 	checkFatal(t, err)
 
-	repo.ResetToCommit(commitToResetTo, ResetHard, &CheckoutOpts{})
+	repo.ResetToCommit(commitToResetTo, ResetHard, &CheckoutOptions{})
 
 	// check that the file now reads "testing reset" like it did before
 	bytes, err := ioutil.ReadFile(pathInRepo(repo, "README"))

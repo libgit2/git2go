@@ -73,7 +73,7 @@ func (i *BranchIterator) ForEach(f BranchIteratorFunc) error {
 		}
 	}
 
-	if err != nil && IsErrorCode(err, ErrIterOver) {
+	if err != nil && IsErrorCode(err, ErrorCodeIterOver) {
 		return nil
 	}
 

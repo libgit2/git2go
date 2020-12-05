@@ -33,12 +33,12 @@ func TestRebaseAbort(t *testing.T) {
 	seedTestRepo(t, repo)
 
 	// Setup a repo with 2 branches and a different tree
-	err := setupRepoForRebase(repo, masterCommit, branchName, commitOpts{})
+	err := setupRepoForRebase(repo, masterCommit, branchName, commitOptions{})
 	checkFatal(t, err)
 
 	// Create several commits in emile
 	for _, commit := range emileCommits {
-		_, err = commitSomething(repo, commit, commit, commitOpts{})
+		_, err = commitSomething(repo, commit, commit, commitOptions{})
 		checkFatal(t, err)
 	}
 
@@ -94,12 +94,12 @@ func TestRebaseNoConflicts(t *testing.T) {
 	}
 
 	// Setup a repo with 2 branches and a different tree
-	err = setupRepoForRebase(repo, masterCommit, branchName, commitOpts{})
+	err = setupRepoForRebase(repo, masterCommit, branchName, commitOptions{})
 	checkFatal(t, err)
 
 	// Create several commits in emile
 	for _, commit := range emileCommits {
-		_, err = commitSomething(repo, commit, commit, commitOpts{})
+		_, err = commitSomething(repo, commit, commit, commitOptions{})
 		checkFatal(t, err)
 	}
 
@@ -133,7 +133,7 @@ func TestRebaseNoConflicts(t *testing.T) {
 }
 
 // Utils
-func setupRepoForRebase(repo *Repository, masterCommit, branchName string, opts commitOpts) error {
+func setupRepoForRebase(repo *Repository, masterCommit, branchName string, commitOpts commitOptions) error {
 	// Create a new branch from master
 	err := createBranch(repo, branchName)
 	if err != nil {
@@ -141,7 +141,7 @@ func setupRepoForRebase(repo *Repository, masterCommit, branchName string, opts 
 	}
 
 	// Create a commit in master
-	_, err = commitSomething(repo, masterCommit, masterCommit, opts)
+	_, err = commitSomething(repo, masterCommit, masterCommit, commitOpts)
 	if err != nil {
 		return err
 	}
@@ -160,7 +160,7 @@ func setupRepoForRebase(repo *Repository, masterCommit, branchName string, opts 
 	return nil
 }
 
-func performRebaseOnto(repo *Repository, branch string, opts *RebaseOptions) (*Rebase, error) {
+func performRebaseOnto(repo *Repository, branch string, rebaseOpts *RebaseOptions) (*Rebase, error) {
 	master, err := repo.LookupBranch(branch, BranchLocal)
 	if err != nil {
 		return nil, err
@@ -174,7 +174,7 @@ func performRebaseOnto(repo *Repository, branch string, opts *RebaseOptions) (*R
 	defer onto.Free()
 
 	// Init rebase
-	rebase, err := repo.InitRebase(nil, nil, onto, opts)
+	rebase, err := repo.InitRebase(nil, nil, onto, rebaseOpts)
 	if err != nil {
 		return nil, err
 	}
@@ -275,7 +275,7 @@ func headTree(repo *Repository) (*Tree, error) {
 	return tree, nil
 }
 
-func commitSomething(repo *Repository, something, content string, commitOpts commitOpts) (*Oid, error) {
+func commitSomething(repo *Repository, something, content string, commitOpts commitOptions) (*Oid, error) {
 	headCommit, err := headCommit(repo)
 	if err != nil {
 		return nil, err
@@ -348,10 +348,10 @@ func commitSomething(repo *Repository, something, content string, commitOpts com
 		}
 	}
 
-	opts := &CheckoutOpts{
+	checkoutOpts := &CheckoutOptions{
 		Strategy: CheckoutRemoveUntracked | CheckoutForce,
 	}
-	err = repo.CheckoutIndex(index, opts)
+	err = repo.CheckoutIndex(index, checkoutOpts)
 	if err != nil {
 		return nil, err
 	}

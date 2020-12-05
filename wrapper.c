@@ -24,12 +24,12 @@ void _go_git_populate_checkout_cb(git_checkout_options *opts)
 
 int _go_git_visit_submodule(git_repository *repo, void *fct)
 {
-	  return git_submodule_foreach(repo, (gogit_submodule_cbk)&SubmoduleVisitor, fct);
+	  return git_submodule_foreach(repo, (gogit_submodule_cbk)&submoduleCallback, fct);
 }
 
 int _go_git_treewalk(git_tree *tree, git_treewalk_mode mode, void *ptr)
 {
-	return git_tree_walk(tree, mode, (git_treewalk_cb)&CallbackGitTreeWalk, ptr);
+	return git_tree_walk(tree, mode, (git_treewalk_cb)&treeWalkCallback, ptr);
 }
 
 int _go_git_packbuilder_foreach(git_packbuilder *pb, void *payload)

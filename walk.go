@@ -182,7 +182,7 @@ func (v *RevWalk) Iterate(fun RevWalkIterator) (err error) {
 	oid := new(Oid)
 	for {
 		err = v.Next(oid)
-		if IsErrorCode(err, ErrIterOver) {
+		if IsErrorCode(err, ErrorCodeIterOver) {
 			return nil
 		}
 		if err != nil {

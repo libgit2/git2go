@@ -14,7 +14,7 @@ const (
 	ResetHard  ResetType = C.GIT_RESET_HARD
 )
 
-func (r *Repository) ResetToCommit(commit *Commit, resetType ResetType, opts *CheckoutOpts) error {
+func (r *Repository) ResetToCommit(commit *Commit, resetType ResetType, opts *CheckoutOptions) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 	ret := C.git_reset(r.ptr, commit.ptr, C.git_reset_t(resetType), opts.toC())
