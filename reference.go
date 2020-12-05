@@ -424,7 +424,7 @@ func (i *ReferenceIterator) Names() *ReferenceNameIterator {
 }
 
 // NextName retrieves the next reference name. If the iteration is over,
-// the returned error is git.ErrIterOver
+// the returned error code is git.ErrorCodeIterOver
 func (v *ReferenceNameIterator) Next() (string, error) {
 	var ptr *C.char
 
@@ -440,7 +440,7 @@ func (v *ReferenceNameIterator) Next() (string, error) {
 }
 
 // Next retrieves the next reference. If the iterationis over, the
-// returned error is git.ErrIterOver
+// returned error code is git.ErrorCodeIterOver
 func (v *ReferenceIterator) Next() (*Reference, error) {
 	var ptr *C.git_reference
 
@@ -470,7 +470,7 @@ func (v *ReferenceIterator) Free() {
 	C.git_reference_iterator_free(v.ptr)
 }
 
-// ReferenceIsValidName ensures the reference name is well-formed.
+// ReferenceIsValidName returns whether the reference name is well-formed.
 //
 // Valid reference names must follow one of two patterns:
 //
@@ -483,10 +483,8 @@ func (v *ReferenceIterator) Free() {
 func ReferenceIsValidName(name string) bool {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
-	if C.git_reference_is_valid_name(cname) == 1 {
-		return true
-	}
-	return false
+
+	return C.git_reference_is_valid_name(cname) == 1
 }
 
 const (

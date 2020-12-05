@@ -49,7 +49,7 @@ func TestNoteIterator(t *testing.T) {
 	for {
 		noteId, commitId, err := iter.Next()
 		if err != nil {
-			if !IsErrorCode(err, ErrIterOver) {
+			if !IsErrorCode(err, ErrorCodeIterOver) {
 				checkFatal(t, err)
 			}
 			break

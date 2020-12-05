@@ -76,7 +76,7 @@ type RebaseOptions struct {
 	InMemory        int
 	RewriteNotesRef string
 	MergeOptions    MergeOptions
-	CheckoutOptions CheckoutOpts
+	CheckoutOptions CheckoutOptions
 }
 
 // DefaultRebaseOptions returns a RebaseOptions with default values.

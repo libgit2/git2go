@@ -313,7 +313,7 @@ func certificateCheckCallback(_cert *C.git_cert, _valid C.int, _host *C.char, da
 		C.memcpy(unsafe.Pointer(&cert.Hostkey.HashSHA1[0]), unsafe.Pointer(&ccert.hash_sha1[0]), C.size_t(len(cert.Hostkey.HashSHA1)))
 	} else {
 		cstr := C.CString("Unsupported certificate type")
-		C.giterr_set_str(C.GITERR_NET, cstr)
+		C.giterr_set_str(C.int(ErrorClassNet), cstr)
 		C.free(unsafe.Pointer(cstr))
 		return -1 // we don't support anything else atm
 	}
@@ -367,13 +367,12 @@ func freeProxyOptions(ptr *C.git_proxy_options) {
 	C.free(unsafe.Pointer(ptr.url))
 }
 
+// RemoteIsValidName returns whether the remote name is well-formed.
 func RemoteIsValidName(name string) bool {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
-	if C.git_remote_is_valid_name(cname) == 1 {
-		return true
-	}
-	return false
+
+	return C.git_remote_is_valid_name(cname) == 1
 }
 
 func (r *Remote) Free() {

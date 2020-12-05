@@ -61,6 +61,7 @@ cmake -DTHREADSAFE=ON \
       -DCMAKE_C_FLAGS=-fPIC \
       -DCMAKE_BUILD_TYPE="RelWithDebInfo" \
       -DCMAKE_INSTALL_PREFIX="${BUILD_INSTALL_PREFIX}" \
+      -DDEPRECATE_HARD=ON \
       "${VENDORED_PATH}" &&
 
 exec cmake --build . --target install

@@ -9,7 +9,6 @@ void _go_git_writestream_free(git_writestream *stream);
 */
 import "C"
 import (
-	"io"
 	"reflect"
 	"runtime"
 	"unsafe"
@@ -74,32 +73,6 @@ func (repo *Repository) CreateBlobFromBuffer(data []byte) (*Oid, error) {
 		return nil, MakeGitError(ecode)
 	}
 	return newOidFromC(&id), nil
-}
-
-type BlobChunkCallback func(maxLen int) ([]byte, error)
-
-type BlobCallbackData struct {
-	Callback BlobChunkCallback
-	Error    error
-}
-
-//export blobChunkCb
-func blobChunkCb(buffer *C.char, maxLen C.size_t, handle unsafe.Pointer) int {
-	payload := pointerHandles.Get(handle)
-	data, ok := payload.(*BlobCallbackData)
-	if !ok {
-		panic("could not retrieve blob callback data")
-	}
-
-	goBuf, err := data.Callback(int(maxLen))
-	if err == io.EOF {
-		return 0
-	} else if err != nil {
-		data.Error = err
-		return -1
-	}
-	C.memcpy(unsafe.Pointer(buffer), unsafe.Pointer(&goBuf[0]), C.size_t(len(goBuf)))
-	return len(goBuf)
 }
 
 func (repo *Repository) CreateFromStream(hintPath string) (*BlobWriteStream, error) {
