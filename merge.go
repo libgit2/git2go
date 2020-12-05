@@ -195,20 +195,20 @@ const (
 	MergeFileFavorUnion  MergeFileFavor = C.GIT_MERGE_FILE_FAVOR_UNION
 )
 
-func (r *Repository) Merge(theirHeads []*AnnotatedCommit, mergeOptions *MergeOptions, checkoutOptions *CheckoutOpts) error {
+func (r *Repository) Merge(theirHeads []*AnnotatedCommit, mergeOptions *MergeOptions, checkoutOptions *CheckoutOptions) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
 	cMergeOpts := mergeOptions.toC()
-	cCheckoutOpts := checkoutOptions.toC()
-	defer freeCheckoutOpts(cCheckoutOpts)
+	cCheckoutOptions := checkoutOptions.toC()
+	defer freeCheckoutOptions(cCheckoutOptions)
 
 	gmerge_head_array := make([]*C.git_annotated_commit, len(theirHeads))
 	for i := 0; i < len(theirHeads); i++ {
 		gmerge_head_array[i] = theirHeads[i].ptr
 	}
 	ptr := unsafe.Pointer(&gmerge_head_array[0])
-	err := C.git_merge(r.ptr, (**C.git_annotated_commit)(ptr), C.size_t(len(theirHeads)), cMergeOpts, cCheckoutOpts)
+	err := C.git_merge(r.ptr, (**C.git_annotated_commit)(ptr), C.size_t(len(theirHeads)), cMergeOpts, cCheckoutOptions)
 	runtime.KeepAlive(theirHeads)
 	if err < 0 {
 		return MakeGitError(err)

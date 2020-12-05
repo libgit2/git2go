@@ -30,12 +30,12 @@ void _go_git_populate_checkout_cb(git_checkout_options *opts)
 
 int _go_git_visit_submodule(git_repository *repo, void *fct)
 {
-	  return git_submodule_foreach(repo, (gogit_submodule_cbk)&SubmoduleVisitor, fct);
+	  return git_submodule_foreach(repo, (gogit_submodule_cbk)&submoduleCallback, fct);
 }
 
 int _go_git_treewalk(git_tree *tree, git_treewalk_mode mode, void *ptr)
 {
-	return git_tree_walk(tree, mode, (git_treewalk_cb)&CallbackGitTreeWalk, ptr);
+	return git_tree_walk(tree, mode, (git_treewalk_cb)&treeWalkCallback, ptr);
 }
 
 int _go_git_packbuilder_foreach(git_packbuilder *pb, void *payload)
@@ -117,7 +117,7 @@ void _go_git_setup_callbacks(git_remote_callbacks *callbacks) {
 
 	callbacks->sideband_progress = (git_transport_message_cb)sidebandProgressCallback;
 	callbacks->completion = (completion_cb)completionCallback;
-	callbacks->credentials = (git_cred_acquire_cb)credentialsCallback;
+	callbacks->credentials = (git_credential_acquire_cb)credentialsCallback;
 	callbacks->transfer_progress = (git_transfer_progress_cb)transferProgressCallback;
 	callbacks->update_tips = (update_tips_cb)updateTipsCallback;
 	callbacks->certificate_check = (git_transport_certificate_check_cb) certificateCheckCallback;
@@ -192,7 +192,7 @@ void _go_git_writestream_free(git_writestream *stream)
 	stream->free(stream);
 }
 
-git_credtype_t _go_git_cred_credtype(git_cred *cred) {
+git_credential_t _go_git_credential_credtype(git_credential *cred) {
 	return cred->credtype;
 }
 
