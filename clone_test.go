@@ -54,10 +54,10 @@ func TestCloneWithCallback(t *testing.T) {
 
 			remote, err := r.Remotes.Create(REMOTENAME, url)
 			if err != nil {
-				return nil, ErrGeneric
+				return nil, ErrorCodeGeneric
 			}
 
-			return remote, ErrOk
+			return remote, ErrorCodeOK
 		},
 	}
 

@@ -51,7 +51,7 @@ const (
 
 type TransportMessageCallback func(str string) ErrorCode
 type CompletionCallback func(RemoteCompletion) ErrorCode
-type CredentialsCallback func(url string, username_from_url string, allowed_types CredType) (*Cred, error)
+type CredentialsCallback func(url string, username_from_url string, allowed_types CredentialType) (*Credential, error)
 type TransferProgressCallback func(stats TransferProgress) ErrorCode
 type UpdateTipsCallback func(refname string, a *Oid, b *Oid) ErrorCode
 type CertificateCheckCallback func(cert *Certificate, valid bool, hostname string) ErrorCode
@@ -243,14 +243,14 @@ func completionCallback(completion_type C.git_remote_completion_type, data unsaf
 }
 
 //export credentialsCallback
-func credentialsCallback(_cred **C.git_cred, _url *C.char, _username_from_url *C.char, allowed_types uint, data unsafe.Pointer) int {
+func credentialsCallback(_cred **C.git_credential, _url *C.char, _username_from_url *C.char, allowed_types uint, data unsafe.Pointer) int {
 	callbacks, _ := pointerHandles.Get(data).(*RemoteCallbacks)
 	if callbacks.CredentialsCallback == nil {
 		return C.GIT_PASSTHROUGH
 	}
 	url := C.GoString(_url)
 	username_from_url := C.GoString(_username_from_url)
-	cred, err := callbacks.CredentialsCallback(url, username_from_url, (CredType)(allowed_types))
+	cred, err := callbacks.CredentialsCallback(url, username_from_url, (CredentialType)(allowed_types))
 	if err != nil {
 		if gitError, ok := err.(*GitError); ok {
 			return int(gitError.Code)
@@ -322,7 +322,7 @@ func certificateCheckCallback(_cert *C.git_cert, _valid C.int, _host *C.char, da
 		C.memcpy(unsafe.Pointer(&cert.Hostkey.HashSHA256[0]), unsafe.Pointer(&ccert.hash_sha256[0]), C.size_t(len(cert.Hostkey.HashSHA256)))
 	} else {
 		cstr := C.CString("Unsupported certificate type")
-		C.giterr_set_str(C.GITERR_NET, cstr)
+		C.git_error_set_str(C.GITERR_NET, cstr)
 		C.free(unsafe.Pointer(cstr))
 		return -1 // we don't support anything else atm
 	}
@@ -376,13 +376,12 @@ func freeProxyOptions(ptr *C.git_proxy_options) {
 	C.free(unsafe.Pointer(ptr.url))
 }
 
+// RemoteIsValidName returns whether the remote name is well-formed.
 func RemoteIsValidName(name string) bool {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
-	if C.git_remote_is_valid_name(cname) == 1 {
-		return true
-	}
-	return false
+
+	return C.git_remote_is_valid_name(cname) == 1
 }
 
 func (r *Remote) Free() {
@@ -406,7 +405,7 @@ func (c *RemoteCollection) List() ([]string, error) {
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
-	defer C.git_strarray_free(&r)
+	defer C.git_strarray_dispose(&r)
 
 	remotes := makeStringsFromCStrings(r.strings, int(r.count))
 	return remotes, nil
@@ -640,7 +639,7 @@ func (o *Remote) FetchRefspecs() ([]string, error) {
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	defer C.git_strarray_free(&crefspecs)
+	defer C.git_strarray_dispose(&crefspecs)
 
 	refspecs := makeStringsFromCStrings(crefspecs.strings, int(crefspecs.count))
 	return refspecs, nil
@@ -673,7 +672,7 @@ func (o *Remote) PushRefspecs() ([]string, error) {
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	defer C.git_strarray_free(&crefspecs)
+	defer C.git_strarray_dispose(&crefspecs)
 	runtime.KeepAlive(o)
 
 	refspecs := makeStringsFromCStrings(crefspecs.strings, int(crefspecs.count))

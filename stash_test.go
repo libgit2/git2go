@@ -56,8 +56,8 @@ func TestStash(t *testing.T) {
 	// Apply: no stash for the given index
 
 	err = repo.Stashes.Apply(1, opts)
-	if !IsErrorCode(err, ErrNotFound) {
-		t.Errorf("expecting GIT_ENOTFOUND error code %d, got %v", ErrNotFound, err)
+	if !IsErrorCode(err, ErrorCodeNotFound) {
+		t.Errorf("expecting GIT_ENOTFOUND error code %d, got %v", ErrorCodeNotFound, err)
 	}
 
 	// Apply: callback stopped

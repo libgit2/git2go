@@ -447,7 +447,7 @@ func (diff *Diff) ToBuf(format DiffFormat) ([]byte, error) {
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
-	defer C.git_buf_free(&diffBuf)
+	defer C.git_buf_dispose(&diffBuf)
 
 	return C.GoBytes(unsafe.Pointer(diffBuf.ptr), C.int(diffBuf.size)), nil
 }

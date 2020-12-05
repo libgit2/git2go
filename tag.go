@@ -159,7 +159,7 @@ func (c *TagsCollection) List() ([]string, error) {
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
-	defer C.git_strarray_free(&strC)
+	defer C.git_strarray_dispose(&strC)
 
 	tags := makeStringsFromCStrings(strC.strings, int(strC.count))
 	return tags, nil
@@ -183,7 +183,7 @@ func (c *TagsCollection) ListWithMatch(pattern string) ([]string, error) {
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
-	defer C.git_strarray_free(&strC)
+	defer C.git_strarray_dispose(&strC)
 
 	tags := makeStringsFromCStrings(strC.strings, int(strC.count))
 	return tags, nil

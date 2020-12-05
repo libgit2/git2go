@@ -106,7 +106,7 @@ func TestReferenceIterator(t *testing.T) {
 		list = append(list, name)
 		name, err = nameIter.Next()
 	}
-	if !IsErrorCode(err, ErrIterOver) {
+	if !IsErrorCode(err, ErrorCodeIterOver) {
 		t.Fatal("Iteration not over")
 	}
 
@@ -122,7 +122,7 @@ func TestReferenceIterator(t *testing.T) {
 		count++
 		_, err = iter.Next()
 	}
-	if !IsErrorCode(err, ErrIterOver) {
+	if !IsErrorCode(err, ErrorCodeIterOver) {
 		t.Fatal("Iteration not over")
 	}
 
@@ -242,7 +242,7 @@ func TestReferenceNormalizeName(t *testing.T) {
 	}
 
 	ref, err = ReferenceNormalizeName("foo^", ReferenceFormatNormal)
-	if !IsErrorCode(err, ErrInvalidSpec) {
+	if !IsErrorCode(err, ErrorCodeInvalidSpec) {
 		t.Errorf("foo^ should be invalid")
 	}
 }

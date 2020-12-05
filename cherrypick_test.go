@@ -11,7 +11,7 @@ func checkout(t *testing.T, repo *Repository, commit *Commit) {
 		t.Fatal(err)
 	}
 
-	err = repo.CheckoutTree(tree, &CheckoutOpts{Strategy: CheckoutSafe})
+	err = repo.CheckoutTree(tree, &CheckoutOptions{Strategy: CheckoutSafe})
 	if err != nil {
 		t.Fatal(err)
 	}

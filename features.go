@@ -12,10 +12,10 @@ const (
 	FeatureThreads Feature = C.GIT_FEATURE_THREADS
 
 	// libgit2 was built with HTTPS support built-in
-	FeatureHttps Feature = C.GIT_FEATURE_HTTPS
+	FeatureHTTPS Feature = C.GIT_FEATURE_HTTPS
 
 	// libgit2 was build with SSH support built-in
-	FeatureSsh Feature = C.GIT_FEATURE_SSH
+	FeatureSSH Feature = C.GIT_FEATURE_SSH
 
 	// libgit2 was built with nanosecond support for files
 	FeatureNSec Feature = C.GIT_FEATURE_NSEC

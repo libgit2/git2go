@@ -35,7 +35,7 @@ func TestIndexerOutOfOrder(t *testing.T) {
 	var finalStats TransferProgress
 	idx, err := NewIndexer(tmpPath, nil, func(stats TransferProgress) ErrorCode {
 		finalStats = stats
-		return ErrOk
+		return ErrorCodeOK
 	})
 	checkFatal(t, err)
 	defer idx.Free()
