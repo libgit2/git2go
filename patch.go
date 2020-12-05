@@ -77,17 +77,22 @@ func (v *Repository) PatchFromBuffers(oldPath, newPath string, oldBuf, newBuf []
 	cNewPath := C.CString(newPath)
 	defer C.free(unsafe.Pointer(cNewPath))
 
-	copts := diffOptionsToC(opts, v)
+	var err error
+	copts := opts.toC(v, &err)
 	defer freeDiffOptions(copts)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_patch_from_buffers(&patchPtr, oldPtr, C.size_t(len(oldBuf)), cOldPath, newPtr, C.size_t(len(newBuf)), cNewPath, copts)
+	ret := C.git_patch_from_buffers(&patchPtr, oldPtr, C.size_t(len(oldBuf)), cOldPath, newPtr, C.size_t(len(newBuf)), cNewPath, copts)
 	runtime.KeepAlive(oldBuf)
 	runtime.KeepAlive(newBuf)
-	if ecode < 0 {
-		return nil, MakeGitError(ecode)
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return nil, err
 	}
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
 	return newPatchFromC(patchPtr), nil
 }

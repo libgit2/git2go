@@ -330,6 +330,17 @@ func ucbool(b bool) C.uint {
 	return C.uint(0)
 }
 
+func setCallbackError(errorMessage **C.char, err error) C.int {
+	if err != nil {
+		*errorMessage = C.CString(err.Error())
+		if gitError, ok := err.(*GitError); ok {
+			return C.int(gitError.Code)
+		}
+		return C.int(ErrorCodeUser)
+	}
+	return C.int(ErrorCodeOK)
+}
+
 func Discover(start string, across_fs bool, ceiling_dirs []string) (string, error) {
 	ceildirs := C.CString(strings.Join(ceiling_dirs, string(C.GIT_PATH_LIST_SEPARATOR)))
 	defer C.free(unsafe.Pointer(ceildirs))
