@@ -405,7 +405,7 @@ func (c *RemoteCollection) List() ([]string, error) {
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
-	defer C.git_strarray_dispose(&r)
+	defer C.git_strarray_free(&r)
 
 	remotes := makeStringsFromCStrings(r.strings, int(r.count))
 	return remotes, nil
@@ -639,7 +639,7 @@ func (o *Remote) FetchRefspecs() ([]string, error) {
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	defer C.git_strarray_dispose(&crefspecs)
+	defer C.git_strarray_free(&crefspecs)
 
 	refspecs := makeStringsFromCStrings(crefspecs.strings, int(crefspecs.count))
 	return refspecs, nil
@@ -672,7 +672,7 @@ func (o *Remote) PushRefspecs() ([]string, error) {
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	defer C.git_strarray_dispose(&crefspecs)
+	defer C.git_strarray_free(&crefspecs)
 	runtime.KeepAlive(o)
 
 	refspecs := makeStringsFromCStrings(crefspecs.strings, int(crefspecs.count))
