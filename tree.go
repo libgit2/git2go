@@ -8,6 +8,7 @@ extern int _go_git_treewalk(git_tree *tree, git_treewalk_mode mode, void *ptr);
 import "C"
 
 import (
+	"errors"
 	"runtime"
 	"unsafe"
 )
@@ -120,33 +121,46 @@ func (t *Tree) EntryCount() uint64 {
 }
 
 type TreeWalkCallback func(string, *TreeEntry) int
+type treeWalkCallbackData struct {
+	callback    TreeWalkCallback
+	errorTarget *error
+}
 
 //export treeWalkCallback
 func treeWalkCallback(_root *C.char, entry *C.git_tree_entry, ptr unsafe.Pointer) C.int {
-	root := C.GoString(_root)
-
-	if callback, ok := pointerHandles.Get(ptr).(TreeWalkCallback); ok {
-		return C.int(callback(root, newTreeEntry(entry)))
-	} else {
+	data, ok := pointerHandles.Get(ptr).(*treeWalkCallbackData)
+	if !ok {
 		panic("invalid treewalk callback")
 	}
+
+	ret := data.callback(C.GoString(_root), newTreeEntry(entry))
+	if ret < 0 {
+		*data.errorTarget = errors.New(ErrorCode(ret).String())
+		return C.int(ErrorCodeUser)
+	}
+
+	return C.int(ErrorCodeOK)
 }
 
 func (t *Tree) Walk(callback TreeWalkCallback) error {
+	var err error
+	data := treeWalkCallbackData{
+		callback:    callback,
+		errorTarget: &err,
+	}
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ptr := pointerHandles.Track(callback)
-	defer pointerHandles.Untrack(ptr)
+	handle := pointerHandles.Track(&data)
+	defer pointerHandles.Untrack(handle)
 
-	err := C._go_git_treewalk(
-		t.cast_ptr,
-		C.GIT_TREEWALK_PRE,
-		ptr,
-	)
+	ret := C._go_git_treewalk(t.cast_ptr, C.GIT_TREEWALK_PRE, handle)
 	runtime.KeepAlive(t)
-	if err < 0 {
-		return MakeGitError(err)
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return err
+	}
+	if ret < 0 {
+		return MakeGitError(ret)
 	}
 
 	return nil
