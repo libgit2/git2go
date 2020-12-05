@@ -227,7 +227,7 @@ func NewOid(s string) (*Oid, error) {
 	}
 
 	if len(slice) != 20 {
-		return nil, &GitError{"Invalid Oid", ErrorClassNone, ErrGeneric}
+		return nil, &GitError{"invalid oid", ErrorClassNone, ErrorCodeGeneric}
 	}
 
 	copy(o[:], slice[:20])

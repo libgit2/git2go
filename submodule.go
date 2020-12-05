@@ -14,8 +14,8 @@ import (
 
 // SubmoduleUpdateOptions
 type SubmoduleUpdateOptions struct {
-	*CheckoutOpts
-	*FetchOptions
+	CheckoutOptions CheckoutOptions
+	FetchOptions    FetchOptions
 }
 
 // Submodule
@@ -390,8 +390,8 @@ func populateSubmoduleUpdateOptions(copts *C.git_submodule_update_options, opts 
 		return nil
 	}
 
-	populateCheckoutOptions(&copts.checkout_opts, opts.CheckoutOpts, errorTarget)
-	populateFetchOptions(&copts.fetch_opts, opts.FetchOptions, errorTarget)
+	populateCheckoutOptions(&copts.checkout_opts, &opts.CheckoutOptions, errorTarget)
+	populateFetchOptions(&copts.fetch_opts, &opts.FetchOptions, errorTarget)
 
 	return copts
 }

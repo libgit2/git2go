@@ -10,9 +10,9 @@ import (
 
 // RevertOptions contains options for performing a revert
 type RevertOptions struct {
-	Mainline     uint
-	MergeOpts    MergeOptions
-	CheckoutOpts CheckoutOptions
+	Mainline        uint
+	MergeOptions    MergeOptions
+	CheckoutOptions CheckoutOptions
 }
 
 func populateRevertOptions(copts *C.git_revert_options, opts *RevertOptions, errorTarget *error) *C.git_revert_options {
@@ -21,16 +21,16 @@ func populateRevertOptions(copts *C.git_revert_options, opts *RevertOptions, err
 		return nil
 	}
 	copts.mainline = C.uint(opts.Mainline)
-	populateMergeOptions(&copts.merge_opts, &opts.MergeOpts)
-	populateCheckoutOptions(&copts.checkout_opts, &opts.CheckoutOpts, errorTarget)
+	populateMergeOptions(&copts.merge_opts, &opts.MergeOptions)
+	populateCheckoutOptions(&copts.checkout_opts, &opts.CheckoutOptions, errorTarget)
 	return copts
 }
 
 func revertOptionsFromC(copts *C.git_revert_options) RevertOptions {
 	return RevertOptions{
-		Mainline:     uint(copts.mainline),
-		MergeOpts:    mergeOptionsFromC(&copts.merge_opts),
-		CheckoutOpts: checkoutOptionsFromC(&copts.checkout_opts),
+		Mainline:        uint(copts.mainline),
+		MergeOptions:    mergeOptionsFromC(&copts.merge_opts),
+		CheckoutOptions: checkoutOptionsFromC(&copts.checkout_opts),
 	}
 }
 

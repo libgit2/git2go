@@ -60,11 +60,11 @@ func TestRevertCommit(t *testing.T) {
 	revertOptions, err := DefaultRevertOptions()
 	checkFatal(t, err)
 
-	index, err := repo.RevertCommit(commit, commit, 0, &revertOptions.MergeOpts)
+	index, err := repo.RevertCommit(commit, commit, 0, &revertOptions.MergeOptions)
 	checkFatal(t, err)
 	defer index.Free()
 
-	err = repo.CheckoutIndex(index, &revertOptions.CheckoutOpts)
+	err = repo.CheckoutIndex(index, &revertOptions.CheckoutOptions)
 	checkFatal(t, err)
 
 	actualReadmeContents := readReadme(t, repo)

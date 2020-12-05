@@ -130,7 +130,6 @@ func commitSigningCallback(errorMessage **C.char, _signature *C.git_buf, _signat
 
 // RebaseOptions are used to tell the rebase machinery how to operate
 type RebaseOptions struct {
-	Version               uint
 	Quiet                 int
 	InMemory              int
 	RewriteNotesRef       string
@@ -160,7 +159,6 @@ func DefaultRebaseOptions() (RebaseOptions, error) {
 
 func rebaseOptionsFromC(opts *C.git_rebase_options) RebaseOptions {
 	return RebaseOptions{
-		Version:         uint(opts.version),
 		Quiet:           int(opts.quiet),
 		InMemory:        int(opts.inmemory),
 		RewriteNotesRef: C.GoString(opts.rewrite_notes_ref),

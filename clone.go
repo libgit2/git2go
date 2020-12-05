@@ -14,8 +14,8 @@ import (
 type RemoteCreateCallback func(repo *Repository, name, url string) (*Remote, error)
 
 type CloneOptions struct {
-	*CheckoutOpts
-	*FetchOptions
+	CheckoutOptions      CheckoutOptions
+	FetchOptions         FetchOptions
 	Bare                 bool
 	CheckoutBranch       string
 	RemoteCreateCallback RemoteCreateCallback
@@ -100,8 +100,8 @@ func populateCloneOptions(copts *C.git_clone_options, opts *CloneOptions, errorT
 	if opts == nil {
 		return nil
 	}
-	populateCheckoutOptions(&copts.checkout_opts, opts.CheckoutOpts, errorTarget)
-	populateFetchOptions(&copts.fetch_opts, opts.FetchOptions, errorTarget)
+	populateCheckoutOptions(&copts.checkout_opts, &opts.CheckoutOptions, errorTarget)
+	populateFetchOptions(&copts.fetch_opts, &opts.FetchOptions, errorTarget)
 	copts.bare = cbool(opts.Bare)
 
 	if opts.RemoteCreateCallback != nil {

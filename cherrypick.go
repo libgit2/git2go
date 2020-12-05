@@ -9,18 +9,16 @@ import (
 )
 
 type CherrypickOptions struct {
-	Version      uint
-	Mainline     uint
-	MergeOpts    MergeOptions
-	CheckoutOpts CheckoutOptions
+	Mainline        uint
+	MergeOptions    MergeOptions
+	CheckoutOptions CheckoutOptions
 }
 
 func cherrypickOptionsFromC(c *C.git_cherrypick_options) CherrypickOptions {
 	opts := CherrypickOptions{
-		Version:      uint(c.version),
-		Mainline:     uint(c.mainline),
-		MergeOpts:    mergeOptionsFromC(&c.merge_opts),
-		CheckoutOpts: checkoutOptionsFromC(&c.checkout_opts),
+		Mainline:        uint(c.mainline),
+		MergeOptions:    mergeOptionsFromC(&c.merge_opts),
+		CheckoutOptions: checkoutOptionsFromC(&c.checkout_opts),
 	}
 	return opts
 }
@@ -31,8 +29,8 @@ func populateCherrypickOptions(copts *C.git_cherrypick_options, opts *Cherrypick
 		return nil
 	}
 	copts.mainline = C.uint(opts.Mainline)
-	populateMergeOptions(&copts.merge_opts, &opts.MergeOpts)
-	populateCheckoutOptions(&copts.checkout_opts, &opts.CheckoutOpts, errorTarget)
+	populateMergeOptions(&copts.merge_opts, &opts.MergeOptions)
+	populateCheckoutOptions(&copts.checkout_opts, &opts.CheckoutOptions, errorTarget)
 	return copts
 }
 
@@ -82,7 +80,7 @@ func (r *Repository) CherrypickCommit(pick, our *Commit, opts CherrypickOptions)
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	cOpts := populateMergeOptions(&C.git_merge_options{}, &opts.MergeOpts)
+	cOpts := populateMergeOptions(&C.git_merge_options{}, &opts.MergeOptions)
 	defer freeMergeOptions(cOpts)
 
 	var ptr *C.git_index
