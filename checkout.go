@@ -3,10 +3,11 @@ package git
 /*
 #include <git2.h>
 
-extern void _go_git_populate_checkout_cb(git_checkout_options *opts);
+extern void _go_git_populate_checkout_callbacks(git_checkout_options *opts);
 */
 import "C"
 import (
+	"errors"
 	"os"
 	"runtime"
 	"unsafe"
@@ -76,10 +77,10 @@ func checkoutOptionsFromC(c *C.git_checkout_options) CheckoutOptions {
 		NotifyFlags:    CheckoutNotifyType(c.notify_flags),
 	}
 	if c.notify_payload != nil {
-		opts.NotifyCallback = pointerHandles.Get(c.notify_payload).(*CheckoutOptions).NotifyCallback
+		opts.NotifyCallback = pointerHandles.Get(c.notify_payload).(*checkoutCallbackData).options.NotifyCallback
 	}
 	if c.progress_payload != nil {
-		opts.ProgressCallback = pointerHandles.Get(c.progress_payload).(*CheckoutOptions).ProgressCallback
+		opts.ProgressCallback = pointerHandles.Get(c.progress_payload).(*checkoutCallbackData).options.ProgressCallback
 	}
 	if c.target_directory != nil {
 		opts.TargetDirectory = C.GoString(c.target_directory)
@@ -87,19 +88,26 @@ func checkoutOptionsFromC(c *C.git_checkout_options) CheckoutOptions {
 	return opts
 }
 
-func (opts *CheckoutOptions) toC() *C.git_checkout_options {
+func (opts *CheckoutOptions) toC(errorTarget *error) *C.git_checkout_options {
 	if opts == nil {
 		return nil
 	}
-	c := C.git_checkout_options{}
-	populateCheckoutOptions(&c, opts)
-	return &c
+	return populateCheckoutOptions(&C.git_checkout_options{}, opts, errorTarget)
+}
+
+type checkoutCallbackData struct {
+	options     *CheckoutOptions
+	errorTarget *error
 }
 
 //export checkoutNotifyCallback
-func checkoutNotifyCallback(why C.git_checkout_notify_t, cpath *C.char, cbaseline, ctarget, cworkdir, data unsafe.Pointer) int {
-	if data == nil {
-		return 0
+func checkoutNotifyCallback(
+	why C.git_checkout_notify_t,
+	cpath *C.char,
+	cbaseline, ctarget, cworkdir, handle unsafe.Pointer,
+) C.int {
+	if handle == nil {
+		return C.int(ErrorCodeOK)
 	}
 	path := C.GoString(cpath)
 	var baseline, target, workdir DiffFile
@@ -112,26 +120,35 @@ func checkoutNotifyCallback(why C.git_checkout_notify_t, cpath *C.char, cbaselin
 	if cworkdir != nil {
 		workdir = diffFileFromC((*C.git_diff_file)(cworkdir))
 	}
-	opts := pointerHandles.Get(data).(*CheckoutOptions)
-	if opts.NotifyCallback == nil {
-		return 0
+	data := pointerHandles.Get(handle).(*checkoutCallbackData)
+	if data.options.NotifyCallback == nil {
+		return C.int(ErrorCodeOK)
 	}
-	return int(opts.NotifyCallback(CheckoutNotifyType(why), path, baseline, target, workdir))
+	ret := data.options.NotifyCallback(CheckoutNotifyType(why), path, baseline, target, workdir)
+	if ret < 0 {
+		*data.errorTarget = errors.New(ErrorCode(ret).String())
+		return C.int(ErrorCodeUser)
+	}
+	return C.int(ErrorCodeOK)
 }
 
 //export checkoutProgressCallback
-func checkoutProgressCallback(path *C.char, completed_steps, total_steps C.size_t, data unsafe.Pointer) int {
-	opts := pointerHandles.Get(data).(*CheckoutOptions)
-	if opts.ProgressCallback == nil {
-		return 0
+func checkoutProgressCallback(
+	path *C.char,
+	completed_steps, total_steps C.size_t,
+	handle unsafe.Pointer,
+) {
+	data := pointerHandles.Get(handle).(*checkoutCallbackData)
+	if data.options.ProgressCallback == nil {
+		return
 	}
-	return int(opts.ProgressCallback(C.GoString(path), uint(completed_steps), uint(total_steps)))
+	data.options.ProgressCallback(C.GoString(path), uint(completed_steps), uint(total_steps))
 }
 
 // Convert the CheckoutOptions struct to the corresponding
 // C-struct. Returns a pointer to ptr, or nil if opts is nil, in order
 // to help with what to pass.
-func populateCheckoutOptions(ptr *C.git_checkout_options, opts *CheckoutOptions) *C.git_checkout_options {
+func populateCheckoutOptions(ptr *C.git_checkout_options, opts *CheckoutOptions, errorTarget *error) *C.git_checkout_options {
 	if opts == nil {
 		return nil
 	}
@@ -143,14 +160,18 @@ func populateCheckoutOptions(ptr *C.git_checkout_options, opts *CheckoutOptions)
 	ptr.file_mode = C.uint(opts.FileMode.Perm())
 	ptr.notify_flags = C.uint(opts.NotifyFlags)
 	if opts.NotifyCallback != nil || opts.ProgressCallback != nil {
-		C._go_git_populate_checkout_cb(ptr)
-	}
-	payload := pointerHandles.Track(opts)
-	if opts.NotifyCallback != nil {
-		ptr.notify_payload = payload
-	}
-	if opts.ProgressCallback != nil {
-		ptr.progress_payload = payload
+		C._go_git_populate_checkout_callbacks(ptr)
+		data := &checkoutCallbackData{
+			options:     opts,
+			errorTarget: errorTarget,
+		}
+		payload := pointerHandles.Track(data)
+		if opts.NotifyCallback != nil {
+			ptr.notify_payload = payload
+		}
+		if opts.ProgressCallback != nil {
+			ptr.progress_payload = payload
+		}
 	}
 	if opts.TargetDirectory != "" {
 		ptr.target_directory = C.CString(opts.TargetDirectory)
@@ -177,6 +198,8 @@ func freeCheckoutOptions(ptr *C.git_checkout_options) {
 	}
 	if ptr.notify_payload != nil {
 		pointerHandles.Untrack(ptr.notify_payload)
+	} else if ptr.progress_payload != nil {
+		pointerHandles.Untrack(ptr.progress_payload)
 	}
 }
 
@@ -186,11 +209,16 @@ func (v *Repository) CheckoutHead(opts *CheckoutOptions) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	cOpts := opts.toC()
+	var err error
+	cOpts := opts.toC(&err)
 	defer freeCheckoutOptions(cOpts)
 
 	ret := C.git_checkout_head(v.ptr, cOpts)
 	runtime.KeepAlive(v)
+
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return err
+	}
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -210,11 +238,15 @@ func (v *Repository) CheckoutIndex(index *Index, opts *CheckoutOptions) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	cOpts := opts.toC()
+	var err error
+	cOpts := opts.toC(&err)
 	defer freeCheckoutOptions(cOpts)
 
 	ret := C.git_checkout_index(v.ptr, iptr, cOpts)
 	runtime.KeepAlive(v)
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return err
+	}
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
@@ -226,11 +258,16 @@ func (v *Repository) CheckoutTree(tree *Tree, opts *CheckoutOptions) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	cOpts := opts.toC()
+	var err error
+	cOpts := opts.toC(&err)
 	defer freeCheckoutOptions(cOpts)
 
 	ret := C.git_checkout_tree(v.ptr, tree.ptr, cOpts)
 	runtime.KeepAlive(v)
+	runtime.KeepAlive(tree)
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return err
+	}
 	if ret < 0 {
 		return MakeGitError(ret)
 	}

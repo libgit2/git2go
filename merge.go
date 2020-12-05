@@ -186,6 +186,9 @@ func (mo *MergeOptions) toC() *C.git_merge_options {
 	}
 }
 
+func freeMergeOptions(opts *C.git_merge_options) {
+}
+
 type MergeFileFavor int
 
 const (
@@ -199,8 +202,10 @@ func (r *Repository) Merge(theirHeads []*AnnotatedCommit, mergeOptions *MergeOpt
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
+	var err error
 	cMergeOpts := mergeOptions.toC()
-	cCheckoutOptions := checkoutOptions.toC()
+	defer freeMergeOptions(cMergeOpts)
+	cCheckoutOptions := checkoutOptions.toC(&err)
 	defer freeCheckoutOptions(cCheckoutOptions)
 
 	gmerge_head_array := make([]*C.git_annotated_commit, len(theirHeads))
@@ -208,10 +213,13 @@ func (r *Repository) Merge(theirHeads []*AnnotatedCommit, mergeOptions *MergeOpt
 		gmerge_head_array[i] = theirHeads[i].ptr
 	}
 	ptr := unsafe.Pointer(&gmerge_head_array[0])
-	err := C.git_merge(r.ptr, (**C.git_annotated_commit)(ptr), C.size_t(len(theirHeads)), cMergeOpts, cCheckoutOptions)
+	ret := C.git_merge(r.ptr, (**C.git_annotated_commit)(ptr), C.size_t(len(theirHeads)), cMergeOpts, cCheckoutOptions)
 	runtime.KeepAlive(theirHeads)
-	if err < 0 {
-		return MakeGitError(err)
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return err
+	}
+	if ret < 0 {
+		return MakeGitError(ret)
 	}
 	return nil
 }
@@ -262,6 +270,7 @@ func (r *Repository) MergeCommits(ours *Commit, theirs *Commit, options *MergeOp
 	defer runtime.UnlockOSThread()
 
 	copts := options.toC()
+	defer freeMergeOptions(copts)
 
 	var ptr *C.git_index
 	ret := C.git_merge_commits(&ptr, r.ptr, ours.cast_ptr, theirs.cast_ptr, copts)
@@ -279,6 +288,7 @@ func (r *Repository) MergeTrees(ancestor *Tree, ours *Tree, theirs *Tree, option
 	defer runtime.UnlockOSThread()
 
 	copts := options.toC()
+	defer freeMergeOptions(copts)
 
 	var ancestor_ptr *C.git_tree
 	if ancestor != nil {
@@ -446,6 +456,9 @@ func populateCMergeFileOptions(c *C.git_merge_file_options, options MergeFileOpt
 }
 
 func freeCMergeFileOptions(c *C.git_merge_file_options) {
+	if c == nil {
+		return
+	}
 	C.free(unsafe.Pointer(c.ancestor_label))
 	C.free(unsafe.Pointer(c.our_label))
 	C.free(unsafe.Pointer(c.their_label))
