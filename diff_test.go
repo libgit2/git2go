@@ -173,9 +173,8 @@ func TestDiffTreeToTree(t *testing.T) {
 	}, DiffDetailLines)
 
 	if err != errTest {
-		t.Fatal("Expected custom error to be returned")
+		t.Fatalf("Expected custom error to be returned, got %v, want %v", err, errTest)
 	}
-
 }
 
 func createTestTrees(t *testing.T, repo *Repository) (originalTree *Tree, newTree *Tree) {
@@ -486,13 +485,15 @@ func TestApplyToTree(t *testing.T) {
 	diffAC, err := repo.DiffTreeToTree(treeA, treeC, nil)
 	checkFatal(t, err)
 
+	errMessageDropped := errors.New("message dropped")
+
 	for _, tc := range []struct {
 		name               string
 		tree               *Tree
 		diff               *Diff
 		applyHunkCallback  ApplyHunkCallback
 		applyDeltaCallback ApplyDeltaCallback
-		error              error
+		err                error
 		expectedDiff       *Diff
 	}{
 		{
@@ -505,7 +506,7 @@ func TestApplyToTree(t *testing.T) {
 			name: "applying a conflicting patch errors",
 			tree: treeB,
 			diff: diffAC,
-			error: &GitError{
+			err: &GitError{
 				Message: "hunk at line 1 did not apply",
 				Code:    ErrorCodeApplyFail,
 				Class:   ErrorClassPatch,
@@ -529,12 +530,8 @@ func TestApplyToTree(t *testing.T) {
 			name:              "hunk callback erroring fails the call",
 			tree:              treeA,
 			diff:              diffAB,
-			applyHunkCallback: func(*DiffHunk) (bool, error) { return true, errors.New("message dropped") },
-			error: &GitError{
-				Message: "Generic",
-				Code:    ErrorCodeGeneric,
-				Class:   ErrorClassInvalid,
-			},
+			applyHunkCallback: func(*DiffHunk) (bool, error) { return true, errMessageDropped },
+			err:               errMessageDropped,
 		},
 		{
 			name:               "delta callback returning false does not apply",
@@ -546,12 +543,8 @@ func TestApplyToTree(t *testing.T) {
 			name:               "delta callback erroring fails the call",
 			tree:               treeA,
 			diff:               diffAB,
-			applyDeltaCallback: func(*DiffDelta) (bool, error) { return true, errors.New("message dropped") },
-			error: &GitError{
-				Message: "Generic",
-				Code:    ErrorCodeGeneric,
-				Class:   ErrorClassInvalid,
-			},
+			applyDeltaCallback: func(*DiffDelta) (bool, error) { return true, errMessageDropped },
+			err:                errMessageDropped,
 		},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
@@ -562,9 +555,9 @@ func TestApplyToTree(t *testing.T) {
 			opts.ApplyDeltaCallback = tc.applyDeltaCallback
 
 			index, err := repo.ApplyToTree(tc.diff, tc.tree, opts)
-			if tc.error != nil {
-				if !reflect.DeepEqual(err, tc.error) {
-					t.Fatalf("expected error %q but got %q", tc.error, err)
+			if tc.err != nil {
+				if !reflect.DeepEqual(tc.err, err) {
+					t.Fatalf("expected error %q but got %q", tc.err, err)
 				}
 
 				return
