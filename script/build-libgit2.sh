@@ -68,7 +68,6 @@ cmake -DTHREADSAFE=ON \
       -DCMAKE_BUILD_TYPE="RelWithDebInfo" \
       -DCMAKE_INSTALL_PREFIX="${BUILD_INSTALL_PREFIX}" \
       -DCMAKE_INSTALL_LIBDIR="lib" \
-      -DDEPRECATE_HARD=ON \
       "${VENDORED_PATH}" &&
 
 exec cmake --build . --target install
