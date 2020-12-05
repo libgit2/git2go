@@ -12,7 +12,7 @@ type CherrypickOptions struct {
 	Version      uint
 	Mainline     uint
 	MergeOpts    MergeOptions
-	CheckoutOpts CheckoutOpts
+	CheckoutOpts CheckoutOptions
 }
 
 func cherrypickOptionsFromC(c *C.git_cherrypick_options) CherrypickOptions {
@@ -41,7 +41,7 @@ func freeCherrypickOpts(ptr *C.git_cherrypick_options) {
 	if ptr == nil {
 		return
 	}
-	freeCheckoutOpts(&ptr.checkout_opts)
+	freeCheckoutOptions(&ptr.checkout_opts)
 }
 
 func DefaultCherrypickOptions() (CherrypickOptions, error) {

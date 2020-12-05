@@ -58,19 +58,19 @@ func remoteCreateCallback(cremote unsafe.Pointer, crepo unsafe.Pointer, cname, c
 	runtime.SetFinalizer(repo, nil)
 
 	if opts, ok := pointerHandles.Get(payload).(CloneOptions); ok {
-		remote, err := opts.RemoteCreateCallback(repo, name, url)
+		remote, errorCode := opts.RemoteCreateCallback(repo, name, url)
 		// clear finalizer as the calling C function will
 		// free the remote itself
 		runtime.SetFinalizer(remote, nil)
 
-		if err == ErrOk && remote != nil {
+		if errorCode == ErrorCodeOK && remote != nil {
 			cptr := (**C.git_remote)(cremote)
 			*cptr = remote.ptr
-		} else if err == ErrOk && remote == nil {
+		} else if errorCode == ErrorCodeOK && remote == nil {
 			panic("no remote created by callback")
 		}
 
-		return C.int(err)
+		return C.int(errorCode)
 	} else {
 		panic("invalid remote create callback")
 	}
@@ -82,7 +82,7 @@ func populateCloneOptions(ptr *C.git_clone_options, opts *CloneOptions) {
 	if opts == nil {
 		return
 	}
-	populateCheckoutOpts(&ptr.checkout_opts, opts.CheckoutOpts)
+	populateCheckoutOptions(&ptr.checkout_opts, opts.CheckoutOpts)
 	populateFetchOptions(&ptr.fetch_opts, opts.FetchOptions)
 	ptr.bare = cbool(opts.Bare)
 
@@ -98,7 +98,7 @@ func freeCloneOptions(ptr *C.git_clone_options) {
 		return
 	}
 
-	freeCheckoutOpts(&ptr.checkout_opts)
+	freeCheckoutOptions(&ptr.checkout_opts)
 
 	if ptr.remote_cb_payload != nil {
 		pointerHandles.Untrack(ptr.remote_cb_payload)

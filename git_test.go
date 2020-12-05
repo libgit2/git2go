@@ -45,16 +45,16 @@ func createBareTestRepo(t *testing.T) *Repository {
 	return repo
 }
 
-// commitOpts contains any extra options for creating commits in the seed repo
-type commitOpts struct {
+// commitOptions contains any extra options for creating commits in the seed repo
+type commitOptions struct {
 	CommitSigningCallback
 }
 
 func seedTestRepo(t *testing.T, repo *Repository) (*Oid, *Oid) {
-	return seedTestRepoOpt(t, repo, commitOpts{})
+	return seedTestRepoOpt(t, repo, commitOptions{})
 }
 
-func seedTestRepoOpt(t *testing.T, repo *Repository, opts commitOpts) (*Oid, *Oid) {
+func seedTestRepoOpt(t *testing.T, repo *Repository, opts commitOptions) (*Oid, *Oid) {
 	loc, err := time.LoadLocation("Europe/Berlin")
 	checkFatal(t, err)
 	sig := &Signature{
@@ -155,7 +155,7 @@ func TestOidZero(t *testing.T) {
 func TestEmptyOid(t *testing.T) {
 	t.Parallel()
 	_, err := NewOid("")
-	if err == nil || !IsErrorCode(err, ErrGeneric) {
+	if err == nil || !IsErrorCode(err, ErrorCodeGeneric) {
 		t.Fatal("Should have returned invalid error")
 	}
 }

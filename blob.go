@@ -9,7 +9,6 @@ void _go_git_writestream_free(git_writestream *stream);
 */
 import "C"
 import (
-	"io"
 	"reflect"
 	"runtime"
 	"unsafe"
@@ -68,38 +67,12 @@ func (repo *Repository) CreateBlobFromBuffer(data []byte) (*Oid, error) {
 		size = C.size_t(0)
 	}
 
-	ecode := C.git_blob_create_frombuffer(&id, repo.ptr, unsafe.Pointer(&data[0]), size)
+	ecode := C.git_blob_create_from_buffer(&id, repo.ptr, unsafe.Pointer(&data[0]), size)
 	runtime.KeepAlive(repo)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
 	return newOidFromC(&id), nil
-}
-
-type BlobChunkCallback func(maxLen int) ([]byte, error)
-
-type BlobCallbackData struct {
-	Callback BlobChunkCallback
-	Error    error
-}
-
-//export blobChunkCb
-func blobChunkCb(buffer *C.char, maxLen C.size_t, handle unsafe.Pointer) int {
-	payload := pointerHandles.Get(handle)
-	data, ok := payload.(*BlobCallbackData)
-	if !ok {
-		panic("could not retrieve blob callback data")
-	}
-
-	goBuf, err := data.Callback(int(maxLen))
-	if err == io.EOF {
-		return 0
-	} else if err != nil {
-		data.Error = err
-		return -1
-	}
-	C.memcpy(unsafe.Pointer(buffer), unsafe.Pointer(&goBuf[0]), C.size_t(len(goBuf)))
-	return len(goBuf)
 }
 
 func (repo *Repository) CreateFromStream(hintPath string) (*BlobWriteStream, error) {
@@ -114,7 +87,7 @@ func (repo *Repository) CreateFromStream(hintPath string) (*BlobWriteStream, err
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_blob_create_fromstream(&stream, repo.ptr, chintPath)
+	ecode := C.git_blob_create_from_stream(&stream, repo.ptr, chintPath)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
@@ -166,7 +139,7 @@ func (stream *BlobWriteStream) Commit() (*Oid, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_blob_create_fromstream_commit(&oid, stream.ptr)
+	ecode := C.git_blob_create_from_stream_commit(&oid, stream.ptr)
 	runtime.KeepAlive(stream)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)

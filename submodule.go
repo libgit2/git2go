@@ -106,20 +106,21 @@ func (c *SubmoduleCollection) Lookup(name string) (*Submodule, error) {
 	return newSubmoduleFromC(ptr, c.repo), nil
 }
 
-type SubmoduleCbk func(sub *Submodule, name string) int
+// SubmoduleCallback is a function that is called for every submodule found in SubmoduleCollection.Foreach.
+type SubmoduleCallback func(sub *Submodule, name string) int
 
-//export SubmoduleVisitor
-func SubmoduleVisitor(csub unsafe.Pointer, name *C.char, handle unsafe.Pointer) C.int {
+//export submoduleCallback
+func submoduleCallback(csub unsafe.Pointer, name *C.char, handle unsafe.Pointer) C.int {
 	sub := &Submodule{(*C.git_submodule)(csub), nil}
 
-	if callback, ok := pointerHandles.Get(handle).(SubmoduleCbk); ok {
+	if callback, ok := pointerHandles.Get(handle).(SubmoduleCallback); ok {
 		return (C.int)(callback(sub, C.GoString(name)))
 	} else {
 		panic("invalid submodule visitor callback")
 	}
 }
 
-func (c *SubmoduleCollection) Foreach(cbk SubmoduleCbk) error {
+func (c *SubmoduleCollection) Foreach(cbk SubmoduleCallback) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -366,7 +367,7 @@ func populateSubmoduleUpdateOptions(ptr *C.git_submodule_update_options, opts *S
 		return nil
 	}
 
-	populateCheckoutOpts(&ptr.checkout_opts, opts.CheckoutOpts)
+	populateCheckoutOptions(&ptr.checkout_opts, opts.CheckoutOpts)
 	populateFetchOptions(&ptr.fetch_opts, opts.FetchOptions)
 
 	return nil
