@@ -201,13 +201,13 @@ func (o *Object) Free() {
 
 // Peel recursively peels an object until an object of the specified type is met.
 //
-// If the query cannot be satisfied due to the object model, ErrInvalidSpec
+// If the query cannot be satisfied due to the object model, ErrorCodeInvalidSpec
 // will be returned (e.g. trying to peel a blob to a tree).
 //
 // If you pass ObjectAny as the target type, then the object will be peeled
 // until the type changes. A tag will be peeled until the referenced object
 // is no longer a tag, and a commit will be peeled to a tree. Any other object
-// type will return ErrInvalidSpec.
+// type will return ErrorCodeInvalidSpec.
 //
 // If peeling a tag we discover an object which cannot be peeled to the target
 // type due to the object model, an error will be returned.

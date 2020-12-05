@@ -52,7 +52,7 @@ const (
 type CheckoutNotifyCallback func(why CheckoutNotifyType, path string, baseline, target, workdir DiffFile) ErrorCode
 type CheckoutProgressCallback func(path string, completed, total uint) ErrorCode
 
-type CheckoutOpts struct {
+type CheckoutOptions struct {
 	Strategy         CheckoutStrategy   // Default will be a dry run
 	DisableFilters   bool               // Don't apply filters like CRLF conversion
 	DirMode          os.FileMode        // Default is 0755
@@ -66,19 +66,20 @@ type CheckoutOpts struct {
 	Baseline         *Tree
 }
 
-func checkoutOptionsFromC(c *C.git_checkout_options) CheckoutOpts {
-	opts := CheckoutOpts{}
-	opts.Strategy = CheckoutStrategy(c.checkout_strategy)
-	opts.DisableFilters = c.disable_filters != 0
-	opts.DirMode = os.FileMode(c.dir_mode)
-	opts.FileMode = os.FileMode(c.file_mode)
-	opts.FileOpenFlags = int(c.file_open_flags)
-	opts.NotifyFlags = CheckoutNotifyType(c.notify_flags)
+func checkoutOptionsFromC(c *C.git_checkout_options) CheckoutOptions {
+	opts := CheckoutOptions{
+		Strategy:       CheckoutStrategy(c.checkout_strategy),
+		DisableFilters: c.disable_filters != 0,
+		DirMode:        os.FileMode(c.dir_mode),
+		FileMode:       os.FileMode(c.file_mode),
+		FileOpenFlags:  int(c.file_open_flags),
+		NotifyFlags:    CheckoutNotifyType(c.notify_flags),
+	}
 	if c.notify_payload != nil {
-		opts.NotifyCallback = pointerHandles.Get(c.notify_payload).(*CheckoutOpts).NotifyCallback
+		opts.NotifyCallback = pointerHandles.Get(c.notify_payload).(*CheckoutOptions).NotifyCallback
 	}
 	if c.progress_payload != nil {
-		opts.ProgressCallback = pointerHandles.Get(c.progress_payload).(*CheckoutOpts).ProgressCallback
+		opts.ProgressCallback = pointerHandles.Get(c.progress_payload).(*CheckoutOptions).ProgressCallback
 	}
 	if c.target_directory != nil {
 		opts.TargetDirectory = C.GoString(c.target_directory)
@@ -86,12 +87,12 @@ func checkoutOptionsFromC(c *C.git_checkout_options) CheckoutOpts {
 	return opts
 }
 
-func (opts *CheckoutOpts) toC() *C.git_checkout_options {
+func (opts *CheckoutOptions) toC() *C.git_checkout_options {
 	if opts == nil {
 		return nil
 	}
 	c := C.git_checkout_options{}
-	populateCheckoutOpts(&c, opts)
+	populateCheckoutOptions(&c, opts)
 	return &c
 }
 
@@ -111,7 +112,7 @@ func checkoutNotifyCallback(why C.git_checkout_notify_t, cpath *C.char, cbaselin
 	if cworkdir != nil {
 		workdir = diffFileFromC((*C.git_diff_file)(cworkdir))
 	}
-	opts := pointerHandles.Get(data).(*CheckoutOpts)
+	opts := pointerHandles.Get(data).(*CheckoutOptions)
 	if opts.NotifyCallback == nil {
 		return 0
 	}
@@ -120,17 +121,17 @@ func checkoutNotifyCallback(why C.git_checkout_notify_t, cpath *C.char, cbaselin
 
 //export checkoutProgressCallback
 func checkoutProgressCallback(path *C.char, completed_steps, total_steps C.size_t, data unsafe.Pointer) int {
-	opts := pointerHandles.Get(data).(*CheckoutOpts)
+	opts := pointerHandles.Get(data).(*CheckoutOptions)
 	if opts.ProgressCallback == nil {
 		return 0
 	}
 	return int(opts.ProgressCallback(C.GoString(path), uint(completed_steps), uint(total_steps)))
 }
 
-// Convert the CheckoutOpts struct to the corresponding
+// Convert the CheckoutOptions struct to the corresponding
 // C-struct. Returns a pointer to ptr, or nil if opts is nil, in order
 // to help with what to pass.
-func populateCheckoutOpts(ptr *C.git_checkout_options, opts *CheckoutOpts) *C.git_checkout_options {
+func populateCheckoutOptions(ptr *C.git_checkout_options, opts *CheckoutOptions) *C.git_checkout_options {
 	if opts == nil {
 		return nil
 	}
@@ -166,7 +167,7 @@ func populateCheckoutOpts(ptr *C.git_checkout_options, opts *CheckoutOpts) *C.gi
 	return ptr
 }
 
-func freeCheckoutOpts(ptr *C.git_checkout_options) {
+func freeCheckoutOptions(ptr *C.git_checkout_options) {
 	if ptr == nil {
 		return
 	}
@@ -181,12 +182,12 @@ func freeCheckoutOpts(ptr *C.git_checkout_options) {
 
 // Updates files in the index and the working tree to match the content of
 // the commit pointed at by HEAD. opts may be nil.
-func (v *Repository) CheckoutHead(opts *CheckoutOpts) error {
+func (v *Repository) CheckoutHead(opts *CheckoutOptions) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
 	cOpts := opts.toC()
-	defer freeCheckoutOpts(cOpts)
+	defer freeCheckoutOptions(cOpts)
 
 	ret := C.git_checkout_head(v.ptr, cOpts)
 	runtime.KeepAlive(v)
@@ -200,7 +201,7 @@ func (v *Repository) CheckoutHead(opts *CheckoutOpts) error {
 // Updates files in the working tree to match the content of the given
 // index. If index is nil, the repository's index will be used. opts
 // may be nil.
-func (v *Repository) CheckoutIndex(index *Index, opts *CheckoutOpts) error {
+func (v *Repository) CheckoutIndex(index *Index, opts *CheckoutOptions) error {
 	var iptr *C.git_index = nil
 	if index != nil {
 		iptr = index.ptr
@@ -210,7 +211,7 @@ func (v *Repository) CheckoutIndex(index *Index, opts *CheckoutOpts) error {
 	defer runtime.UnlockOSThread()
 
 	cOpts := opts.toC()
-	defer freeCheckoutOpts(cOpts)
+	defer freeCheckoutOptions(cOpts)
 
 	ret := C.git_checkout_index(v.ptr, iptr, cOpts)
 	runtime.KeepAlive(v)
@@ -221,12 +222,12 @@ func (v *Repository) CheckoutIndex(index *Index, opts *CheckoutOpts) error {
 	return nil
 }
 
-func (v *Repository) CheckoutTree(tree *Tree, opts *CheckoutOpts) error {
+func (v *Repository) CheckoutTree(tree *Tree, opts *CheckoutOptions) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
 	cOpts := opts.toC()
-	defer freeCheckoutOpts(cOpts)
+	defer freeCheckoutOptions(cOpts)
 
 	ret := C.git_checkout_tree(v.ptr, tree.ptr, cOpts)
 	runtime.KeepAlive(v)

@@ -140,7 +140,7 @@ func stashApplyProgressCb(progress C.git_stash_apply_progress_t, handle unsafe.P
 // StashApplyOptions represents options to control the apply operation.
 type StashApplyOptions struct {
 	Flags            StashApplyFlag
-	CheckoutOptions  CheckoutOpts               // options to use when writing files to the working directory
+	CheckoutOptions  CheckoutOptions            // options to use when writing files to the working directory
 	ProgressCallback StashApplyProgressCallback // optional callback to notify the consumer of application progress
 }
 
@@ -173,7 +173,7 @@ func (opts *StashApplyOptions) toC() (
 			version: C.GIT_STASH_APPLY_OPTIONS_VERSION,
 			flags:   C.git_stash_apply_flags(opts.Flags),
 		}
-		populateCheckoutOpts(&optsC.checkout_options, &opts.CheckoutOptions)
+		populateCheckoutOptions(&optsC.checkout_options, &opts.CheckoutOptions)
 		if opts.ProgressCallback != nil {
 			C._go_git_setup_stash_apply_progress_callbacks(optsC)
 			optsC.progress_payload = pointerHandles.Track(progressData)
@@ -191,21 +191,21 @@ func untrackStashApplyOptionsCallback(optsC *C.git_stash_apply_options) {
 
 func freeStashApplyOptions(optsC *C.git_stash_apply_options) {
 	if optsC != nil {
-		freeCheckoutOpts(&optsC.checkout_options)
+		freeCheckoutOptions(&optsC.checkout_options)
 	}
 }
 
 // Apply applies a single stashed state from the stash list.
 //
 // If local changes in the working directory conflict with changes in the
-// stash then ErrConflict will be returned.  In this case, the index
+// stash then ErrorCodeConflict will be returned.  In this case, the index
 // will always remain unmodified and all files in the working directory will
 // remain unmodified.  However, if you are restoring untracked files or
 // ignored files and there is a conflict when applying the modified files,
 // then those files will remain in the working directory.
 //
 // If passing the StashApplyReinstateIndex flag and there would be conflicts
-// when reinstating the index, the function will return ErrConflict
+// when reinstating the index, the function will return ErrorCodeConflict
 // and both the working directory and index will be left unmodified.
 //
 // Note that a minimum checkout strategy of 'CheckoutSafe' is implied.
@@ -213,12 +213,12 @@ func freeStashApplyOptions(optsC *C.git_stash_apply_options) {
 // 'index' is the position within the stash list. 0 points to the most
 // recent stashed state.
 //
-// Returns error code ErrNotFound if there's no stashed state for the given
-// index, error code ErrConflict if local changes in the working directory
+// Returns error code ErrorCodeNotFound if there's no stashed state for the given
+// index, error code ErrorCodeConflict if local changes in the working directory
 // conflict with changes in the stash, the user returned error from the
 // StashApplyProgressCallback, if any, or other error code.
 //
-// Error codes can be interogated with IsErrorCode(err, ErrNotFound).
+// Error codes can be interogated with IsErrorCode(err, ErrorCodeNotFound).
 func (c *StashCollection) Apply(index int, opts StashApplyOptions) error {
 	optsC, progressData := opts.toC()
 	defer untrackStashApplyOptionsCallback(optsC)
@@ -298,7 +298,7 @@ func (c *StashCollection) Foreach(callback StashCallback) error {
 // 'index' is the position within the stash list. 0 points
 // to the most recent stashed state.
 //
-// Returns error code ErrNotFound if there's no stashed
+// Returns error code ErrorCodeNotFound if there's no stashed
 // state for the given index.
 func (c *StashCollection) Drop(index int) error {
 	runtime.LockOSThread()
@@ -320,7 +320,7 @@ func (c *StashCollection) Drop(index int) error {
 //
 // 'opts' controls how stashes are applied.
 //
-// Returns error code ErrNotFound if there's no stashed
+// Returns error code ErrorCodeNotFound if there's no stashed
 // state for the given index.
 func (c *StashCollection) Pop(index int, opts StashApplyOptions) error {
 	optsC, progressData := opts.toC()
