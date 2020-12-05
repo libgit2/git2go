@@ -153,8 +153,8 @@ func TestObjectPeel(t *testing.T) {
 
 	obj, err = commit.Peel(ObjectTag)
 
-	if !IsErrorCode(err, ErrInvalidSpec) {
-		t.Fatalf("Wrong error when peeling a commit to a tag, expected ErrInvalidSpec, have %v", err)
+	if !IsErrorCode(err, ErrorCodeInvalidSpec) {
+		t.Fatalf("Wrong error when peeling a commit to a tag, expected ErrorCodeInvalidSpec, have %v", err)
 	}
 
 	tree, err := repo.LookupTree(treeID)
@@ -162,8 +162,8 @@ func TestObjectPeel(t *testing.T) {
 
 	obj, err = tree.Peel(ObjectAny)
 
-	if !IsErrorCode(err, ErrInvalidSpec) {
-		t.Fatalf("Wrong error when peeling a tree, expected ErrInvalidSpec, have %v", err)
+	if !IsErrorCode(err, ErrorCodeInvalidSpec) {
+		t.Fatalf("Wrong error when peeling a tree, expected ErrorCodeInvalidSpec, have %v", err)
 	}
 
 	entry := tree.EntryByName("README")
@@ -173,8 +173,8 @@ func TestObjectPeel(t *testing.T) {
 
 	obj, err = blob.Peel(ObjectAny)
 
-	if !IsErrorCode(err, ErrInvalidSpec) {
-		t.Fatalf("Wrong error when peeling a blob, expected ErrInvalidSpec, have %v", err)
+	if !IsErrorCode(err, ErrorCodeInvalidSpec) {
+		t.Fatalf("Wrong error when peeling a blob, expected ErrorCodeInvalidSpec, have %v", err)
 	}
 
 	tagID := createTestTag(t, repo, commit)
