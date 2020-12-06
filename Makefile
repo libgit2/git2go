@@ -1,3 +1,5 @@
+TEST_ARGS ?= --count=1
+
 default: test
 
 # System library
@@ -5,7 +7,7 @@ default: test
 # This uses whatever version of libgit2 can be found in the system.
 test:
 	go run script/check-MakeGitError-thread-lock.go
-	go test --count=1 ./...
+	go test $(TEST_ARGS) ./...
 
 install:
 	go install ./...
@@ -28,7 +30,7 @@ test-dynamic: dynamic-build/install/lib/libgit2.so
 			go run script/check-MakeGitError-thread-lock.go
 	PKG_CONFIG_PATH=dynamic-build/install/lib/pkgconfig \
 			LD_LIBRARY_PATH=dynamic-build/install/lib \
-			go test --count=1 ./...
+			go test $(TEST_ARGS) ./...
 
 install-dynamic: dynamic-build/install/lib/libgit2.so
 	PKG_CONFIG_PATH=dynamic-build/install/lib/pkgconfig \
@@ -47,7 +49,7 @@ static-build/install/lib/libgit2.a:
 
 test-static: static-build/install/lib/libgit2.a
 	go run script/check-MakeGitError-thread-lock.go
-	go test --count=1 --tags "static" ./...
+	go test --tags "static" $(TEST_ARGS) ./...
 
 install-static: static-build/install/lib/libgit2.a
 	go install --tags "static" ./...
