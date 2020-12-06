@@ -70,4 +70,9 @@ cmake -DTHREADSAFE=ON \
       -DCMAKE_INSTALL_LIBDIR="lib" \
       "${VENDORED_PATH}" &&
 
+if which gmake nproc >/dev/null && [ -f Makefile ]; then
+	# Make the build parallel if gmake is available and cmake used Makefiles.
+	exec gmake "-j$(nproc --all)" install
+fi
+
 exec cmake --build . --target install
