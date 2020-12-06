@@ -293,11 +293,11 @@ func (diff *Diff) Stats() (*DiffStats, error) {
 	return stats, nil
 }
 
-type diffForEachData struct {
-	FileCallback DiffForEachFileCallback
-	HunkCallback DiffForEachHunkCallback
-	LineCallback DiffForEachLineCallback
-	Error        error
+type diffForEachCallbackData struct {
+	fileCallback DiffForEachFileCallback
+	hunkCallback DiffForEachHunkCallback
+	lineCallback DiffForEachLineCallback
+	errorTarget  *error
 }
 
 type DiffForEachFileCallback func(delta DiffDelta, progress float64) (DiffForEachHunkCallback, error)
@@ -325,82 +325,91 @@ func (diff *Diff) ForEach(cbFile DiffForEachFileCallback, detail DiffDetail) err
 		intLines = C.int(1)
 	}
 
-	data := &diffForEachData{
-		FileCallback: cbFile,
+	var err error
+	data := &diffForEachCallbackData{
+		fileCallback: cbFile,
+		errorTarget:  &err,
 	}
 
 	handle := pointerHandles.Track(data)
 	defer pointerHandles.Untrack(handle)
 
-	ecode := C._go_git_diff_foreach(diff.ptr, 1, intHunks, intLines, handle)
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C._go_git_diff_foreach(diff.ptr, 1, intHunks, intLines, handle)
 	runtime.KeepAlive(diff)
-	if ecode < 0 {
-		return data.Error
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return err
 	}
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+
 	return nil
 }
 
-//export diffForEachFileCb
-func diffForEachFileCb(delta *C.git_diff_delta, progress C.float, handle unsafe.Pointer) int {
+//export diffForEachFileCallback
+func diffForEachFileCallback(delta *C.git_diff_delta, progress C.float, handle unsafe.Pointer) C.int {
 	payload := pointerHandles.Get(handle)
-	data, ok := payload.(*diffForEachData)
+	data, ok := payload.(*diffForEachCallbackData)
 	if !ok {
 		panic("could not retrieve data for handle")
 	}
 
-	data.HunkCallback = nil
-	if data.FileCallback != nil {
-		cb, err := data.FileCallback(diffDeltaFromC(delta), float64(progress))
+	data.hunkCallback = nil
+	if data.fileCallback != nil {
+		cb, err := data.fileCallback(diffDeltaFromC(delta), float64(progress))
 		if err != nil {
-			data.Error = err
-			return -1
+			*data.errorTarget = err
+			return C.int(ErrorCodeUser)
 		}
-		data.HunkCallback = cb
+		data.hunkCallback = cb
 	}
 
-	return 0
+	return C.int(ErrorCodeOK)
 }
 
 type DiffForEachHunkCallback func(DiffHunk) (DiffForEachLineCallback, error)
 
-//export diffForEachHunkCb
-func diffForEachHunkCb(delta *C.git_diff_delta, hunk *C.git_diff_hunk, handle unsafe.Pointer) int {
+//export diffForEachHunkCallback
+func diffForEachHunkCallback(delta *C.git_diff_delta, hunk *C.git_diff_hunk, handle unsafe.Pointer) C.int {
 	payload := pointerHandles.Get(handle)
-	data, ok := payload.(*diffForEachData)
+	data, ok := payload.(*diffForEachCallbackData)
 	if !ok {
 		panic("could not retrieve data for handle")
 	}
 
-	data.LineCallback = nil
-	if data.HunkCallback != nil {
-		cb, err := data.HunkCallback(diffHunkFromC(hunk))
+	data.lineCallback = nil
+	if data.hunkCallback != nil {
+		cb, err := data.hunkCallback(diffHunkFromC(hunk))
 		if err != nil {
-			data.Error = err
-			return -1
+			*data.errorTarget = err
+			return C.int(ErrorCodeUser)
 		}
-		data.LineCallback = cb
+		data.lineCallback = cb
 	}
 
-	return 0
+	return C.int(ErrorCodeOK)
 }
 
 type DiffForEachLineCallback func(DiffLine) error
 
-//export diffForEachLineCb
-func diffForEachLineCb(delta *C.git_diff_delta, hunk *C.git_diff_hunk, line *C.git_diff_line, handle unsafe.Pointer) int {
+//export diffForEachLineCallback
+func diffForEachLineCallback(delta *C.git_diff_delta, hunk *C.git_diff_hunk, line *C.git_diff_line, handle unsafe.Pointer) C.int {
 	payload := pointerHandles.Get(handle)
-	data, ok := payload.(*diffForEachData)
+	data, ok := payload.(*diffForEachCallbackData)
 	if !ok {
 		panic("could not retrieve data for handle")
 	}
 
-	err := data.LineCallback(diffLineFromC(line))
+	err := data.lineCallback(diffLineFromC(line))
 	if err != nil {
-		data.Error = err
-		return -1
+		*data.errorTarget = err
+		return C.int(ErrorCodeUser)
 	}
 
-	return 0
+	return C.int(ErrorCodeOK)
 }
 
 func (diff *Diff) Patch(deltaIndex int) (*Patch, error) {
@@ -585,93 +594,98 @@ var (
 	ErrDeltaSkip = errors.New("Skip delta")
 )
 
-type diffNotifyData struct {
-	Callback   DiffNotifyCallback
-	Repository *Repository
-	Error      error
+type diffNotifyCallbackData struct {
+	callback    DiffNotifyCallback
+	repository  *Repository
+	errorTarget *error
 }
 
-//export diffNotifyCb
-func diffNotifyCb(_diff_so_far unsafe.Pointer, delta_to_add *C.git_diff_delta, matched_pathspec *C.char, handle unsafe.Pointer) int {
+//export diffNotifyCallback
+func diffNotifyCallback(_diff_so_far unsafe.Pointer, delta_to_add *C.git_diff_delta, matched_pathspec *C.char, handle unsafe.Pointer) C.int {
 	diff_so_far := (*C.git_diff)(_diff_so_far)
 
 	payload := pointerHandles.Get(handle)
-	data, ok := payload.(*diffNotifyData)
+	data, ok := payload.(*diffNotifyCallbackData)
 	if !ok {
 		panic("could not retrieve data for handle")
 	}
 
-	if data != nil {
-		// We are not taking ownership of this diff pointer, so no finalizer is set.
-		diff := &Diff{
-			ptr:          diff_so_far,
-			repo:         data.Repository,
-			runFinalizer: false,
-		}
-
-		err := data.Callback(diff, diffDeltaFromC(delta_to_add), C.GoString(matched_pathspec))
-
-		// Since the callback could theoretically keep a reference to the diff
-		// (which could be freed by libgit2 if an error occurs later during the
-		// diffing process), this converts a use-after-free (terrible!) into a nil
-		// dereference ("just" pretty bad).
-		diff.ptr = nil
-
-		if err == ErrDeltaSkip {
-			return 1
-		} else if err != nil {
-			data.Error = err
-			return -1
-		} else {
-			return 0
-		}
+	if data == nil {
+		return C.int(ErrorCodeOK)
 	}
-	return 0
+
+	// We are not taking ownership of this diff pointer, so no finalizer is set.
+	diff := &Diff{
+		ptr:          diff_so_far,
+		repo:         data.repository,
+		runFinalizer: false,
+	}
+
+	err := data.callback(diff, diffDeltaFromC(delta_to_add), C.GoString(matched_pathspec))
+
+	// Since the callback could theoretically keep a reference to the diff
+	// (which could be freed by libgit2 if an error occurs later during the
+	// diffing process), this converts a use-after-free (terrible!) into a nil
+	// dereference ("just" pretty bad).
+	diff.ptr = nil
+
+	if err == ErrDeltaSkip {
+		return 1
+	}
+	if err != nil {
+		*data.errorTarget = err
+		return C.int(ErrorCodeUser)
+	}
+
+	return C.int(ErrorCodeOK)
 }
 
-func diffOptionsToC(opts *DiffOptions, repo *Repository) (copts *C.git_diff_options) {
-	cpathspec := C.git_strarray{}
-	if opts != nil {
-		notifyData := &diffNotifyData{
-			Callback:   opts.NotifyCallback,
-			Repository: repo,
-		}
-
-		if opts.Pathspec != nil {
-			cpathspec.count = C.size_t(len(opts.Pathspec))
-			cpathspec.strings = makeCStringsFromStrings(opts.Pathspec)
-		}
-
-		copts = &C.git_diff_options{
-			version:           C.GIT_DIFF_OPTIONS_VERSION,
-			flags:             C.uint32_t(opts.Flags),
-			ignore_submodules: C.git_submodule_ignore_t(opts.IgnoreSubmodules),
-			pathspec:          cpathspec,
-			context_lines:     C.uint32_t(opts.ContextLines),
-			interhunk_lines:   C.uint32_t(opts.InterhunkLines),
-			id_abbrev:         C.uint16_t(opts.IdAbbrev),
-			max_size:          C.git_off_t(opts.MaxSize),
-			old_prefix:        C.CString(opts.OldPrefix),
-			new_prefix:        C.CString(opts.NewPrefix),
-		}
-
-		if opts.NotifyCallback != nil {
-			C._go_git_setup_diff_notify_callbacks(copts)
-			copts.payload = pointerHandles.Track(notifyData)
-		}
+func (opts *DiffOptions) toC(repo *Repository, errorTarget *error) *C.git_diff_options {
+	if opts == nil {
+		return nil
 	}
-	return
+
+	cpathspec := C.git_strarray{}
+	if opts.Pathspec != nil {
+		cpathspec.count = C.size_t(len(opts.Pathspec))
+		cpathspec.strings = makeCStringsFromStrings(opts.Pathspec)
+	}
+
+	copts := &C.git_diff_options{
+		version:           C.GIT_DIFF_OPTIONS_VERSION,
+		flags:             C.uint32_t(opts.Flags),
+		ignore_submodules: C.git_submodule_ignore_t(opts.IgnoreSubmodules),
+		pathspec:          cpathspec,
+		context_lines:     C.uint32_t(opts.ContextLines),
+		interhunk_lines:   C.uint32_t(opts.InterhunkLines),
+		id_abbrev:         C.uint16_t(opts.IdAbbrev),
+		max_size:          C.git_off_t(opts.MaxSize),
+		old_prefix:        C.CString(opts.OldPrefix),
+		new_prefix:        C.CString(opts.NewPrefix),
+	}
+
+	if opts.NotifyCallback != nil {
+		notifyData := &diffNotifyCallbackData{
+			callback:    opts.NotifyCallback,
+			repository:  repo,
+			errorTarget: errorTarget,
+		}
+		C._go_git_setup_diff_notify_callbacks(copts)
+		copts.payload = pointerHandles.Track(notifyData)
+	}
+	return copts
 }
 
 func freeDiffOptions(copts *C.git_diff_options) {
-	if copts != nil {
-		cpathspec := copts.pathspec
-		freeStrarray(&cpathspec)
-		C.free(unsafe.Pointer(copts.old_prefix))
-		C.free(unsafe.Pointer(copts.new_prefix))
-		if copts.payload != nil {
-			pointerHandles.Untrack(copts.payload)
-		}
+	if copts == nil {
+		return
+	}
+	cpathspec := copts.pathspec
+	freeStrarray(&cpathspec)
+	C.free(unsafe.Pointer(copts.old_prefix))
+	C.free(unsafe.Pointer(copts.new_prefix))
+	if copts.payload != nil {
+		pointerHandles.Untrack(copts.payload)
 	}
 }
 
@@ -687,17 +701,21 @@ func (v *Repository) DiffTreeToTree(oldTree, newTree *Tree, opts *DiffOptions) (
 		newPtr = newTree.cast_ptr
 	}
 
-	copts := diffOptionsToC(opts, v)
+	var err error
+	copts := opts.toC(v, &err)
 	defer freeDiffOptions(copts)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_diff_tree_to_tree(&diffPtr, v.ptr, oldPtr, newPtr, copts)
+	ret := C.git_diff_tree_to_tree(&diffPtr, v.ptr, oldPtr, newPtr, copts)
 	runtime.KeepAlive(oldTree)
 	runtime.KeepAlive(newTree)
-	if ecode < 0 {
-		return nil, MakeGitError(ecode)
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return nil, err
+	}
+	if ret < 0 {
+		return nil, MakeGitError(ret)
 	}
 	return newDiffFromC(diffPtr, v), nil
 }
@@ -710,17 +728,22 @@ func (v *Repository) DiffTreeToWorkdir(oldTree *Tree, opts *DiffOptions) (*Diff,
 		oldPtr = oldTree.cast_ptr
 	}
 
-	copts := diffOptionsToC(opts, v)
+	var err error
+	copts := opts.toC(v, &err)
 	defer freeDiffOptions(copts)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_diff_tree_to_workdir(&diffPtr, v.ptr, oldPtr, copts)
+	ret := C.git_diff_tree_to_workdir(&diffPtr, v.ptr, oldPtr, copts)
 	runtime.KeepAlive(oldTree)
-	if ecode < 0 {
-		return nil, MakeGitError(ecode)
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return nil, err
 	}
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
 	return newDiffFromC(diffPtr, v), nil
 }
 
@@ -737,18 +760,23 @@ func (v *Repository) DiffTreeToIndex(oldTree *Tree, index *Index, opts *DiffOpti
 		indexPtr = index.ptr
 	}
 
-	copts := diffOptionsToC(opts, v)
+	var err error
+	copts := opts.toC(v, &err)
 	defer freeDiffOptions(copts)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_diff_tree_to_index(&diffPtr, v.ptr, oldPtr, indexPtr, copts)
+	ret := C.git_diff_tree_to_index(&diffPtr, v.ptr, oldPtr, indexPtr, copts)
 	runtime.KeepAlive(oldTree)
 	runtime.KeepAlive(index)
-	if ecode < 0 {
-		return nil, MakeGitError(ecode)
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return nil, err
 	}
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
 	return newDiffFromC(diffPtr, v), nil
 }
 
@@ -760,17 +788,22 @@ func (v *Repository) DiffTreeToWorkdirWithIndex(oldTree *Tree, opts *DiffOptions
 		oldPtr = oldTree.cast_ptr
 	}
 
-	copts := diffOptionsToC(opts, v)
+	var err error
+	copts := opts.toC(v, &err)
 	defer freeDiffOptions(copts)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_diff_tree_to_workdir_with_index(&diffPtr, v.ptr, oldPtr, copts)
+	ret := C.git_diff_tree_to_workdir_with_index(&diffPtr, v.ptr, oldPtr, copts)
 	runtime.KeepAlive(oldTree)
-	if ecode < 0 {
-		return nil, MakeGitError(ecode)
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return nil, err
 	}
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
 	return newDiffFromC(diffPtr, v), nil
 }
 
@@ -782,25 +815,32 @@ func (v *Repository) DiffIndexToWorkdir(index *Index, opts *DiffOptions) (*Diff,
 		indexPtr = index.ptr
 	}
 
-	copts := diffOptionsToC(opts, v)
+	var err error
+	copts := opts.toC(v, &err)
 	defer freeDiffOptions(copts)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_diff_index_to_workdir(&diffPtr, v.ptr, indexPtr, copts)
+	ret := C.git_diff_index_to_workdir(&diffPtr, v.ptr, indexPtr, copts)
 	runtime.KeepAlive(index)
-	if ecode < 0 {
-		return nil, MakeGitError(ecode)
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return nil, err
 	}
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
 	return newDiffFromC(diffPtr, v), nil
 }
 
 // DiffBlobs performs a diff between two arbitrary blobs. You can pass
 // whatever file names you'd like for them to appear as in the diff.
 func DiffBlobs(oldBlob *Blob, oldAsPath string, newBlob *Blob, newAsPath string, opts *DiffOptions, fileCallback DiffForEachFileCallback, detail DiffDetail) error {
-	data := &diffForEachData{
-		FileCallback: fileCallback,
+	var err error
+	data := &diffForEachCallbackData{
+		fileCallback: fileCallback,
+		errorTarget:  &err,
 	}
 
 	intHunks := C.int(0)
@@ -832,18 +872,50 @@ func DiffBlobs(oldBlob *Blob, oldAsPath string, newBlob *Blob, newAsPath string,
 	newBlobPath := C.CString(newAsPath)
 	defer C.free(unsafe.Pointer(newBlobPath))
 
-	copts := diffOptionsToC(opts, repo)
+	copts := opts.toC(repo, &err)
 	defer freeDiffOptions(copts)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C._go_git_diff_blobs(oldBlobPtr, oldBlobPath, newBlobPtr, newBlobPath, copts, 1, intHunks, intLines, handle)
+	ret := C._go_git_diff_blobs(oldBlobPtr, oldBlobPath, newBlobPtr, newBlobPath, copts, 1, intHunks, intLines, handle)
 	runtime.KeepAlive(oldBlob)
 	runtime.KeepAlive(newBlob)
-	if ecode < 0 {
-		return MakeGitError(ecode)
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return err
+	}
+	if ret < 0 {
+		return MakeGitError(ret)
 	}
 
 	return nil
+}
+
+// DiffFromBuffer reads the contents of a git patch file into a Diff object.
+//
+// The diff object produced is similar to the one that would be produced if you
+// actually produced it computationally by comparing two trees, however there
+// may be subtle differences. For example, a patch file likely contains
+// abbreviated object IDs, so the object IDs in a git_diff_delta produced by
+// this function will also be abbreviated.
+//
+// This function will only read patch files created by a git implementation, it
+// will not read unified diffs produced by the diff program, nor any other
+// types of patch files.
+func DiffFromBuffer(buffer []byte, repo *Repository) (*Diff, error) {
+	var diff *C.git_diff
+
+	cBuffer := C.CBytes(buffer)
+	defer C.free(unsafe.Pointer(cBuffer))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C.git_diff_from_buffer(&diff, (*C.char)(cBuffer), C.size_t(len(buffer)))
+	if ecode < 0 {
+		return nil, MakeGitError(ecode)
+	}
+	runtime.KeepAlive(diff)
+
+	return newDiffFromC(diff, repo), nil
 }

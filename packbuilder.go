@@ -133,15 +133,15 @@ func (pb *Packbuilder) Written() uint32 {
 }
 
 type PackbuilderForeachCallback func([]byte) error
-type packbuilderCbData struct {
-	callback PackbuilderForeachCallback
-	err      error
+type packbuilderCallbackData struct {
+	callback    PackbuilderForeachCallback
+	errorTarget *error
 }
 
-//export packbuilderForEachCb
-func packbuilderForEachCb(buf unsafe.Pointer, size C.size_t, handle unsafe.Pointer) int {
+//export packbuilderForEachCallback
+func packbuilderForEachCallback(buf unsafe.Pointer, size C.size_t, handle unsafe.Pointer) C.int {
 	payload := pointerHandles.Get(handle)
-	data, ok := payload.(*packbuilderCbData)
+	data, ok := payload.(*packbuilderCallbackData)
 	if !ok {
 		panic("could not get packbuilder CB data")
 	}
@@ -150,19 +150,20 @@ func packbuilderForEachCb(buf unsafe.Pointer, size C.size_t, handle unsafe.Point
 
 	err := data.callback(slice)
 	if err != nil {
-		data.err = err
-		return C.GIT_EUSER
+		*data.errorTarget = err
+		return C.int(ErrorCodeUser)
 	}
 
-	return 0
+	return C.int(ErrorCodeOK)
 }
 
 // ForEach repeatedly calls the callback with new packfile data until
 // there is no more data or the callback returns an error
 func (pb *Packbuilder) ForEach(callback PackbuilderForeachCallback) error {
-	data := packbuilderCbData{
-		callback: callback,
-		err:      nil,
+	var err error
+	data := packbuilderCallbackData{
+		callback:    callback,
+		errorTarget: &err,
 	}
 	handle := pointerHandles.Track(&data)
 	defer pointerHandles.Untrack(handle)
@@ -170,13 +171,13 @@ func (pb *Packbuilder) ForEach(callback PackbuilderForeachCallback) error {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	err := C._go_git_packbuilder_foreach(pb.ptr, handle)
+	ret := C._go_git_packbuilder_foreach(pb.ptr, handle)
 	runtime.KeepAlive(pb)
-	if err == C.GIT_EUSER {
-		return data.err
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return err
 	}
-	if err < 0 {
-		return MakeGitError(err)
+	if ret < 0 {
+		return MakeGitError(ret)
 	}
 
 	return nil

@@ -169,9 +169,8 @@ func TestDiffTreeToTree(t *testing.T) {
 	}, DiffDetailLines)
 
 	if err != errTest {
-		t.Fatal("Expected custom error to be returned")
+		t.Fatalf("Expected custom error to be returned, got %v, want %v", err, errTest)
 	}
-
 }
 
 func createTestTrees(t *testing.T, repo *Repository) (originalTree *Tree, newTree *Tree) {

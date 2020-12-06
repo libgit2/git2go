@@ -104,7 +104,7 @@ func rebaseOptionsFromC(opts *C.git_rebase_options) RebaseOptions {
 	}
 }
 
-func (ro *RebaseOptions) toC() *C.git_rebase_options {
+func (ro *RebaseOptions) toC(errorTarget *error) *C.git_rebase_options {
 	if ro == nil {
 		return nil
 	}
@@ -114,8 +114,17 @@ func (ro *RebaseOptions) toC() *C.git_rebase_options {
 		inmemory:          C.int(ro.InMemory),
 		rewrite_notes_ref: mapEmptyStringToNull(ro.RewriteNotesRef),
 		merge_options:     *ro.MergeOptions.toC(),
-		checkout_options:  *ro.CheckoutOptions.toC(),
+		checkout_options:  *ro.CheckoutOptions.toC(errorTarget),
 	}
+}
+
+func freeRebaseOptions(opts *C.git_rebase_options) {
+	if opts == nil {
+		return
+	}
+	C.free(unsafe.Pointer(opts.rewrite_notes_ref))
+	freeMergeOptions(&opts.merge_options)
+	freeCheckoutOptions(&opts.checkout_options)
 }
 
 func mapEmptyStringToNull(ref string) *C.char {
@@ -127,8 +136,9 @@ func mapEmptyStringToNull(ref string) *C.char {
 
 // Rebase is the struct representing a Rebase object.
 type Rebase struct {
-	ptr *C.git_rebase
-	r   *Repository
+	ptr     *C.git_rebase
+	r       *Repository
+	options *C.git_rebase_options
 }
 
 // InitRebase initializes a rebase operation to rebase the changes in branch relative to upstream onto another branch.
@@ -149,15 +159,22 @@ func (r *Repository) InitRebase(branch *AnnotatedCommit, upstream *AnnotatedComm
 	}
 
 	var ptr *C.git_rebase
-	err := C.git_rebase_init(&ptr, r.ptr, branch.ptr, upstream.ptr, onto.ptr, opts.toC())
+	var err error
+	cOpts := opts.toC(&err)
+	ret := C.git_rebase_init(&ptr, r.ptr, branch.ptr, upstream.ptr, onto.ptr, cOpts)
 	runtime.KeepAlive(branch)
 	runtime.KeepAlive(upstream)
 	runtime.KeepAlive(onto)
-	if err < 0 {
-		return nil, MakeGitError(err)
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		freeRebaseOptions(cOpts)
+		return nil, err
+	}
+	if ret < 0 {
+		freeRebaseOptions(cOpts)
+		return nil, MakeGitError(ret)
 	}
 
-	return newRebaseFromC(ptr), nil
+	return newRebaseFromC(ptr, cOpts), nil
 }
 
 // OpenRebase opens an existing rebase that was previously started by either an invocation of InitRebase or by another client.
@@ -166,13 +183,20 @@ func (r *Repository) OpenRebase(opts *RebaseOptions) (*Rebase, error) {
 	defer runtime.UnlockOSThread()
 
 	var ptr *C.git_rebase
-	err := C.git_rebase_open(&ptr, r.ptr, opts.toC())
+	var err error
+	cOpts := opts.toC(&err)
+	ret := C.git_rebase_open(&ptr, r.ptr, cOpts)
 	runtime.KeepAlive(r)
-	if err < 0 {
-		return nil, MakeGitError(err)
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		freeRebaseOptions(cOpts)
+		return nil, err
+	}
+	if ret < 0 {
+		freeRebaseOptions(cOpts)
+		return nil, MakeGitError(ret)
 	}
 
-	return newRebaseFromC(ptr), nil
+	return newRebaseFromC(ptr, cOpts), nil
 }
 
 // OperationAt gets the rebase operation specified by the given index.
@@ -283,13 +307,14 @@ func (rebase *Rebase) Abort() error {
 }
 
 // Free frees the Rebase object.
-func (rebase *Rebase) Free() {
-	runtime.SetFinalizer(rebase, nil)
-	C.git_rebase_free(rebase.ptr)
+func (r *Rebase) Free() {
+	runtime.SetFinalizer(r, nil)
+	C.git_rebase_free(r.ptr)
+	freeRebaseOptions(r.options)
 }
 
-func newRebaseFromC(ptr *C.git_rebase) *Rebase {
-	rebase := &Rebase{ptr: ptr}
+func newRebaseFromC(ptr *C.git_rebase, opts *C.git_rebase_options) *Rebase {
+	rebase := &Rebase{ptr: ptr, options: opts}
 	runtime.SetFinalizer(rebase, (*Rebase).Free)
 	return rebase
 }
