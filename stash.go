@@ -3,7 +3,7 @@ package git
 /*
 #include <git2.h>
 
-extern void _go_git_setup_stash_apply_progress_callbacks(git_stash_apply_options *opts);
+extern void _go_git_populate_stash_apply_callbacks(git_stash_apply_options *opts);
 extern int _go_git_stash_foreach(git_repository *repo, void *payload);
 */
 import "C"
@@ -113,28 +113,28 @@ const (
 
 // StashApplyProgressCallback is the apply operation notification callback.
 type StashApplyProgressCallback func(progress StashApplyProgress) error
-
-type stashApplyProgressData struct {
-	Callback StashApplyProgressCallback
-	Error    error
+type stashApplyProgressCallbackData struct {
+	callback    StashApplyProgressCallback
+	errorTarget *error
 }
 
-//export stashApplyProgressCb
-func stashApplyProgressCb(progress C.git_stash_apply_progress_t, handle unsafe.Pointer) int {
+//export stashApplyProgressCallback
+func stashApplyProgressCallback(progress C.git_stash_apply_progress_t, handle unsafe.Pointer) C.int {
 	payload := pointerHandles.Get(handle)
-	data, ok := payload.(*stashApplyProgressData)
+	data, ok := payload.(*stashApplyProgressCallbackData)
 	if !ok {
 		panic("could not retrieve data for handle")
 	}
-
-	if data != nil {
-		err := data.Callback(StashApplyProgress(progress))
-		if err != nil {
-			data.Error = err
-			return C.GIT_EUSER
-		}
+	if data == nil || data.callback == nil {
+		return C.int(ErrorCodeOK)
 	}
-	return 0
+
+	err := data.callback(StashApplyProgress(progress))
+	if err != nil {
+		*data.errorTarget = err
+		return C.int(ErrorCodeUser)
+	}
+	return C.int(ErrorCodeOK)
 }
 
 // StashApplyOptions represents options to control the apply operation.
@@ -161,38 +161,34 @@ func DefaultStashApplyOptions() (StashApplyOptions, error) {
 	}, nil
 }
 
-func (opts *StashApplyOptions) toC() (
-	optsC *C.git_stash_apply_options, progressData *stashApplyProgressData) {
-
-	if opts != nil {
-		progressData = &stashApplyProgressData{
-			Callback: opts.ProgressCallback,
-		}
-
-		optsC = &C.git_stash_apply_options{
-			version: C.GIT_STASH_APPLY_OPTIONS_VERSION,
-			flags:   C.git_stash_apply_flags(opts.Flags),
-		}
-		populateCheckoutOptions(&optsC.checkout_options, &opts.CheckoutOptions)
-		if opts.ProgressCallback != nil {
-			C._go_git_setup_stash_apply_progress_callbacks(optsC)
-			optsC.progress_payload = pointerHandles.Track(progressData)
-		}
+func (opts *StashApplyOptions) toC(errorTarget *error) *C.git_stash_apply_options {
+	if opts == nil {
+		return nil
 	}
-	return
-}
-
-// should be called after every call to toC() as deferred.
-func untrackStashApplyOptionsCallback(optsC *C.git_stash_apply_options) {
-	if optsC != nil && optsC.progress_payload != nil {
-		pointerHandles.Untrack(optsC.progress_payload)
+	optsC := &C.git_stash_apply_options{
+		version: C.GIT_STASH_APPLY_OPTIONS_VERSION,
+		flags:   C.git_stash_apply_flags(opts.Flags),
 	}
+	populateCheckoutOptions(&optsC.checkout_options, &opts.CheckoutOptions, errorTarget)
+	if opts.ProgressCallback != nil {
+		progressData := &stashApplyProgressCallbackData{
+			callback:    opts.ProgressCallback,
+			errorTarget: errorTarget,
+		}
+		C._go_git_populate_stash_apply_callbacks(optsC)
+		optsC.progress_payload = pointerHandles.Track(progressData)
+	}
+	return optsC
 }
 
 func freeStashApplyOptions(optsC *C.git_stash_apply_options) {
-	if optsC != nil {
-		freeCheckoutOptions(&optsC.checkout_options)
+	if optsC == nil {
+		return
 	}
+	if optsC.progress_payload != nil {
+		pointerHandles.Untrack(optsC.progress_payload)
+	}
+	freeCheckoutOptions(&optsC.checkout_options)
 }
 
 // Apply applies a single stashed state from the stash list.
@@ -220,8 +216,8 @@ func freeStashApplyOptions(optsC *C.git_stash_apply_options) {
 //
 // Error codes can be interogated with IsErrorCode(err, ErrorCodeNotFound).
 func (c *StashCollection) Apply(index int, opts StashApplyOptions) error {
-	optsC, progressData := opts.toC()
-	defer untrackStashApplyOptionsCallback(optsC)
+	var err error
+	optsC := opts.toC(&err)
 	defer freeStashApplyOptions(optsC)
 
 	runtime.LockOSThread()
@@ -229,8 +225,8 @@ func (c *StashCollection) Apply(index int, opts StashApplyOptions) error {
 
 	ret := C.git_stash_apply(c.repo.ptr, C.size_t(index), optsC)
 	runtime.KeepAlive(c)
-	if ret == C.GIT_EUSER {
-		return progressData.Error
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return err
 	}
 	if ret < 0 {
 		return MakeGitError(ret)
@@ -245,26 +241,25 @@ func (c *StashCollection) Apply(index int, opts StashApplyOptions) error {
 // 'message' is the message used when creating the stash and 'id'
 // is the commit id of the stash.
 type StashCallback func(index int, message string, id *Oid) error
-
 type stashCallbackData struct {
-	Callback StashCallback
-	Error    error
+	callback    StashCallback
+	errorTarget *error
 }
 
-//export stashForeachCb
-func stashForeachCb(index C.size_t, message *C.char, id *C.git_oid, handle unsafe.Pointer) int {
+//export stashForeachCallback
+func stashForeachCallback(index C.size_t, message *C.char, id *C.git_oid, handle unsafe.Pointer) C.int {
 	payload := pointerHandles.Get(handle)
 	data, ok := payload.(*stashCallbackData)
 	if !ok {
 		panic("could not retrieve data for handle")
 	}
 
-	err := data.Callback(int(index), C.GoString(message), newOidFromC(id))
+	err := data.callback(int(index), C.GoString(message), newOidFromC(id))
 	if err != nil {
-		data.Error = err
-		return C.GIT_EUSER
+		*data.errorTarget = err
+		return C.int(ErrorCodeUser)
 	}
-	return 0
+	return C.int(ErrorCodeOK)
 }
 
 // Foreach loops over all the stashed states and calls the callback
@@ -272,10 +267,11 @@ func stashForeachCb(index C.size_t, message *C.char, id *C.git_oid, handle unsaf
 //
 // If callback returns an error, this will stop looping.
 func (c *StashCollection) Foreach(callback StashCallback) error {
+	var err error
 	data := stashCallbackData{
-		Callback: callback,
+		callback:    callback,
+		errorTarget: &err,
 	}
-
 	handle := pointerHandles.Track(&data)
 	defer pointerHandles.Untrack(handle)
 
@@ -284,8 +280,8 @@ func (c *StashCollection) Foreach(callback StashCallback) error {
 
 	ret := C._go_git_stash_foreach(c.repo.ptr, handle)
 	runtime.KeepAlive(c)
-	if ret == C.GIT_EUSER {
-		return data.Error
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return err
 	}
 	if ret < 0 {
 		return MakeGitError(ret)
@@ -323,8 +319,8 @@ func (c *StashCollection) Drop(index int) error {
 // Returns error code ErrorCodeNotFound if there's no stashed
 // state for the given index.
 func (c *StashCollection) Pop(index int, opts StashApplyOptions) error {
-	optsC, progressData := opts.toC()
-	defer untrackStashApplyOptionsCallback(optsC)
+	var err error
+	optsC := opts.toC(&err)
 	defer freeStashApplyOptions(optsC)
 
 	runtime.LockOSThread()
@@ -332,8 +328,8 @@ func (c *StashCollection) Pop(index int, opts StashApplyOptions) error {
 
 	ret := C.git_stash_pop(c.repo.ptr, C.size_t(index), optsC)
 	runtime.KeepAlive(c)
-	if ret == C.GIT_EUSER {
-		return progressData.Error
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return err
 	}
 	if ret < 0 {
 		return MakeGitError(ret)
