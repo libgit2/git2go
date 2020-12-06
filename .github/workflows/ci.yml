@@ -40,7 +40,7 @@ jobs:
     - name: Test
       env:
         GOPATH: /home/runner/work/git2go
-      run: make test-static
+      run: make TEST_ARGS=-test.v test-static
 
   build-static:
     strategy:
@@ -64,7 +64,7 @@ jobs:
         git submodule update --init
         make build-libgit2-static
     - name: Test
-      run:  make test-static
+      run:  make TEST_ARGS=-test.v test-static
 
   build-dynamic:
     strategy:
@@ -86,7 +86,7 @@ jobs:
         git submodule update --init
         make build-libgit2-dynamic
     - name: Test
-      run: make test-dynamic
+      run: make TEST_ARGS=-test.v test-dynamic
 
   build-system-dynamic:
     strategy:
@@ -108,7 +108,7 @@ jobs:
         git submodule update --init
         sudo ./script/build-libgit2.sh --dynamic --system
     - name: Test
-      run: make test
+      run: make TEST_ARGS=-test.v test
 
   build-system-static:
     strategy:
