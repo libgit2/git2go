@@ -30,7 +30,7 @@ func assertHostname(cert *Certificate, valid bool, hostname string, t *testing.T
 		return ErrorCodeUser
 	}
 
-	return 0
+	return ErrorCodeOK
 }
 
 func TestCertificateCheck(t *testing.T) {

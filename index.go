@@ -10,12 +10,17 @@ extern int _go_git_index_remove_all(git_index*, const git_strarray*, void*);
 */
 import "C"
 import (
+	"errors"
 	"fmt"
 	"runtime"
 	"unsafe"
 )
 
 type IndexMatchedPathCallback func(string, string) int
+type indexMatchedPathCallbackData struct {
+	callback    IndexMatchedPathCallback
+	errorTarget *error
+}
 
 // IndexAddOption is a set of flags for APIs that add files matching pathspec.
 type IndexAddOption uint
@@ -227,12 +232,17 @@ func (v *Index) AddAll(pathspecs []string, flags IndexAddOption, callback IndexM
 	cpathspecs.strings = makeCStringsFromStrings(pathspecs)
 	defer freeStrarray(&cpathspecs)
 
+	var err error
+	data := indexMatchedPathCallbackData{
+		callback:    callback,
+		errorTarget: &err,
+	}
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
 	var handle unsafe.Pointer
 	if callback != nil {
-		handle = pointerHandles.Track(callback)
+		handle = pointerHandles.Track(&data)
 		defer pointerHandles.Untrack(handle)
 	}
 
@@ -243,9 +253,13 @@ func (v *Index) AddAll(pathspecs []string, flags IndexAddOption, callback IndexM
 		handle,
 	)
 	runtime.KeepAlive(v)
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return err
+	}
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
+
 	return nil
 }
 
@@ -255,12 +269,17 @@ func (v *Index) UpdateAll(pathspecs []string, callback IndexMatchedPathCallback)
 	cpathspecs.strings = makeCStringsFromStrings(pathspecs)
 	defer freeStrarray(&cpathspecs)
 
+	var err error
+	data := indexMatchedPathCallbackData{
+		callback:    callback,
+		errorTarget: &err,
+	}
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
 	var handle unsafe.Pointer
 	if callback != nil {
-		handle = pointerHandles.Track(callback)
+		handle = pointerHandles.Track(&data)
 		defer pointerHandles.Untrack(handle)
 	}
 
@@ -270,9 +289,13 @@ func (v *Index) UpdateAll(pathspecs []string, callback IndexMatchedPathCallback)
 		handle,
 	)
 	runtime.KeepAlive(v)
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return err
+	}
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
+
 	return nil
 }
 
@@ -282,12 +305,17 @@ func (v *Index) RemoveAll(pathspecs []string, callback IndexMatchedPathCallback)
 	cpathspecs.strings = makeCStringsFromStrings(pathspecs)
 	defer freeStrarray(&cpathspecs)
 
+	var err error
+	data := indexMatchedPathCallbackData{
+		callback:    callback,
+		errorTarget: &err,
+	}
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
 	var handle unsafe.Pointer
 	if callback != nil {
-		handle = pointerHandles.Track(callback)
+		handle = pointerHandles.Track(&data)
 		defer pointerHandles.Untrack(handle)
 	}
 
@@ -297,19 +325,30 @@ func (v *Index) RemoveAll(pathspecs []string, callback IndexMatchedPathCallback)
 		handle,
 	)
 	runtime.KeepAlive(v)
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return err
+	}
 	if ret < 0 {
 		return MakeGitError(ret)
 	}
+
 	return nil
 }
 
 //export indexMatchedPathCallback
-func indexMatchedPathCallback(cPath, cMatchedPathspec *C.char, payload unsafe.Pointer) int {
-	if callback, ok := pointerHandles.Get(payload).(IndexMatchedPathCallback); ok {
-		return callback(C.GoString(cPath), C.GoString(cMatchedPathspec))
-	} else {
+func indexMatchedPathCallback(cPath, cMatchedPathspec *C.char, payload unsafe.Pointer) C.int {
+	data, ok := pointerHandles.Get(payload).(*indexMatchedPathCallbackData)
+	if !ok {
 		panic("invalid matched path callback")
 	}
+
+	ret := data.callback(C.GoString(cPath), C.GoString(cMatchedPathspec))
+	if ret < 0 {
+		*data.errorTarget = errors.New(ErrorCode(ret).String())
+		return C.int(ErrorCodeUser)
+	}
+
+	return C.int(ErrorCodeOK)
 }
 
 func (v *Index) RemoveByPath(path string) error {
@@ -435,7 +474,7 @@ func (v *Index) EntryByPath(path string, stage int) (*IndexEntry, error) {
 
 	centry := C.git_index_get_bypath(v.ptr, cpath, C.int(stage))
 	if centry == nil {
-		return nil, MakeGitError(C.GIT_ENOTFOUND)
+		return nil, MakeGitError(C.int(ErrorCodeNotFound))
 	}
 	ret := newIndexEntryFromC(centry)
 	runtime.KeepAlive(v)

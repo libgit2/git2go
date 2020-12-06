@@ -175,35 +175,33 @@ func (v *Odb) Read(oid *Oid) (obj *OdbObject, err error) {
 }
 
 type OdbForEachCallback func(id *Oid) error
-
-type foreachData struct {
-	callback OdbForEachCallback
-	err      error
+type odbForEachCallbackData struct {
+	callback    OdbForEachCallback
+	errorTarget *error
 }
 
-//export odbForEachCb
-func odbForEachCb(id *C.git_oid, handle unsafe.Pointer) int {
-	data, ok := pointerHandles.Get(handle).(*foreachData)
-
+//export odbForEachCallback
+func odbForEachCallback(id *C.git_oid, handle unsafe.Pointer) C.int {
+	data, ok := pointerHandles.Get(handle).(*odbForEachCallbackData)
 	if !ok {
 		panic("could not retrieve handle")
 	}
 
 	err := data.callback(newOidFromC(id))
 	if err != nil {
-		data.err = err
-		return C.GIT_EUSER
+		*data.errorTarget = err
+		return C.int(ErrorCodeUser)
 	}
 
-	return 0
+	return C.int(ErrorCodeOK)
 }
 
 func (v *Odb) ForEach(callback OdbForEachCallback) error {
-	data := foreachData{
-		callback: callback,
-		err:      nil,
+	var err error
+	data := odbForEachCallbackData{
+		callback:    callback,
+		errorTarget: &err,
 	}
-
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
@@ -212,9 +210,10 @@ func (v *Odb) ForEach(callback OdbForEachCallback) error {
 
 	ret := C._go_git_odb_foreach(v.ptr, handle)
 	runtime.KeepAlive(v)
-	if ret == C.GIT_EUSER {
-		return data.err
-	} else if ret < 0 {
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return err
+	}
+	if ret < 0 {
 		return MakeGitError(ret)
 	}
 
