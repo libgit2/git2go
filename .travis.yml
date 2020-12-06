@@ -8,6 +8,7 @@ go:
   - tip
 
 install:
+  - sudo apt-get install -y --no-install-recommends libssh2-1-dev
   - make build-libgit2-static
   - go get --tags "static" ./...
 

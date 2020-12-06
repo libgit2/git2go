@@ -437,6 +437,29 @@ git_credential_t _go_git_credential_credtype(git_credential *cred)
 	return cred->credtype;
 }
 
+static int credential_ssh_sign_callback(
+		LIBSSH2_SESSION *session,
+		unsigned char **sig, size_t *sig_len,
+		const unsigned char *data, size_t data_len,
+		void **abstract)
+{
+	char *error_message = NULL;
+	const int ret = credentialSSHSignCallback(
+			&error_message,
+			sig,
+			sig_len,
+			(unsigned char *)data,
+			data_len,
+			(void *)*(uintptr_t *)abstract);
+	return set_callback_error(error_message, ret);
+}
+
+void _go_git_populate_credential_ssh_custom(git_credential_ssh_custom *cred)
+{
+	cred->parent.free = (void (*)(git_credential *))credentialSSHCustomFree;
+	cred->sign_callback = credential_ssh_sign_callback;
+}
+
 int _go_git_odb_write_pack(git_odb_writepack **out, git_odb *db, void *progress_payload)
 {
 	return git_odb_write_pack(out, db, transfer_progress_callback, progress_payload);
