@@ -2,9 +2,16 @@ package git
 
 /*
 #include <git2.h>
+
+void _go_git_populate_credential_ssh_custom(git_cred_ssh_custom *cred);
 */
 import "C"
-import "unsafe"
+import (
+	"crypto/rand"
+	"unsafe"
+
+	"golang.org/x/crypto/ssh"
+)
 
 type CredType uint
 
@@ -88,4 +95,62 @@ func NewCredDefault() (int, Cred) {
 	cred := Cred{}
 	ret := C.git_cred_default_new(&cred.ptr)
 	return int(ret), cred
+}
+
+type credentialSSHCustomData struct {
+	signer ssh.Signer
+}
+
+//export credentialSSHCustomFree
+func credentialSSHCustomFree(cred *C.git_cred_ssh_custom) {
+	if cred == nil {
+		return
+	}
+
+	C.free(unsafe.Pointer(cred.username))
+	C.free(unsafe.Pointer(cred.publickey))
+	pointerHandles.Untrack(cred.payload)
+	C.free(unsafe.Pointer(cred))
+}
+
+//export credentialSSHSignCallback
+func credentialSSHSignCallback(
+	errorMessage **C.char,
+	sig **C.uchar,
+	sig_len *C.size_t,
+	data *C.uchar,
+	data_len C.size_t,
+	handle unsafe.Pointer,
+) C.int {
+	signer := pointerHandles.Get(handle).(*credentialSSHCustomData).signer
+	signature, err := signer.Sign(rand.Reader, C.GoBytes(unsafe.Pointer(data), C.int(data_len)))
+	if err != nil {
+		return setCallbackError(errorMessage, err)
+	}
+	*sig = (*C.uchar)(C.CBytes(signature.Blob))
+	*sig_len = C.size_t(len(signature.Blob))
+	return C.int(ErrorCodeOK)
+}
+
+// NewCredentialSSHKeyFromSigner creates new SSH credentials using the provided signer.
+func NewCredentialSSHKeyFromSigner(username string, signer ssh.Signer) (*Cred, error) {
+	publicKey := signer.PublicKey().Marshal()
+
+	ccred := (*C.git_cred_ssh_custom)(C.calloc(1, C.size_t(unsafe.Sizeof(C.git_cred_ssh_custom{}))))
+	ccred.parent.credtype = C.GIT_CREDTYPE_SSH_CUSTOM
+	ccred.username = C.CString(username)
+	ccred.publickey = (*C.char)(C.CBytes(publicKey))
+	ccred.publickey_len = C.size_t(len(publicKey))
+	C._go_git_populate_credential_ssh_custom(ccred)
+
+	data := credentialSSHCustomData{
+		signer: signer,
+	}
+	ccred.payload = pointerHandles.Track(&data)
+
+	cred := Cred{
+		ptr: &ccred.parent,
+	}
+
+	return &cred, nil
 }
