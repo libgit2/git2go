@@ -94,15 +94,14 @@ type cloneCallbackData struct {
 	errorTarget *error
 }
 
-func populateCloneOptions(ptr *C.git_clone_options, opts *CloneOptions, errorTarget *error) *C.git_clone_options {
-	C.git_clone_options_init(ptr, C.GIT_CLONE_OPTIONS_VERSION)
-
+func populateCloneOptions(copts *C.git_clone_options, opts *CloneOptions, errorTarget *error) *C.git_clone_options {
+	C.git_clone_options_init(copts, C.GIT_CLONE_OPTIONS_VERSION)
 	if opts == nil {
 		return nil
 	}
-	populateCheckoutOptions(&ptr.checkout_opts, opts.CheckoutOpts, errorTarget)
-	populateFetchOptions(&ptr.fetch_opts, opts.FetchOptions)
-	ptr.bare = cbool(opts.Bare)
+	populateCheckoutOptions(&copts.checkout_opts, opts.CheckoutOpts, errorTarget)
+	populateFetchOptions(&copts.fetch_opts, opts.FetchOptions, errorTarget)
+	copts.bare = cbool(opts.Bare)
 
 	if opts.RemoteCreateCallback != nil {
 		data := &cloneCallbackData{
@@ -110,23 +109,24 @@ func populateCloneOptions(ptr *C.git_clone_options, opts *CloneOptions, errorTar
 			errorTarget: errorTarget,
 		}
 		// Go v1.1 does not allow to assign a C function pointer
-		C._go_git_populate_clone_callbacks(ptr)
-		ptr.remote_cb_payload = pointerHandles.Track(data)
+		C._go_git_populate_clone_callbacks(copts)
+		copts.remote_cb_payload = pointerHandles.Track(data)
 	}
 
-	return ptr
+	return copts
 }
 
-func freeCloneOptions(ptr *C.git_clone_options) {
-	if ptr == nil {
+func freeCloneOptions(copts *C.git_clone_options) {
+	if copts == nil {
 		return
 	}
 
-	freeCheckoutOptions(&ptr.checkout_opts)
+	freeCheckoutOptions(&copts.checkout_opts)
+	freeFetchOptions(&copts.fetch_opts)
 
-	if ptr.remote_cb_payload != nil {
-		pointerHandles.Untrack(ptr.remote_cb_payload)
+	if copts.remote_cb_payload != nil {
+		pointerHandles.Untrack(copts.remote_cb_payload)
 	}
 
-	C.free(unsafe.Pointer(ptr.checkout_branch))
+	C.free(unsafe.Pointer(copts.checkout_branch))
 }
