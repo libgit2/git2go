@@ -19,7 +19,7 @@ func (r *Repository) ResetToCommit(commit *Commit, resetType ResetType, opts *Ch
 	defer runtime.UnlockOSThread()
 
 	var err error
-	cOpts := opts.toC(&err)
+	cOpts := populateCheckoutOptions(&C.git_checkout_options{}, opts, &err)
 	defer freeCheckoutOptions(cOpts)
 
 	ret := C.git_reset(r.ptr, commit.ptr, C.git_reset_t(resetType), cOpts)

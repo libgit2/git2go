@@ -161,34 +161,32 @@ func DefaultStashApplyOptions() (StashApplyOptions, error) {
 	}, nil
 }
 
-func (opts *StashApplyOptions) toC(errorTarget *error) *C.git_stash_apply_options {
+func populateStashApplyOptions(copts *C.git_stash_apply_options, opts *StashApplyOptions, errorTarget *error) *C.git_stash_apply_options {
+	C.git_stash_apply_init_options(copts, C.GIT_STASH_APPLY_OPTIONS_VERSION)
 	if opts == nil {
 		return nil
 	}
-	optsC := &C.git_stash_apply_options{
-		version: C.GIT_STASH_APPLY_OPTIONS_VERSION,
-		flags:   C.git_stash_apply_flags(opts.Flags),
-	}
-	populateCheckoutOptions(&optsC.checkout_options, &opts.CheckoutOptions, errorTarget)
+	copts.flags = C.git_stash_apply_flags(opts.Flags)
+	populateCheckoutOptions(&copts.checkout_options, &opts.CheckoutOptions, errorTarget)
 	if opts.ProgressCallback != nil {
 		progressData := &stashApplyProgressCallbackData{
 			callback:    opts.ProgressCallback,
 			errorTarget: errorTarget,
 		}
-		C._go_git_populate_stash_apply_callbacks(optsC)
-		optsC.progress_payload = pointerHandles.Track(progressData)
+		C._go_git_populate_stash_apply_callbacks(copts)
+		copts.progress_payload = pointerHandles.Track(progressData)
 	}
-	return optsC
+	return copts
 }
 
-func freeStashApplyOptions(optsC *C.git_stash_apply_options) {
-	if optsC == nil {
+func freeStashApplyOptions(copts *C.git_stash_apply_options) {
+	if copts == nil {
 		return
 	}
-	if optsC.progress_payload != nil {
-		pointerHandles.Untrack(optsC.progress_payload)
+	if copts.progress_payload != nil {
+		pointerHandles.Untrack(copts.progress_payload)
 	}
-	freeCheckoutOptions(&optsC.checkout_options)
+	freeCheckoutOptions(&copts.checkout_options)
 }
 
 // Apply applies a single stashed state from the stash list.
@@ -217,7 +215,7 @@ func freeStashApplyOptions(optsC *C.git_stash_apply_options) {
 // Error codes can be interogated with IsErrorCode(err, ErrorCodeNotFound).
 func (c *StashCollection) Apply(index int, opts StashApplyOptions) error {
 	var err error
-	optsC := opts.toC(&err)
+	optsC := populateStashApplyOptions(&C.git_stash_apply_options{}, &opts, &err)
 	defer freeStashApplyOptions(optsC)
 
 	runtime.LockOSThread()
@@ -320,7 +318,7 @@ func (c *StashCollection) Drop(index int) error {
 // state for the given index.
 func (c *StashCollection) Pop(index int, opts StashApplyOptions) error {
 	var err error
-	optsC := opts.toC(&err)
+	optsC := populateStashApplyOptions(&C.git_stash_apply_options{}, &opts, &err)
 	defer freeStashApplyOptions(optsC)
 
 	runtime.LockOSThread()

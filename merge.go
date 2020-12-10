@@ -172,21 +172,20 @@ func DefaultMergeOptions() (MergeOptions, error) {
 	return mergeOptionsFromC(&opts), nil
 }
 
-func (mo *MergeOptions) toC() *C.git_merge_options {
-	if mo == nil {
+func populateMergeOptions(copts *C.git_merge_options, opts *MergeOptions) *C.git_merge_options {
+	C.git_merge_init_options(copts, C.GIT_MERGE_OPTIONS_VERSION)
+	if opts == nil {
 		return nil
 	}
-	return &C.git_merge_options{
-		version:          C.uint(mo.Version),
-		flags:            C.git_merge_flag_t(mo.TreeFlags),
-		rename_threshold: C.uint(mo.RenameThreshold),
-		target_limit:     C.uint(mo.TargetLimit),
-		recursion_limit:  C.uint(mo.RecursionLimit),
-		file_favor:       C.git_merge_file_favor_t(mo.FileFavor),
-	}
+	copts.flags = C.git_merge_flag_t(opts.TreeFlags)
+	copts.rename_threshold = C.uint(opts.RenameThreshold)
+	copts.target_limit = C.uint(opts.TargetLimit)
+	copts.recursion_limit = C.uint(opts.RecursionLimit)
+	copts.file_favor = C.git_merge_file_favor_t(opts.FileFavor)
+	return copts
 }
 
-func freeMergeOptions(opts *C.git_merge_options) {
+func freeMergeOptions(copts *C.git_merge_options) {
 }
 
 type MergeFileFavor int
@@ -203,9 +202,9 @@ func (r *Repository) Merge(theirHeads []*AnnotatedCommit, mergeOptions *MergeOpt
 	defer runtime.UnlockOSThread()
 
 	var err error
-	cMergeOpts := mergeOptions.toC()
+	cMergeOpts := populateMergeOptions(&C.git_merge_options{}, mergeOptions)
 	defer freeMergeOptions(cMergeOpts)
-	cCheckoutOptions := checkoutOptions.toC(&err)
+	cCheckoutOptions := populateCheckoutOptions(&C.git_checkout_options{}, checkoutOptions, &err)
 	defer freeCheckoutOptions(cCheckoutOptions)
 
 	gmerge_head_array := make([]*C.git_annotated_commit, len(theirHeads))
@@ -269,7 +268,7 @@ func (r *Repository) MergeCommits(ours *Commit, theirs *Commit, options *MergeOp
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	copts := options.toC()
+	copts := populateMergeOptions(&C.git_merge_options{}, options)
 	defer freeMergeOptions(copts)
 
 	var ptr *C.git_index
@@ -287,7 +286,7 @@ func (r *Repository) MergeTrees(ancestor *Tree, ours *Tree, theirs *Tree, option
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	copts := options.toC()
+	copts := populateMergeOptions(&C.git_merge_options{}, options)
 	defer freeMergeOptions(copts)
 
 	var ancestor_ptr *C.git_tree
@@ -446,22 +445,28 @@ func mergeFileOptionsFromC(c C.git_merge_file_options) MergeFileOptions {
 	}
 }
 
-func populateCMergeFileOptions(c *C.git_merge_file_options, options MergeFileOptions) {
-	c.ancestor_label = C.CString(options.AncestorLabel)
-	c.our_label = C.CString(options.OurLabel)
-	c.their_label = C.CString(options.TheirLabel)
-	c.favor = C.git_merge_file_favor_t(options.Favor)
-	c.flags = C.git_merge_file_flag_t(options.Flags)
-	c.marker_size = C.ushort(options.MarkerSize)
+func populateMergeFileOptions(copts *C.git_merge_file_options, opts *MergeFileOptions) *C.git_merge_file_options {
+	C.git_merge_file_init_options(copts, C.GIT_MERGE_FILE_OPTIONS_VERSION)
+	if opts == nil {
+		return nil
+	}
+
+	copts.ancestor_label = C.CString(opts.AncestorLabel)
+	copts.our_label = C.CString(opts.OurLabel)
+	copts.their_label = C.CString(opts.TheirLabel)
+	copts.favor = C.git_merge_file_favor_t(opts.Favor)
+	copts.flags = C.git_merge_file_flag_t(opts.Flags)
+	copts.marker_size = C.ushort(opts.MarkerSize)
+	return copts
 }
 
-func freeCMergeFileOptions(c *C.git_merge_file_options) {
-	if c == nil {
+func freeMergeFileOptions(copts *C.git_merge_file_options) {
+	if copts == nil {
 		return
 	}
-	C.free(unsafe.Pointer(c.ancestor_label))
-	C.free(unsafe.Pointer(c.our_label))
-	C.free(unsafe.Pointer(c.their_label))
+	C.free(unsafe.Pointer(copts.ancestor_label))
+	C.free(unsafe.Pointer(copts.our_label))
+	C.free(unsafe.Pointer(copts.their_label))
 }
 
 func MergeFile(ancestor MergeFileInput, ours MergeFileInput, theirs MergeFileInput, options *MergeFileOptions) (*MergeFileResult, error) {
@@ -494,8 +499,8 @@ func MergeFile(ancestor MergeFileInput, ours MergeFileInput, theirs MergeFileInp
 		if ecode < 0 {
 			return nil, MakeGitError(ecode)
 		}
-		populateCMergeFileOptions(copts, *options)
-		defer freeCMergeFileOptions(copts)
+		populateMergeFileOptions(copts, options)
+		defer freeMergeFileOptions(copts)
 	}
 
 	runtime.LockOSThread()
