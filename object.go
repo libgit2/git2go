@@ -77,14 +77,14 @@ func (o *Object) Type() ObjectType {
 	return ret
 }
 
-// Owner returns a weak reference to the repository which owns this
-// object. This won't keep the underlying repository alive.
+// Owner returns a weak reference to the repository which owns this object.
+// This won't keep the underlying repository alive, but it should still be
+// Freed.
 func (o *Object) Owner() *Repository {
-	ret := &Repository{
-		ptr: C.git_object_owner(o.ptr),
-	}
+	repo := newRepositoryFromC(C.git_object_owner(o.ptr))
 	runtime.KeepAlive(o)
-	return ret
+	repo.weak = true
+	return repo
 }
 
 func dupObject(obj *Object, kind ObjectType) (*C.git_object, error) {

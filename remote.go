@@ -432,10 +432,12 @@ func RemoteIsValidName(name string) bool {
 	return C.git_remote_is_valid_name(cname) == 1
 }
 
+// Free releases the resources of the Remote.
 func (r *Remote) Free() {
 	runtime.SetFinalizer(r, nil)
 	C.git_remote_free(r.ptr)
 	r.ptr = nil
+	r.repo = nil
 }
 
 type RemoteCollection struct {
