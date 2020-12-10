@@ -14,15 +14,18 @@ func TestRemotePush(t *testing.T) {
 
 	remote, err := localRepo.Remotes.Create("test_push", repo.Path())
 	checkFatal(t, err)
+	defer remote.Free()
 
 	seedTestRepo(t, localRepo)
 
 	err = remote.Push([]string{"refs/heads/master"}, nil)
 	checkFatal(t, err)
 
-	_, err = localRepo.References.Lookup("refs/remotes/test_push/master")
+	ref, err := localRepo.References.Lookup("refs/remotes/test_push/master")
 	checkFatal(t, err)
+	defer ref.Free()
 
-	_, err = repo.References.Lookup("refs/heads/master")
+	ref, err = repo.References.Lookup("refs/heads/master")
 	checkFatal(t, err)
+	defer ref.Free()
 }
