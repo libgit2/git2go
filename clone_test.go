@@ -74,4 +74,5 @@ func TestCloneWithCallback(t *testing.T) {
 	if err != nil || remote == nil {
 		t.Fatal("Remote was not created properly")
 	}
+	defer remote.Free()
 }
