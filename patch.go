@@ -78,7 +78,7 @@ func (v *Repository) PatchFromBuffers(oldPath, newPath string, oldBuf, newBuf []
 	defer C.free(unsafe.Pointer(cNewPath))
 
 	var err error
-	copts := opts.toC(v, &err)
+	copts := populateDiffOptions(&C.git_diff_options{}, opts, v, &err)
 	defer freeDiffOptions(copts)
 
 	runtime.LockOSThread()
