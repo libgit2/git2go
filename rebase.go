@@ -72,20 +72,23 @@ func newRebaseOperationFromC(c *C.git_rebase_operation) *RebaseOperation {
 }
 
 //export commitSigningCallback
-func commitSigningCallback(errorMessage **C.char, _signature *C.git_buf, _signature_field *C.git_buf, _commit_content *C.char, _payload unsafe.Pointer) C.int {
-	opts, ok := pointerHandles.Get(_payload).(*RebaseOptions)
+func commitSigningCallback(errorMessage **C.char, _signature *C.git_buf, _signature_field *C.git_buf, _commit_content *C.char, handle unsafe.Pointer) C.int {
+	data, ok := pointerHandles.Get(handle).(*rebaseOptionsData)
 	if !ok {
 		panic("invalid sign payload")
 	}
 
-	if opts.CommitSigningCallback == nil {
+	if data.options.CommitSigningCallback == nil {
 		return C.int(ErrorCodePassthrough)
 	}
 
 	commitContent := C.GoString(_commit_content)
 
-	signature, signatureField, err := opts.CommitSigningCallback(commitContent)
+	signature, signatureField, err := data.options.CommitSigningCallback(commitContent)
 	if err != nil {
+		if data.errorTarget != nil {
+			*data.errorTarget = err
+		}
 		return setCallbackError(errorMessage, err)
 	}
 
@@ -107,12 +110,18 @@ func commitSigningCallback(errorMessage **C.char, _signature *C.git_buf, _signat
 	if signatureField != "" {
 		err := fillBuf(signatureField, _signature_field)
 		if err != nil {
+			if data.errorTarget != nil {
+				*data.errorTarget = err
+			}
 			return setCallbackError(errorMessage, err)
 		}
 	}
 
 	err = fillBuf(signature, _signature)
 	if err != nil {
+		if data.errorTarget != nil {
+			*data.errorTarget = err
+		}
 		return setCallbackError(errorMessage, err)
 	}
 
@@ -128,6 +137,11 @@ type RebaseOptions struct {
 	MergeOptions          MergeOptions
 	CheckoutOptions       CheckoutOptions
 	CommitSigningCallback CommitSigningCallback
+}
+
+type rebaseOptionsData struct {
+	options     *RebaseOptions
+	errorTarget *error
 }
 
 // DefaultRebaseOptions returns a RebaseOptions with default values.
@@ -155,37 +169,39 @@ func rebaseOptionsFromC(opts *C.git_rebase_options) RebaseOptions {
 	}
 }
 
-func (ro *RebaseOptions) toC(errorTarget *error) *C.git_rebase_options {
-	if ro == nil {
+func populateRebaseOptions(copts *C.git_rebase_options, opts *RebaseOptions, errorTarget *error) *C.git_rebase_options {
+	C.git_rebase_options_init(copts, C.GIT_REBASE_OPTIONS_VERSION)
+	if opts == nil {
 		return nil
 	}
 
-	cOptions := &C.git_rebase_options{
-		version:           C.uint(ro.Version),
-		quiet:             C.int(ro.Quiet),
-		inmemory:          C.int(ro.InMemory),
-		rewrite_notes_ref: mapEmptyStringToNull(ro.RewriteNotesRef),
-		merge_options:     *ro.MergeOptions.toC(),
-		checkout_options:  *ro.CheckoutOptions.toC(errorTarget),
+	copts.quiet = C.int(opts.Quiet)
+	copts.inmemory = C.int(opts.InMemory)
+	copts.rewrite_notes_ref = mapEmptyStringToNull(opts.RewriteNotesRef)
+	populateMergeOptions(&copts.merge_options, &opts.MergeOptions)
+	populateCheckoutOptions(&copts.checkout_options, &opts.CheckoutOptions, errorTarget)
+
+	if opts.CommitSigningCallback != nil {
+		data := &rebaseOptionsData{
+			options:     opts,
+			errorTarget: errorTarget,
+		}
+		C._go_git_populate_rebase_callbacks(copts)
+		copts.payload = pointerHandles.Track(data)
 	}
 
-	if ro.CommitSigningCallback != nil {
-		C._go_git_populate_rebase_callbacks(cOptions)
-		cOptions.payload = pointerHandles.Track(ro)
-	}
-
-	return cOptions
+	return copts
 }
 
-func freeRebaseOptions(opts *C.git_rebase_options) {
-	if opts == nil {
+func freeRebaseOptions(copts *C.git_rebase_options) {
+	if copts == nil {
 		return
 	}
-	C.free(unsafe.Pointer(opts.rewrite_notes_ref))
-	freeMergeOptions(&opts.merge_options)
-	freeCheckoutOptions(&opts.checkout_options)
-	if opts.payload != nil {
-		pointerHandles.Untrack(opts.payload)
+	C.free(unsafe.Pointer(copts.rewrite_notes_ref))
+	freeMergeOptions(&copts.merge_options)
+	freeCheckoutOptions(&copts.checkout_options)
+	if copts.payload != nil {
+		pointerHandles.Untrack(copts.payload)
 	}
 }
 
@@ -222,7 +238,7 @@ func (r *Repository) InitRebase(branch *AnnotatedCommit, upstream *AnnotatedComm
 
 	var ptr *C.git_rebase
 	var err error
-	cOpts := opts.toC(&err)
+	cOpts := populateRebaseOptions(&C.git_rebase_options{}, opts, &err)
 	ret := C.git_rebase_init(&ptr, r.ptr, branch.ptr, upstream.ptr, onto.ptr, cOpts)
 	runtime.KeepAlive(branch)
 	runtime.KeepAlive(upstream)
@@ -246,7 +262,7 @@ func (r *Repository) OpenRebase(opts *RebaseOptions) (*Rebase, error) {
 
 	var ptr *C.git_rebase
 	var err error
-	cOpts := opts.toC(&err)
+	cOpts := populateRebaseOptions(&C.git_rebase_options{}, opts, &err)
 	ret := C.git_rebase_open(&ptr, r.ptr, cOpts)
 	runtime.KeepAlive(r)
 	if ret == C.int(ErrorCodeUser) && err != nil {

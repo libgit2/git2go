@@ -14,7 +14,7 @@
 //
 //   // myfile.go
 //   type FooCallback func(...) (..., error)
-//   type FooCallbackData struct {
+//   type fooCallbackData struct {
 //     callback    FooCallback
 //     errorTarget *error
 //   }
@@ -60,20 +60,28 @@
 //     return git_my_function(..., (git_foo_cb)&fooCallback, payload);
 //   }
 //
-// * Otherwise, if the same callback can be invoked from multiple functions or
-//   from different stacks (e.g. when passing the callback to an object), a
-//   different pattern should be used instead, which has the downside of losing
-//   the original error object and converting it to a GitError:
+// * Additionally, if the same callback can be invoked from multiple functions or
+//   from different stacks (e.g. when passing the callback to an object), the
+//   following pattern should be used in tandem, which has the downside of
+//   losing the original error object and converting it to a GitError if the
+//   callback happens from a different stack:
 //
 //   // myfile.go
 //   type FooCallback func(...) (..., error)
+//   type fooCallbackData struct {
+//     callback    FooCallback
+//     errorTarget *error
+//   }
 //
 //   //export fooCallback
 //   func fooCallback(errorMessage **C.char, ..., handle unsafe.Pointer) C.int {
-//     callback := pointerHandles.Get(data).(*FooCallback)
+//     data := pointerHandles.Get(data).(*fooCallbackData)
 //     ...
-//     err := callback(...)
+//     err := data.callback(...)
 //     if err != nil {
+//       if data.errorTarget != nil {
+//         *data.errorTarget = err
+//       }
 //       return setCallbackError(errorMessage, err)
 //     }
 //     return C.int(ErrorCodeOK)

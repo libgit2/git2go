@@ -15,48 +15,47 @@ type RevertOptions struct {
 	CheckoutOpts CheckoutOptions
 }
 
-func (opts *RevertOptions) toC(errorTarget *error) *C.git_revert_options {
+func populateRevertOptions(copts *C.git_revert_options, opts *RevertOptions, errorTarget *error) *C.git_revert_options {
+	C.git_revert_options_init(copts, C.GIT_REVERT_OPTIONS_VERSION)
 	if opts == nil {
 		return nil
 	}
-	return &C.git_revert_options{
-		version:       C.GIT_REVERT_OPTIONS_VERSION,
-		mainline:      C.uint(opts.Mainline),
-		merge_opts:    *opts.MergeOpts.toC(),
-		checkout_opts: *opts.CheckoutOpts.toC(errorTarget),
-	}
+	copts.mainline = C.uint(opts.Mainline)
+	populateMergeOptions(&copts.merge_opts, &opts.MergeOpts)
+	populateCheckoutOptions(&copts.checkout_opts, &opts.CheckoutOpts, errorTarget)
+	return copts
 }
 
-func revertOptionsFromC(opts *C.git_revert_options) RevertOptions {
+func revertOptionsFromC(copts *C.git_revert_options) RevertOptions {
 	return RevertOptions{
-		Mainline:     uint(opts.mainline),
-		MergeOpts:    mergeOptionsFromC(&opts.merge_opts),
-		CheckoutOpts: checkoutOptionsFromC(&opts.checkout_opts),
+		Mainline:     uint(copts.mainline),
+		MergeOpts:    mergeOptionsFromC(&copts.merge_opts),
+		CheckoutOpts: checkoutOptionsFromC(&copts.checkout_opts),
 	}
 }
 
-func freeRevertOptions(opts *C.git_revert_options) {
-	if opts != nil {
+func freeRevertOptions(copts *C.git_revert_options) {
+	if copts != nil {
 		return
 	}
-	freeMergeOptions(&opts.merge_opts)
-	freeCheckoutOptions(&opts.checkout_opts)
+	freeMergeOptions(&copts.merge_opts)
+	freeCheckoutOptions(&copts.checkout_opts)
 }
 
 // DefaultRevertOptions initialises a RevertOptions struct with default values
 func DefaultRevertOptions() (RevertOptions, error) {
-	opts := C.git_revert_options{}
+	copts := C.git_revert_options{}
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ecode := C.git_revert_options_init(&opts, C.GIT_REVERT_OPTIONS_VERSION)
+	ecode := C.git_revert_options_init(&copts, C.GIT_REVERT_OPTIONS_VERSION)
 	if ecode < 0 {
 		return RevertOptions{}, MakeGitError(ecode)
 	}
 
-	defer freeRevertOptions(&opts)
-	return revertOptionsFromC(&opts), nil
+	defer freeRevertOptions(&copts)
+	return revertOptionsFromC(&copts), nil
 }
 
 // Revert the provided commit leaving the index updated with the results of the revert
@@ -65,7 +64,7 @@ func (r *Repository) Revert(commit *Commit, revertOptions *RevertOptions) error 
 	defer runtime.UnlockOSThread()
 
 	var err error
-	cOpts := revertOptions.toC(&err)
+	cOpts := populateRevertOptions(&C.git_revert_options{}, revertOptions, &err)
 	defer freeRevertOptions(cOpts)
 
 	ret := C.git_revert(r.ptr, commit.cast_ptr, cOpts)
@@ -88,7 +87,7 @@ func (r *Repository) RevertCommit(revertCommit *Commit, ourCommit *Commit, mainl
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	cOpts := mergeOptions.toC()
+	cOpts := populateMergeOptions(&C.git_merge_options{}, mergeOptions)
 	defer freeMergeOptions(cOpts)
 
 	var index *C.git_index
