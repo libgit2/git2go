@@ -55,38 +55,36 @@ func Clone(url string, path string, options *CloneOptions) (*Repository, error) 
 
 //export remoteCreateCallback
 func remoteCreateCallback(
-	cremote unsafe.Pointer,
-	crepo unsafe.Pointer,
+	out **C.git_remote,
+	crepo *C.git_repository,
 	cname, curl *C.char,
-	payload unsafe.Pointer,
+	handle unsafe.Pointer,
 ) C.int {
 	name := C.GoString(cname)
 	url := C.GoString(curl)
-	repo := newRepositoryFromC((*C.git_repository)(crepo))
-	// We don't own this repository, so make sure we don't try to free it
-	runtime.SetFinalizer(repo, nil)
+	repo := newRepositoryFromC(crepo)
+	repo.weak = true
+	defer repo.Free()
 
-	data, ok := pointerHandles.Get(payload).(*cloneCallbackData)
+	data, ok := pointerHandles.Get(handle).(*cloneCallbackData)
 	if !ok {
 		panic("invalid remote create callback")
 	}
 
 	remote, ret := data.options.RemoteCreateCallback(repo, name, url)
-	// clear finalizer as the calling C function will
-	// free the remote itself
-	runtime.SetFinalizer(remote, nil)
-
 	if ret < 0 {
 		*data.errorTarget = errors.New(ErrorCode(ret).String())
 		return C.int(ErrorCodeUser)
 	}
-
 	if remote == nil {
 		panic("no remote created by callback")
 	}
 
-	cptr := (**C.git_remote)(cremote)
-	*cptr = remote.ptr
+	*out = remote.ptr
+
+	// clear finalizer as the calling C function will
+	// free the remote itself
+	runtime.SetFinalizer(remote, nil)
 
 	return C.int(ErrorCodeOK)
 }
