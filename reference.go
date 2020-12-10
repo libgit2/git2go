@@ -293,12 +293,14 @@ func (v *Reference) Peel(t ObjectType) (*Object, error) {
 	return allocObject(cobj, v.repo), nil
 }
 
-// Owner returns a weak reference to the repository which owns this
-// reference.
+// Owner returns a weak reference to the repository which owns this reference.
+// This won't keep the underlying repository alive, but it should still be
+// Freed.
 func (v *Reference) Owner() *Repository {
-	return &Repository{
-		ptr: C.git_reference_owner(v.ptr),
-	}
+	repo := newRepositoryFromC(C.git_reference_owner(v.ptr))
+	runtime.KeepAlive(v)
+	repo.weak = true
+	return repo
 }
 
 // Cmp compares v to ref2. It returns 0 on equality, otherwise a

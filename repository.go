@@ -35,6 +35,10 @@ type Repository struct {
 	// Stashes represents the collection of stashes and can be used to
 	// save, apply and iterate over stash states in this repository.
 	Stashes StashCollection
+
+	// weak indicates that a repository is a weak pointer and should not be
+	// freed.
+	weak bool
 }
 
 func newRepositoryFromC(ptr *C.git_repository) *Repository {
@@ -136,8 +140,13 @@ func (v *Repository) SetRefdb(refdb *Refdb) {
 }
 
 func (v *Repository) Free() {
+	ptr := v.ptr
+	v.ptr = nil
 	runtime.SetFinalizer(v, nil)
-	C.git_repository_free(v.ptr)
+	if v.weak {
+		return
+	}
+	C.git_repository_free(ptr)
 }
 
 func (v *Repository) Config() (*Config, error) {
