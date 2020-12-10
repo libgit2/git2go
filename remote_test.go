@@ -23,9 +23,9 @@ func TestListRemotes(t *testing.T) {
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
-	_, err := repo.Remotes.Create("test", "git://foo/bar")
-
+	remote, err := repo.Remotes.Create("test", "git://foo/bar")
 	checkFatal(t, err)
+	defer remote.Free()
 
 	expected := []string{
 		"test",
@@ -53,6 +53,7 @@ func TestCertificateCheck(t *testing.T) {
 
 	remote, err := repo.Remotes.Create("origin", "https://github.com/libgit2/TestGitRepository")
 	checkFatal(t, err)
+	defer remote.Free()
 
 	options := FetchOptions{
 		RemoteCallbacks: RemoteCallbacks{
@@ -73,6 +74,7 @@ func TestRemoteConnect(t *testing.T) {
 
 	remote, err := repo.Remotes.Create("origin", "https://github.com/libgit2/TestGitRepository")
 	checkFatal(t, err)
+	defer remote.Free()
 
 	err = remote.ConnectFetch(nil, nil, nil)
 	checkFatal(t, err)
@@ -85,6 +87,7 @@ func TestRemoteLs(t *testing.T) {
 
 	remote, err := repo.Remotes.Create("origin", "https://github.com/libgit2/TestGitRepository")
 	checkFatal(t, err)
+	defer remote.Free()
 
 	err = remote.ConnectFetch(nil, nil, nil)
 	checkFatal(t, err)
@@ -104,6 +107,7 @@ func TestRemoteLsFiltering(t *testing.T) {
 
 	remote, err := repo.Remotes.Create("origin", "https://github.com/libgit2/TestGitRepository")
 	checkFatal(t, err)
+	defer remote.Free()
 
 	err = remote.ConnectFetch(nil, nil, nil)
 	checkFatal(t, err)
@@ -136,11 +140,13 @@ func TestRemotePruneRefs(t *testing.T) {
 	err = config.SetBool("remote.origin.prune", true)
 	checkFatal(t, err)
 
-	_, err = repo.Remotes.Create("origin", "https://github.com/libgit2/TestGitRepository")
+	remote, err := repo.Remotes.Create("origin", "https://github.com/libgit2/TestGitRepository")
 	checkFatal(t, err)
+	defer remote.Free()
 
-	remote, err := repo.Remotes.Lookup("origin")
+	remote, err = repo.Remotes.Lookup("origin")
 	checkFatal(t, err)
+	defer remote.Free()
 
 	if !remote.PruneRefs() {
 		t.Fatal("Expected remote to be configured to prune references")
@@ -159,6 +165,7 @@ func TestRemotePrune(t *testing.T) {
 
 	remoteRef, err := remoteRepo.CreateBranch("test-prune", commit, true)
 	checkFatal(t, err)
+	defer remoteRef.Free()
 
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
@@ -170,12 +177,14 @@ func TestRemotePrune(t *testing.T) {
 	remoteUrl := fmt.Sprintf("file://%s", remoteRepo.Workdir())
 	remote, err := repo.Remotes.Create("origin", remoteUrl)
 	checkFatal(t, err)
+	defer remote.Free()
 
 	err = remote.Fetch([]string{"test-prune"}, nil, "")
 	checkFatal(t, err)
 
-	_, err = repo.References.Create("refs/remotes/origin/test-prune", head, true, "remote reference")
+	ref, err := repo.References.Create("refs/remotes/origin/test-prune", head, true, "remote reference")
 	checkFatal(t, err)
+	defer ref.Free()
 
 	err = remoteRef.Delete()
 	checkFatal(t, err)
@@ -185,6 +194,7 @@ func TestRemotePrune(t *testing.T) {
 
 	rr, err := repo.Remotes.Lookup("origin")
 	checkFatal(t, err)
+	defer rr.Free()
 
 	err = rr.ConnectFetch(nil, nil, nil)
 	checkFatal(t, err)
@@ -192,8 +202,9 @@ func TestRemotePrune(t *testing.T) {
 	err = rr.Prune(nil)
 	checkFatal(t, err)
 
-	_, err = repo.References.Lookup("refs/remotes/origin/test-prune")
+	ref, err = repo.References.Lookup("refs/remotes/origin/test-prune")
 	if err == nil {
+		ref.Free()
 		t.Fatal("Expected error getting a pruned reference")
 	}
 }

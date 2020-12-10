@@ -1,12 +1,32 @@
 package git
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path"
+	"reflect"
 	"testing"
 	"time"
 )
+
+func TestMain(m *testing.M) {
+	ret := m.Run()
+
+	// Ensure that we are not leaking any pointer handles.
+	pointerHandles.Lock()
+	if len(pointerHandles.handles) > 0 {
+		for h, ptr := range pointerHandles.handles {
+			fmt.Printf("%016p: %v %+v\n", h, reflect.TypeOf(ptr), ptr)
+		}
+		panic("pointer handle list not empty")
+	}
+	pointerHandles.Unlock()
+
+	Shutdown()
+
+	os.Exit(ret)
+}
 
 func cleanupTestRepo(t *testing.T, r *Repository) {
 	var err error
