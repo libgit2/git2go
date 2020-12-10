@@ -291,18 +291,16 @@ func (v *Odb) NewWriteStream(size int64, otype ObjectType) (*OdbWriteStream, err
 // layer does not understand pack files, the objects will be stored in whatever
 // format the ODB layer uses.
 func (v *Odb) NewWritePack(callback TransferProgressCallback) (*OdbWritepack, error) {
-	writepack := new(OdbWritepack)
-
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	writepack.callbacks.TransferProgressCallback = callback
-	writepack.callbacksHandle = pointerHandles.Track(&writepack.callbacks)
+	writepack := new(OdbWritepack)
+	populateRemoteCallbacks(&writepack.ccallbacks, &RemoteCallbacks{TransferProgressCallback: callback}, nil)
 
-	ret := C._go_git_odb_write_pack(&writepack.ptr, v.ptr, writepack.callbacksHandle)
+	ret := C._go_git_odb_write_pack(&writepack.ptr, v.ptr, writepack.ccallbacks.payload)
 	runtime.KeepAlive(v)
 	if ret < 0 {
-		pointerHandles.Untrack(writepack.callbacksHandle)
+		untrackCallbacksPayload(&writepack.ccallbacks)
 		return nil, MakeGitError(ret)
 	}
 
@@ -442,10 +440,9 @@ func (stream *OdbWriteStream) Free() {
 
 // OdbWritepack is a stream to write a packfile to the ODB.
 type OdbWritepack struct {
-	ptr             *C.git_odb_writepack
-	stats           C.git_transfer_progress
-	callbacks       RemoteCallbacks
-	callbacksHandle unsafe.Pointer
+	ptr        *C.git_odb_writepack
+	stats      C.git_transfer_progress
+	ccallbacks C.git_remote_callbacks
 }
 
 func (writepack *OdbWritepack) Write(data []byte) (int, error) {
@@ -479,7 +476,7 @@ func (writepack *OdbWritepack) Commit() error {
 }
 
 func (writepack *OdbWritepack) Free() {
-	pointerHandles.Untrack(writepack.callbacksHandle)
+	untrackCallbacksPayload(&writepack.ccallbacks)
 	runtime.SetFinalizer(writepack, nil)
 	C._go_git_odb_writepack_free(writepack.ptr)
 }
