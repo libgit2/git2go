@@ -641,29 +641,24 @@ func diffNotifyCallback(_diff_so_far unsafe.Pointer, delta_to_add *C.git_diff_de
 	return C.int(ErrorCodeOK)
 }
 
-func (opts *DiffOptions) toC(repo *Repository, errorTarget *error) *C.git_diff_options {
+func populateDiffOptions(copts *C.git_diff_options, opts *DiffOptions, repo *Repository, errorTarget *error) *C.git_diff_options {
+	C.git_diff_options_init(copts, C.GIT_DIFF_OPTIONS_VERSION)
 	if opts == nil {
 		return nil
 	}
 
-	cpathspec := C.git_strarray{}
-	if opts.Pathspec != nil {
-		cpathspec.count = C.size_t(len(opts.Pathspec))
-		cpathspec.strings = makeCStringsFromStrings(opts.Pathspec)
+	copts.flags = C.uint32_t(opts.Flags)
+	copts.ignore_submodules = C.git_submodule_ignore_t(opts.IgnoreSubmodules)
+	if len(opts.Pathspec) > 0 {
+		copts.pathspec.count = C.size_t(len(opts.Pathspec))
+		copts.pathspec.strings = makeCStringsFromStrings(opts.Pathspec)
 	}
-
-	copts := &C.git_diff_options{
-		version:           C.GIT_DIFF_OPTIONS_VERSION,
-		flags:             C.uint32_t(opts.Flags),
-		ignore_submodules: C.git_submodule_ignore_t(opts.IgnoreSubmodules),
-		pathspec:          cpathspec,
-		context_lines:     C.uint32_t(opts.ContextLines),
-		interhunk_lines:   C.uint32_t(opts.InterhunkLines),
-		id_abbrev:         C.uint16_t(opts.IdAbbrev),
-		max_size:          C.git_off_t(opts.MaxSize),
-		old_prefix:        C.CString(opts.OldPrefix),
-		new_prefix:        C.CString(opts.NewPrefix),
-	}
+	copts.context_lines = C.uint32_t(opts.ContextLines)
+	copts.interhunk_lines = C.uint32_t(opts.InterhunkLines)
+	copts.id_abbrev = C.uint16_t(opts.IdAbbrev)
+	copts.max_size = C.git_off_t(opts.MaxSize)
+	copts.old_prefix = C.CString(opts.OldPrefix)
+	copts.new_prefix = C.CString(opts.NewPrefix)
 
 	if opts.NotifyCallback != nil {
 		notifyData := &diffNotifyCallbackData{
@@ -681,8 +676,7 @@ func freeDiffOptions(copts *C.git_diff_options) {
 	if copts == nil {
 		return
 	}
-	cpathspec := copts.pathspec
-	freeStrarray(&cpathspec)
+	freeStrarray(&copts.pathspec)
 	C.free(unsafe.Pointer(copts.old_prefix))
 	C.free(unsafe.Pointer(copts.new_prefix))
 	if copts.payload != nil {
@@ -703,7 +697,7 @@ func (v *Repository) DiffTreeToTree(oldTree, newTree *Tree, opts *DiffOptions) (
 	}
 
 	var err error
-	copts := opts.toC(v, &err)
+	copts := populateDiffOptions(&C.git_diff_options{}, opts, v, &err)
 	defer freeDiffOptions(copts)
 
 	runtime.LockOSThread()
@@ -730,7 +724,7 @@ func (v *Repository) DiffTreeToWorkdir(oldTree *Tree, opts *DiffOptions) (*Diff,
 	}
 
 	var err error
-	copts := opts.toC(v, &err)
+	copts := populateDiffOptions(&C.git_diff_options{}, opts, v, &err)
 	defer freeDiffOptions(copts)
 
 	runtime.LockOSThread()
@@ -762,7 +756,7 @@ func (v *Repository) DiffTreeToIndex(oldTree *Tree, index *Index, opts *DiffOpti
 	}
 
 	var err error
-	copts := opts.toC(v, &err)
+	copts := populateDiffOptions(&C.git_diff_options{}, opts, v, &err)
 	defer freeDiffOptions(copts)
 
 	runtime.LockOSThread()
@@ -790,7 +784,7 @@ func (v *Repository) DiffTreeToWorkdirWithIndex(oldTree *Tree, opts *DiffOptions
 	}
 
 	var err error
-	copts := opts.toC(v, &err)
+	copts := populateDiffOptions(&C.git_diff_options{}, opts, v, &err)
 	defer freeDiffOptions(copts)
 
 	runtime.LockOSThread()
@@ -817,7 +811,7 @@ func (v *Repository) DiffIndexToWorkdir(index *Index, opts *DiffOptions) (*Diff,
 	}
 
 	var err error
-	copts := opts.toC(v, &err)
+	copts := populateDiffOptions(&C.git_diff_options{}, opts, v, &err)
 	defer freeDiffOptions(copts)
 
 	runtime.LockOSThread()
@@ -873,7 +867,7 @@ func DiffBlobs(oldBlob *Blob, oldAsPath string, newBlob *Blob, newAsPath string,
 	newBlobPath := C.CString(newAsPath)
 	defer C.free(unsafe.Pointer(newBlobPath))
 
-	copts := opts.toC(repo, &err)
+	copts := populateDiffOptions(&C.git_diff_options{}, opts, repo, &err)
 	defer freeDiffOptions(copts)
 
 	runtime.LockOSThread()
@@ -977,40 +971,38 @@ func DefaultApplyOptions() (*ApplyOptions, error) {
 	return applyOptionsFromC(&opts), nil
 }
 
-func (a *ApplyOptions) toC(errorTarget *error) *C.git_apply_options {
-	if a == nil {
+func populateApplyOptions(copts *C.git_apply_options, opts *ApplyOptions, errorTarget *error) *C.git_apply_options {
+	C.git_apply_options_init(copts, C.GIT_APPLY_OPTIONS_VERSION)
+	if opts == nil {
 		return nil
 	}
 
-	opts := &C.git_apply_options{
-		version: C.GIT_APPLY_OPTIONS_VERSION,
-		flags:   C.uint(a.Flags),
-	}
+	copts.flags = C.uint(opts.Flags)
 
-	if a.ApplyDeltaCallback != nil || a.ApplyHunkCallback != nil {
+	if opts.ApplyDeltaCallback != nil || opts.ApplyHunkCallback != nil {
 		data := &applyCallbackData{
-			options:     a,
+			options:     opts,
 			errorTarget: errorTarget,
 		}
-		C._go_git_populate_apply_callbacks(opts)
-		opts.payload = pointerHandles.Track(data)
+		C._go_git_populate_apply_callbacks(copts)
+		copts.payload = pointerHandles.Track(data)
 	}
 
-	return opts
+	return copts
 }
 
-func freeApplyOptions(opts *C.git_apply_options) {
-	if opts == nil {
+func freeApplyOptions(copts *C.git_apply_options) {
+	if copts == nil {
 		return
 	}
-	if opts.payload != nil {
-		pointerHandles.Untrack(opts.payload)
+	if copts.payload != nil {
+		pointerHandles.Untrack(copts.payload)
 	}
 }
 
-func applyOptionsFromC(opts *C.git_apply_options) *ApplyOptions {
+func applyOptionsFromC(copts *C.git_apply_options) *ApplyOptions {
 	return &ApplyOptions{
-		Flags: uint(opts.flags),
+		Flags: uint(copts.flags),
 	}
 }
 
@@ -1038,7 +1030,7 @@ func (v *Repository) ApplyDiff(diff *Diff, location ApplyLocation, opts *ApplyOp
 	defer runtime.UnlockOSThread()
 
 	var err error
-	cOpts := opts.toC(&err)
+	cOpts := populateApplyOptions(&C.git_apply_options{}, opts, &err)
 	defer freeApplyOptions(cOpts)
 
 	ret := C.git_apply(v.ptr, diff.ptr, C.git_apply_location_t(location), cOpts)
@@ -1061,7 +1053,7 @@ func (v *Repository) ApplyToTree(diff *Diff, tree *Tree, opts *ApplyOptions) (*I
 	defer runtime.UnlockOSThread()
 
 	var err error
-	cOpts := opts.toC(&err)
+	cOpts := populateApplyOptions(&C.git_apply_options{}, opts, &err)
 	defer freeApplyOptions(cOpts)
 
 	var indexPtr *C.git_index
