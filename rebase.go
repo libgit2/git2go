@@ -79,6 +79,11 @@ type RebaseOptions struct {
 	CheckoutOptions CheckoutOptions
 }
 
+type rebaseOptionsData struct {
+	options     *RebaseOptions
+	errorTarget *error
+}
+
 // DefaultRebaseOptions returns a RebaseOptions with default values.
 func DefaultRebaseOptions() (RebaseOptions, error) {
 	opts := C.git_rebase_options{}
@@ -104,27 +109,28 @@ func rebaseOptionsFromC(opts *C.git_rebase_options) RebaseOptions {
 	}
 }
 
-func (ro *RebaseOptions) toC(errorTarget *error) *C.git_rebase_options {
-	if ro == nil {
+func populateRebaseOptions(copts *C.git_rebase_options, opts *RebaseOptions, errorTarget *error) *C.git_rebase_options {
+	C.git_rebase_init_options(copts, C.GIT_REBASE_OPTIONS_VERSION)
+	if opts == nil {
 		return nil
 	}
-	return &C.git_rebase_options{
-		version:           C.uint(ro.Version),
-		quiet:             C.int(ro.Quiet),
-		inmemory:          C.int(ro.InMemory),
-		rewrite_notes_ref: mapEmptyStringToNull(ro.RewriteNotesRef),
-		merge_options:     *ro.MergeOptions.toC(),
-		checkout_options:  *ro.CheckoutOptions.toC(errorTarget),
-	}
+
+	copts.quiet = C.int(opts.Quiet)
+	copts.inmemory = C.int(opts.InMemory)
+	copts.rewrite_notes_ref = mapEmptyStringToNull(opts.RewriteNotesRef)
+	populateMergeOptions(&copts.merge_options, &opts.MergeOptions)
+	populateCheckoutOptions(&copts.checkout_options, &opts.CheckoutOptions, errorTarget)
+
+	return copts
 }
 
-func freeRebaseOptions(opts *C.git_rebase_options) {
-	if opts == nil {
+func freeRebaseOptions(copts *C.git_rebase_options) {
+	if copts == nil {
 		return
 	}
-	C.free(unsafe.Pointer(opts.rewrite_notes_ref))
-	freeMergeOptions(&opts.merge_options)
-	freeCheckoutOptions(&opts.checkout_options)
+	C.free(unsafe.Pointer(copts.rewrite_notes_ref))
+	freeMergeOptions(&copts.merge_options)
+	freeCheckoutOptions(&copts.checkout_options)
 }
 
 func mapEmptyStringToNull(ref string) *C.char {
@@ -160,7 +166,7 @@ func (r *Repository) InitRebase(branch *AnnotatedCommit, upstream *AnnotatedComm
 
 	var ptr *C.git_rebase
 	var err error
-	cOpts := opts.toC(&err)
+	cOpts := populateRebaseOptions(&C.git_rebase_options{}, opts, &err)
 	ret := C.git_rebase_init(&ptr, r.ptr, branch.ptr, upstream.ptr, onto.ptr, cOpts)
 	runtime.KeepAlive(branch)
 	runtime.KeepAlive(upstream)
@@ -184,7 +190,7 @@ func (r *Repository) OpenRebase(opts *RebaseOptions) (*Rebase, error) {
 
 	var ptr *C.git_rebase
 	var err error
-	cOpts := opts.toC(&err)
+	cOpts := populateRebaseOptions(&C.git_rebase_options{}, opts, &err)
 	ret := C.git_rebase_open(&ptr, r.ptr, cOpts)
 	runtime.KeepAlive(r)
 	if ret == C.int(ErrorCodeUser) && err != nil {
