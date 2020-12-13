@@ -19,34 +19,31 @@ import (
 // Indexer can post-process packfiles and create an .idx file for efficient
 // lookup.
 type Indexer struct {
-	ptr             *C.git_indexer
-	stats           C.git_transfer_progress
-	callbacks       RemoteCallbacks
-	callbacksHandle unsafe.Pointer
+	ptr        *C.git_indexer
+	stats      C.git_transfer_progress
+	ccallbacks C.git_remote_callbacks
 }
 
 // NewIndexer creates a new indexer instance.
 func NewIndexer(packfilePath string, odb *Odb, callback TransferProgressCallback) (indexer *Indexer, err error) {
-	indexer = new(Indexer)
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
 	var odbPtr *C.git_odb = nil
 	if odb != nil {
 		odbPtr = odb.ptr
 	}
 
-	indexer.callbacks.TransferProgressCallback = callback
-	indexer.callbacksHandle = pointerHandles.Track(&indexer.callbacks)
+	indexer = new(Indexer)
+	populateRemoteCallbacks(&indexer.ccallbacks, &RemoteCallbacks{TransferProgressCallback: callback}, nil)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
 
 	cstr := C.CString(packfilePath)
 	defer C.free(unsafe.Pointer(cstr))
 
-	ret := C._go_git_indexer_new(&indexer.ptr, cstr, 0, odbPtr, indexer.callbacksHandle)
+	ret := C._go_git_indexer_new(&indexer.ptr, cstr, 0, odbPtr, indexer.ccallbacks.payload)
 	runtime.KeepAlive(odb)
 	if ret < 0 {
-		pointerHandles.Untrack(indexer.callbacksHandle)
+		untrackCallbacksPayload(&indexer.ccallbacks)
 		return nil, MakeGitError(ret)
 	}
 
@@ -93,7 +90,7 @@ func (indexer *Indexer) Commit() (*Oid, error) {
 
 // Free frees the indexer and its resources.
 func (indexer *Indexer) Free() {
-	pointerHandles.Untrack(indexer.callbacksHandle)
+	untrackCallbacksPayload(&indexer.ccallbacks)
 	runtime.SetFinalizer(indexer, nil)
 	C.git_indexer_free(indexer.ptr)
 }

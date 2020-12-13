@@ -25,24 +25,23 @@ func cherrypickOptionsFromC(c *C.git_cherrypick_options) CherrypickOptions {
 	return opts
 }
 
-func (opts *CherrypickOptions) toC(errorTarget *error) *C.git_cherrypick_options {
+func populateCherrypickOptions(copts *C.git_cherrypick_options, opts *CherrypickOptions, errorTarget *error) *C.git_cherrypick_options {
+	C.git_cherrypick_init_options(copts, C.GIT_CHERRYPICK_OPTIONS_VERSION)
 	if opts == nil {
 		return nil
 	}
-	c := C.git_cherrypick_options{}
-	c.version = C.uint(opts.Version)
-	c.mainline = C.uint(opts.Mainline)
-	c.merge_opts = *opts.MergeOpts.toC()
-	c.checkout_opts = *opts.CheckoutOpts.toC(errorTarget)
-	return &c
+	copts.mainline = C.uint(opts.Mainline)
+	populateMergeOptions(&copts.merge_opts, &opts.MergeOpts)
+	populateCheckoutOptions(&copts.checkout_opts, &opts.CheckoutOpts, errorTarget)
+	return copts
 }
 
-func freeCherrypickOpts(ptr *C.git_cherrypick_options) {
-	if ptr == nil {
+func freeCherrypickOpts(copts *C.git_cherrypick_options) {
+	if copts == nil {
 		return
 	}
-	freeMergeOptions(&ptr.merge_opts)
-	freeCheckoutOptions(&ptr.checkout_opts)
+	freeMergeOptions(&copts.merge_opts)
+	freeCheckoutOptions(&copts.checkout_opts)
 }
 
 func DefaultCherrypickOptions() (CherrypickOptions, error) {
@@ -64,7 +63,7 @@ func (v *Repository) Cherrypick(commit *Commit, opts CherrypickOptions) error {
 	defer runtime.UnlockOSThread()
 
 	var err error
-	cOpts := opts.toC(&err)
+	cOpts := populateCherrypickOptions(&C.git_cherrypick_options{}, &opts, &err)
 	defer freeCherrypickOpts(cOpts)
 
 	ret := C.git_cherrypick(v.ptr, commit.cast_ptr, cOpts)
@@ -83,7 +82,7 @@ func (r *Repository) CherrypickCommit(pick, our *Commit, opts CherrypickOptions)
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	cOpts := opts.MergeOpts.toC()
+	cOpts := populateMergeOptions(&C.git_merge_options{}, &opts.MergeOpts)
 	defer freeMergeOptions(cOpts)
 
 	var ptr *C.git_index

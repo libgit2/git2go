@@ -383,22 +383,22 @@ func (sub *Submodule) Update(init bool, opts *SubmoduleUpdateOptions) error {
 	return nil
 }
 
-func populateSubmoduleUpdateOptions(ptr *C.git_submodule_update_options, opts *SubmoduleUpdateOptions, errorTarget *error) *C.git_submodule_update_options {
-	C.git_submodule_update_init_options(ptr, C.GIT_SUBMODULE_UPDATE_OPTIONS_VERSION)
-
+func populateSubmoduleUpdateOptions(copts *C.git_submodule_update_options, opts *SubmoduleUpdateOptions, errorTarget *error) *C.git_submodule_update_options {
+	C.git_submodule_update_init_options(copts, C.GIT_SUBMODULE_UPDATE_OPTIONS_VERSION)
 	if opts == nil {
 		return nil
 	}
 
-	populateCheckoutOptions(&ptr.checkout_opts, opts.CheckoutOpts, errorTarget)
-	populateFetchOptions(&ptr.fetch_opts, opts.FetchOptions)
+	populateCheckoutOptions(&copts.checkout_opts, opts.CheckoutOpts, errorTarget)
+	populateFetchOptions(&copts.fetch_opts, opts.FetchOptions, errorTarget)
 
-	return ptr
+	return copts
 }
 
-func freeSubmoduleUpdateOptions(ptr *C.git_submodule_update_options) {
-	if ptr == nil {
+func freeSubmoduleUpdateOptions(copts *C.git_submodule_update_options) {
+	if copts == nil {
 		return
 	}
-	freeCheckoutOptions(&ptr.checkout_opts)
+	freeCheckoutOptions(&copts.checkout_opts)
+	freeFetchOptions(&copts.fetch_opts)
 }
