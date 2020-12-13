@@ -333,7 +333,7 @@ func (r *Repository) MergeBases(one, two *Oid) ([]*Oid, error) {
 	runtime.KeepAlive(one)
 	runtime.KeepAlive(two)
 	if ret < 0 {
-		return make([]*Oid, 0), MakeGitError(ret)
+		return nil, MakeGitError(ret)
 	}
 
 	oids := make([]*Oid, coids.count)
@@ -352,8 +352,78 @@ func (r *Repository) MergeBases(one, two *Oid) ([]*Oid, error) {
 	return oids, nil
 }
 
-//TODO: int git_merge_base_many(git_oid *out, git_repository *repo, size_t length, const git_oid input_array[]);
-//TODO: GIT_EXTERN(int) git_merge_base_octopus(git_oid *out,git_repository *repo,size_t length,const git_oid input_array[]);
+// MergeBaseMany finds a merge base given a list of commits.
+func (r *Repository) MergeBaseMany(oids []*Oid) (*Oid, error) {
+	coids := make([]C.git_oid, len(oids))
+	for i := 0; i < len(oids); i++ {
+		coids[i] = *oids[i].toC()
+	}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var oid C.git_oid
+	ret := C.git_merge_base_many(&oid, r.ptr, C.size_t(len(oids)), &coids[0])
+	runtime.KeepAlive(r)
+	runtime.KeepAlive(coids)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+	return newOidFromC(&oid), nil
+}
+
+// MergeBasesMany finds all merge bases given a list of commits.
+func (r *Repository) MergeBasesMany(oids []*Oid) ([]*Oid, error) {
+	inCoids := make([]C.git_oid, len(oids))
+	for i := 0; i < len(oids); i++ {
+		inCoids[i] = *oids[i].toC()
+	}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var outCoids C.git_oidarray
+	ret := C.git_merge_bases_many(&outCoids, r.ptr, C.size_t(len(oids)), &inCoids[0])
+	runtime.KeepAlive(r)
+	runtime.KeepAlive(inCoids)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	outOids := make([]*Oid, outCoids.count)
+	hdr := reflect.SliceHeader{
+		Data: uintptr(unsafe.Pointer(outCoids.ids)),
+		Len:  int(outCoids.count),
+		Cap:  int(outCoids.count),
+	}
+	goSlice := *(*[]C.git_oid)(unsafe.Pointer(&hdr))
+
+	for i, cid := range goSlice {
+		outOids[i] = newOidFromC(&cid)
+	}
+
+	return outOids, nil
+}
+
+// MergeBaseOctopus finds a merge base in preparation for an octopus merge.
+func (r *Repository) MergeBaseOctopus(oids []*Oid) (*Oid, error) {
+	coids := make([]C.git_oid, len(oids))
+	for i := 0; i < len(oids); i++ {
+		coids[i] = *oids[i].toC()
+	}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var oid C.git_oid
+	ret := C.git_merge_base_octopus(&oid, r.ptr, C.size_t(len(oids)), &coids[0])
+	runtime.KeepAlive(r)
+	runtime.KeepAlive(coids)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+	return newOidFromC(&oid), nil
+}
 
 type MergeFileResult struct {
 	Automergeable bool
