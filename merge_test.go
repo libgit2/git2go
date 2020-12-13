@@ -163,6 +163,15 @@ func TestMergeBase(t *testing.T) {
 	if mergeBase.Cmp(commitAId) != 0 {
 		t.Fatalf("unexpected merge base")
 	}
+}
+
+func TestMergeBases(t *testing.T) {
+	t.Parallel()
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	commitAId, _ := seedTestRepo(t, repo)
+	commitBId, _ := appendCommit(t, repo)
 
 	mergeBases, err := repo.MergeBases(commitAId, commitBId)
 	checkFatal(t, err)
@@ -172,6 +181,58 @@ func TestMergeBase(t *testing.T) {
 	}
 
 	if mergeBases[0].Cmp(commitAId) != 0 {
+		t.Fatalf("unexpected merge base")
+	}
+}
+
+func TestMergeBaseMany(t *testing.T) {
+	t.Parallel()
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	commitAId, _ := seedTestRepo(t, repo)
+	commitBId, _ := appendCommit(t, repo)
+
+	mergeBase, err := repo.MergeBaseMany([]*Oid{commitAId, commitBId})
+	checkFatal(t, err)
+
+	if mergeBase.Cmp(commitAId) != 0 {
+		t.Fatalf("unexpected merge base")
+	}
+}
+
+func TestMergeBasesMany(t *testing.T) {
+	t.Parallel()
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	commitAId, _ := seedTestRepo(t, repo)
+	commitBId, _ := appendCommit(t, repo)
+
+	mergeBases, err := repo.MergeBasesMany([]*Oid{commitAId, commitBId})
+	checkFatal(t, err)
+
+	if len(mergeBases) != 1 {
+		t.Fatalf("expected merge bases len to be 1, got %v", len(mergeBases))
+	}
+
+	if mergeBases[0].Cmp(commitAId) != 0 {
+		t.Fatalf("unexpected merge base")
+	}
+}
+
+func TestMergeBaseOctopus(t *testing.T) {
+	t.Parallel()
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	commitAId, _ := seedTestRepo(t, repo)
+	commitBId, _ := appendCommit(t, repo)
+
+	mergeBase, err := repo.MergeBaseOctopus([]*Oid{commitAId, commitBId})
+	checkFatal(t, err)
+
+	if mergeBase.Cmp(commitAId) != 0 {
 		t.Fatalf("unexpected merge base")
 	}
 }
