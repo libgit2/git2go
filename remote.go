@@ -18,6 +18,23 @@ import (
 	"unsafe"
 )
 
+type RemoteCreate uint
+
+const (
+	// Ignore the repository apply.insteadOf configuration
+	RemoteCreateSkipInsteadof RemoteCreate = C.GIT_REMOTE_CREATE_SKIP_INSTEADOF
+	// Don't build a fetchspec from the name if none is set
+	RemoteCreateSkipDefaultFetchspec RemoteCreate = C.GIT_REMOTE_CREATE_SKIP_DEFAULT_FETCHSPEC
+)
+
+// RemoteCreateOptions contains options for creating a remote
+type RemoteCreateOptions struct {
+	Repository *Repository
+	Name       string
+	FetchSpec  string
+	Flags      RemoteCreate
+}
+
 type TransferProgress struct {
 	TotalObjects    uint
 	IndexedObjects  uint
@@ -539,6 +556,26 @@ func (c *RemoteCollection) Create(name string, url string) (*Remote, error) {
 	return remote, nil
 }
 
+func (c *RemoteCollection) CreateOptions(url string, option *RemoteCreateOptions) (*Remote, error) {
+	remote := &Remote{repo: c.repo}
+
+	curl := C.CString(url)
+	defer C.free(unsafe.Pointer(curl))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	opts :=	remoteCreateOptionsToC(option)
+	defer freeRemoteCreateOptions(opts)
+	ret := C.git_remote_create_with_opts(&remote.ptr, curl, opts)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	runtime.SetFinalizer(remote, (*Remote).Free)
+	return remote, nil
+}
+
 func (c *RemoteCollection) Delete(name string) error {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
@@ -1026,4 +1063,47 @@ func (o *Remote) Prune(callbacks *RemoteCallbacks) error {
 		return MakeGitError(ret)
 	}
 	return nil
+}
+
+// DefaultApplyOptions returns default options for remote create
+func DefaultRemoteCreateOptions() (*RemoteCreateOptions, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	opts := C.git_remote_create_options{}
+	ecode := C.git_remote_create_options_init(&opts, C.GIT_REMOTE_CREATE_OPTIONS_VERSION)
+	if int(ecode) != 0 {
+		return nil, MakeGitError(ecode)
+	}
+
+	return &RemoteCreateOptions{
+		Repository: nil,
+		Flags:      0,
+	}, nil
+}
+
+func remoteCreateOptionsToC(opts *RemoteCreateOptions) (copts *C.git_remote_create_options) {
+	if opts == nil {
+		return
+	}
+
+	cName := C.CString(opts.Name)
+	cFetchSpec := C.CString(opts.FetchSpec)
+
+	copts = &C.git_remote_create_options{
+		version:    C.GIT_REMOTE_CREATE_OPTIONS_VERSION,
+		repository: opts.Repository.ptr,
+		name:       cName,
+		fetchspec:  cFetchSpec,
+		flags:      C.uint(opts.Flags),
+	}
+	return copts
+}
+
+func freeRemoteCreateOptions(ptr *C.git_remote_create_options) {
+	if ptr == nil {
+		return
+	}
+	C.free(unsafe.Pointer(ptr.name))
+	C.free(unsafe.Pointer(ptr.fetchspec))
 }
