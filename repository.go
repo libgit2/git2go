@@ -165,6 +165,15 @@ func (v *Repository) Config() (*Config, error) {
 	return config, nil
 }
 
+func (v *Repository) SetConfig(c *Config) error {
+	ret := C.git_repository_set_config(v.ptr, c.ptr)
+	runtime.KeepAlive(v)
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+	return nil
+}
+
 func (v *Repository) Index() (*Index, error) {
 	var ptr *C.git_index
 
