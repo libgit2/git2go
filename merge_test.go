@@ -43,6 +43,14 @@ func TestMergeWithSelf(t *testing.T) {
 	mergeHeads[0] = mergeHead
 	err = repo.Merge(mergeHeads, nil, nil)
 	checkFatal(t, err)
+
+	mergeMessage, err := repo.Message()
+	checkFatal(t, err)
+
+	expectedMessage := "Merge branch 'master'\n"
+	if mergeMessage != expectedMessage {
+		t.Errorf("mege Meesage = %v, want %v", mergeMessage, expectedMessage)
+	}
 }
 
 func TestMergeAnalysisWithSelf(t *testing.T) {

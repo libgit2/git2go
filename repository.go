@@ -688,3 +688,30 @@ func (r *Repository) ClearGitIgnoreRules() error {
 	}
 	return nil
 }
+
+func (r *Repository) Message() (string, error) {
+	buf := C.git_buf{}
+	defer C.git_buf_dispose(&buf)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	cErr := C.git_repository_message(&buf, r.ptr)
+	runtime.KeepAlive(r)
+	if cErr < 0 {
+		return "", MakeGitError(cErr)
+	}
+	return C.GoString(buf.ptr), nil
+}
+
+func (r *Repository) RemoveMessage() error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	cErr := C.git_repository_message_remove(r.ptr)
+	runtime.KeepAlive(r)
+	if cErr < 0 {
+		return MakeGitError(cErr)
+	}
+	return  nil
+}
