@@ -166,6 +166,9 @@ func (v *Repository) Config() (*Config, error) {
 }
 
 func (v *Repository) SetConfig(c *Config) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
 	ret := C.git_repository_set_config(v.ptr, c.ptr)
 	runtime.KeepAlive(v)
 	if ret < 0 {
