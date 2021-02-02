@@ -49,7 +49,7 @@ func TestMergeWithSelf(t *testing.T) {
 
 	expectedMessage := "Merge branch 'master'\n"
 	if mergeMessage != expectedMessage {
-		t.Errorf("mege Meesage = %v, want %v", mergeMessage, expectedMessage)
+		t.Errorf("merge Message = %v, want %v", mergeMessage, expectedMessage)
 	}
 }
 
