@@ -556,6 +556,7 @@ func (c *RemoteCollection) Create(name string, url string) (*Remote, error) {
 	return remote, nil
 }
 
+//CreateWithOptions Creates a repository object with extended options.
 func (c *RemoteCollection) CreateWithOptions(url string, option *RemoteCreateOptions) (*Remote, error) {
 	remote := &Remote{repo: c.repo}
 
