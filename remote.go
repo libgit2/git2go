@@ -566,9 +566,9 @@ func (c *RemoteCollection) CreateWithOptions(url string, option *RemoteCreateOpt
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	opts :=	populateRemoteCreateOptions(c.repo, option)
-	defer freeRemoteCreateOptions(opts)
-	ret := C.git_remote_create_with_opts(&remote.ptr, curl, opts)
+	copts := populateRemoteCreateOptions(&C.git_remote_create_options{}, option, c.repo)
+	defer freeRemoteCreateOptions(copts)
+	ret := C.git_remote_create_with_opts(&remote.ptr, curl, copts)
 	runtime.KeepAlive(c.repo)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
@@ -1074,7 +1074,7 @@ func DefaultRemoteCreateOptions() (*RemoteCreateOptions, error) {
 
 	opts := C.git_remote_create_options{}
 	ecode := C.git_remote_create_options_init(&opts, C.GIT_REMOTE_CREATE_OPTIONS_VERSION)
-	if int(ecode) != 0 {
+	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
 
@@ -1083,21 +1083,21 @@ func DefaultRemoteCreateOptions() (*RemoteCreateOptions, error) {
 	}, nil
 }
 
-func populateRemoteCreateOptions(repository *Repository, opts *RemoteCreateOptions) (copts *C.git_remote_create_options) {
-	if repository == nil || opts == nil {
-		return
+func populateRemoteCreateOptions(copts *C.git_remote_create_options, opts *RemoteCreateOptions, repo *Repository) *C.git_remote_create_options {
+	C.git_remote_create_options_init(copts, C.GIT_REMOTE_CREATE_OPTIONS_VERSION)
+	if opts == nil {
+		return nil
 	}
 
-	cName := C.CString(opts.Name)
-	cFetchSpec := C.CString(opts.FetchSpec)
-
-	copts = &C.git_remote_create_options{
-		version:    C.GIT_REMOTE_CREATE_OPTIONS_VERSION,
-		repository: repository.ptr,
-		name:       cName,
-		fetchspec:  cFetchSpec,
-		flags:      C.uint(opts.Flags),
+	var cRepository *C.git_repository
+	if repo != nil {
+		cRepository = repo.ptr
 	}
+	copts.repository = cRepository
+	copts.name = C.CString(opts.Name)
+	copts.fetchspec = C.CString(opts.FetchSpec)
+	copts.flags = C.uint(opts.Flags)
+
 	return copts
 }
 
