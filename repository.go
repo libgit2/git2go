@@ -699,7 +699,7 @@ func (r *Repository) ClearGitIgnoreRules() error {
 // the file after you create the commit.
 func (r *Repository) Message() (string, error) {
 	buf := C.git_buf{}
-	defer C.git_buf_dispose(&buf)
+	defer C.git_buf_free(&buf)
 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
@@ -722,5 +722,5 @@ func (r *Repository) RemoveMessage() error {
 	if cErr < 0 {
 		return MakeGitError(cErr)
 	}
-	return  nil
+	return nil
 }
