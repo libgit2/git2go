@@ -18,21 +18,21 @@ import (
 	"unsafe"
 )
 
-type RemoteCreate uint
+// RemoteCreateOptionsFlag is Remote creation options flags
+type RemoteCreateOptionsFlag uint
 
 const (
 	// Ignore the repository apply.insteadOf configuration
-	RemoteCreateSkipInsteadof RemoteCreate = C.GIT_REMOTE_CREATE_SKIP_INSTEADOF
+	RemoteCreateSkipInsteadof RemoteCreateOptionsFlag = C.GIT_REMOTE_CREATE_SKIP_INSTEADOF
 	// Don't build a fetchspec from the name if none is set
-	RemoteCreateSkipDefaultFetchspec RemoteCreate = C.GIT_REMOTE_CREATE_SKIP_DEFAULT_FETCHSPEC
+	RemoteCreateSkipDefaultFetchspec RemoteCreateOptionsFlag = C.GIT_REMOTE_CREATE_SKIP_DEFAULT_FETCHSPEC
 )
 
 // RemoteCreateOptions contains options for creating a remote
 type RemoteCreateOptions struct {
-	Repository *Repository
 	Name       string
 	FetchSpec  string
-	Flags      RemoteCreate
+	Flags      RemoteCreateOptionsFlag
 }
 
 type TransferProgress struct {
@@ -556,7 +556,7 @@ func (c *RemoteCollection) Create(name string, url string) (*Remote, error) {
 	return remote, nil
 }
 
-func (c *RemoteCollection) CreateOptions(url string, option *RemoteCreateOptions) (*Remote, error) {
+func (c *RemoteCollection) CreateWithOptions(url string, option *RemoteCreateOptions) (*Remote, error) {
 	remote := &Remote{repo: c.repo}
 
 	curl := C.CString(url)
@@ -565,9 +565,10 @@ func (c *RemoteCollection) CreateOptions(url string, option *RemoteCreateOptions
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	opts :=	remoteCreateOptionsToC(option)
+	opts :=	populateRemoteCreateOptions(c.repo, option)
 	defer freeRemoteCreateOptions(opts)
 	ret := C.git_remote_create_with_opts(&remote.ptr, curl, opts)
+	runtime.KeepAlive(c.repo)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -1077,13 +1078,12 @@ func DefaultRemoteCreateOptions() (*RemoteCreateOptions, error) {
 	}
 
 	return &RemoteCreateOptions{
-		Repository: nil,
-		Flags:      0,
+		Flags: RemoteCreateOptionsFlag(opts.flags),
 	}, nil
 }
 
-func remoteCreateOptionsToC(opts *RemoteCreateOptions) (copts *C.git_remote_create_options) {
-	if opts == nil {
+func populateRemoteCreateOptions(repository *Repository, opts *RemoteCreateOptions) (copts *C.git_remote_create_options) {
+	if repository == nil || opts == nil {
 		return
 	}
 
@@ -1092,7 +1092,7 @@ func remoteCreateOptionsToC(opts *RemoteCreateOptions) (copts *C.git_remote_crea
 
 	copts = &C.git_remote_create_options{
 		version:    C.GIT_REMOTE_CREATE_OPTIONS_VERSION,
-		repository: opts.Repository.ptr,
+		repository: repository.ptr,
 		name:       cName,
 		fetchspec:  cFetchSpec,
 		flags:      C.uint(opts.Flags),
