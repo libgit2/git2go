@@ -688,3 +688,39 @@ func (r *Repository) ClearGitIgnoreRules() error {
 	}
 	return nil
 }
+
+// Message retrieves git's prepared message.
+// Operations such as git revert/cherry-pick/merge with the -n option stop just
+// short of creating a commit with the changes and save their prepared message
+// in .git/MERGE_MSG so the next git-commit execution can present it to the
+// user for them to amend if they wish.
+//
+// Use this function to get the contents of this file. Don't forget to remove
+// the file after you create the commit.
+func (r *Repository) Message() (string, error) {
+	buf := C.git_buf{}
+	defer C.git_buf_free(&buf)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	cErr := C.git_repository_message(&buf, r.ptr)
+	runtime.KeepAlive(r)
+	if cErr < 0 {
+		return "", MakeGitError(cErr)
+	}
+	return C.GoString(buf.ptr), nil
+}
+
+// RemoveMessage removes git's prepared message.
+func (r *Repository) RemoveMessage() error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	cErr := C.git_repository_message_remove(r.ptr)
+	runtime.KeepAlive(r)
+	if cErr < 0 {
+		return MakeGitError(cErr)
+	}
+	return nil
+}
