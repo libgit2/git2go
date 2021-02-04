@@ -80,6 +80,28 @@ func TestRemoteConnect(t *testing.T) {
 	checkFatal(t, err)
 }
 
+func TestRemoteConnectOption(t *testing.T) {
+	t.Parallel()
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	config, err := repo.Config()
+	checkFatal(t, err)
+	err = config.SetString("url.git@github.com:.insteadof", "https://github.com/")
+	checkFatal(t, err)
+
+	option, err := DefaultRemoteCreateOptions()
+	checkFatal(t, err)
+	option.Name = "origin"
+	option.Flags = RemoteCreateSkipInsteadof
+
+	remote, err := repo.Remotes.CreateWithOptions("https://github.com/libgit2/TestGitRepository", option)
+	checkFatal(t, err)
+
+	err = remote.ConnectFetch(nil, nil, nil)
+	checkFatal(t, err)
+}
+
 func TestRemoteLs(t *testing.T) {
 	t.Parallel()
 	repo := createTestRepo(t)
