@@ -170,15 +170,9 @@ func (v *Repository) Config() (*Config, error) {
 // This configuration file will be used for all configuration queries involving
 // this repository.
 func (v *Repository) SetConfig(c *Config) error {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	ret := C.git_repository_set_config(v.ptr, c.ptr)
+	C.git_repository_set_config(v.ptr, c.ptr)
 	runtime.KeepAlive(v)
 	runtime.KeepAlive(c)
-	if ret < 0 {
-		return MakeGitError(ret)
-	}
 	return nil
 }
 
