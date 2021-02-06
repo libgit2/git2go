@@ -1071,7 +1071,7 @@ func DefaultRemoteCreateOptions() (*RemoteCreateOptions, error) {
 	defer runtime.UnlockOSThread()
 
 	opts := C.git_remote_create_options{}
-	ecode := C.git_remote_create_options_init(&opts, C.GIT_REMOTE_CREATE_OPTIONS_VERSION)
+	ecode := C.git_remote_create_init_options(&opts, C.GIT_REMOTE_CREATE_OPTIONS_VERSION)
 	if ecode < 0 {
 		return nil, MakeGitError(ecode)
 	}
@@ -1082,7 +1082,7 @@ func DefaultRemoteCreateOptions() (*RemoteCreateOptions, error) {
 }
 
 func populateRemoteCreateOptions(copts *C.git_remote_create_options, opts *RemoteCreateOptions, repo *Repository) *C.git_remote_create_options {
-	C.git_remote_create_options_init(copts, C.GIT_REMOTE_CREATE_OPTIONS_VERSION)
+	C.git_remote_create_init_options(copts, C.GIT_REMOTE_CREATE_OPTIONS_VERSION)
 	if opts == nil {
 		return nil
 	}
