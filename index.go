@@ -57,8 +57,8 @@ type Index struct {
 }
 
 type IndexTime struct {
-	seconds     int32
-	nanoseconds uint32
+	Seconds     int32
+	Nanoseconds uint32
 }
 
 type IndexEntry struct {
@@ -89,10 +89,10 @@ func newIndexEntryFromC(entry *C.git_index_entry) *IndexEntry {
 }
 
 func populateCIndexEntry(source *IndexEntry, dest *C.git_index_entry) {
-	dest.ctime.seconds = C.int32_t(source.Ctime.seconds)
-	dest.ctime.nanoseconds = C.uint32_t(source.Ctime.nanoseconds)
-	dest.mtime.seconds = C.int32_t(source.Mtime.seconds)
-	dest.mtime.nanoseconds = C.uint32_t(source.Mtime.nanoseconds)
+	dest.ctime.seconds = C.int32_t(source.Ctime.Seconds)
+	dest.ctime.nanoseconds = C.uint32_t(source.Ctime.Nanoseconds)
+	dest.mtime.seconds = C.int32_t(source.Mtime.Seconds)
+	dest.mtime.nanoseconds = C.uint32_t(source.Mtime.Nanoseconds)
 	dest.mode = C.uint32_t(source.Mode)
 	dest.uid = C.uint32_t(source.Uid)
 	dest.gid = C.uint32_t(source.Gid)
