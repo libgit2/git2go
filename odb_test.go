@@ -61,31 +61,31 @@ func TestOdbStream(t *testing.T) {
 
 	_, _ = seedTestRepo(t, repo)
 
-	odb, error := repo.Odb()
-	checkFatal(t, error)
+	odb, err := repo.Odb()
+	checkFatal(t, err)
 
 	str := "hello, world!"
 
-	writeStream, error := odb.NewWriteStream(int64(len(str)), ObjectBlob)
-	checkFatal(t, error)
-	n, error := io.WriteString(writeStream, str)
-	checkFatal(t, error)
+	writeStream, err := odb.NewWriteStream(int64(len(str)), ObjectBlob)
+	checkFatal(t, err)
+	n, err := io.WriteString(writeStream, str)
+	checkFatal(t, err)
 	if n != len(str) {
 		t.Fatalf("Bad write length %v != %v", n, len(str))
 	}
 
-	error = writeStream.Close()
-	checkFatal(t, error)
+	err = writeStream.Close()
+	checkFatal(t, err)
 
-	expectedId, error := NewOid("30f51a3fba5274d53522d0f19748456974647b4f")
-	checkFatal(t, error)
+	expectedId, err := NewOid("30f51a3fba5274d53522d0f19748456974647b4f")
+	checkFatal(t, err)
 	if writeStream.Id.Cmp(expectedId) != 0 {
 		t.Fatal("Wrong data written")
 	}
 
-	readStream, error := odb.NewReadStream(&writeStream.Id)
-	checkFatal(t, error)
-	data, error := ioutil.ReadAll(readStream)
+	readStream, err := odb.NewReadStream(&writeStream.Id)
+	checkFatal(t, err)
+	data, err := ioutil.ReadAll(readStream)
 	if str != string(data) {
 		t.Fatalf("Wrong data read %v != %v", str, string(data))
 	}
@@ -98,8 +98,8 @@ func TestOdbHash(t *testing.T) {
 
 	_, _ = seedTestRepo(t, repo)
 
-	odb, error := repo.Odb()
-	checkFatal(t, error)
+	odb, err := repo.Odb()
+	checkFatal(t, err)
 
 	str := `tree 115fcae49287c82eb55bb275cbbd4556fbed72b7
 parent 66e1c476199ebcd3e304659992233132c5a52c6c
@@ -109,11 +109,11 @@ committer John Doe <john@doe.com> 1390682018 +0000
 Initial commit.`
 
 	for _, data := range [][]byte{[]byte(str), doublePointerBytes()} {
-		oid, error := odb.Hash(data, ObjectCommit)
-		checkFatal(t, error)
+		oid, err := odb.Hash(data, ObjectCommit)
+		checkFatal(t, err)
 
-		coid, error := odb.Write(data, ObjectCommit)
-		checkFatal(t, error)
+		coid, err := odb.Write(data, ObjectCommit)
+		checkFatal(t, err)
 
 		if oid.Cmp(coid) != 0 {
 			t.Fatal("Hash and write Oids are different")
