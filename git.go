@@ -200,9 +200,9 @@ func NewOid(s string) (*Oid, error) {
 
 	o := new(Oid)
 
-	slice, error := hex.DecodeString(s)
-	if error != nil {
-		return nil, error
+	slice, err := hex.DecodeString(s)
+	if err != nil {
+		return nil, err
 	}
 
 	if len(slice) != 20 {
