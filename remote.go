@@ -30,9 +30,9 @@ const (
 
 // RemoteCreateOptions contains options for creating a remote
 type RemoteCreateOptions struct {
-	Name       string
-	FetchSpec  string
-	Flags      RemoteCreateOptionsFlag
+	Name      string
+	FetchSpec string
+	Flags     RemoteCreateOptionsFlag
 }
 
 type TransferProgress struct {
@@ -171,6 +171,34 @@ type Remote struct {
 	ptr       *C.git_remote
 	callbacks RemoteCallbacks
 	repo      *Repository
+}
+
+type RemoteDetached struct {
+	ptr       *C.git_remote
+}
+
+// NewRemoteDetached returns a detached remote that has no
+// reference to a repository.  Used to emulate `git ls-remote <repo-url>`
+func NewRemoteDetached(remoteUri string) (*RemoteDetached, error) {
+	var ptr *C.git_remote
+
+	ret := C.git_remote_create_detached(ptr, C.CString(remoteUri))
+	if ret != 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return &RemoteDetached{ptr: ptr}, nil
+}
+
+func (r *RemoteDetached) List() (RemoteHead, error) {
+	headPtr := *C.git_remote_head
+
+	ret := C.git_remote_ls(headPtr, 0, r.ptr)
+	if ret != 0 {
+		return RemoteHead{}, MakeGitError(ret)
+	}
+
+	return newRemoteHeadFromC(headPtr), nil
 }
 
 type CertificateKind uint
