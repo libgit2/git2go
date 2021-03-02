@@ -18,6 +18,8 @@ import (
 	"golang.org/x/crypto/ssh"
 )
 
+const TestGitRepoUri = "https://github.com/libgit2/TestGitRepository"
+
 func TestListRemotes(t *testing.T) {
 	t.Parallel()
 	repo := createTestRepo(t)
@@ -51,7 +53,7 @@ func TestCertificateCheck(t *testing.T) {
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
-	remote, err := repo.Remotes.Create("origin", "https://github.com/libgit2/TestGitRepository")
+	remote, err := repo.Remotes.Create("origin", TestGitRepoUri)
 	checkFatal(t, err)
 	defer remote.Free()
 
@@ -72,7 +74,7 @@ func TestRemoteConnect(t *testing.T) {
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
-	remote, err := repo.Remotes.Create("origin", "https://github.com/libgit2/TestGitRepository")
+	remote, err := repo.Remotes.Create("origin", TestGitRepoUri)
 	checkFatal(t, err)
 	defer remote.Free()
 
@@ -95,7 +97,7 @@ func TestRemoteConnectOption(t *testing.T) {
 	option.Name = "origin"
 	option.Flags = RemoteCreateSkipInsteadof
 
-	remote, err := repo.Remotes.CreateWithOptions("https://github.com/libgit2/TestGitRepository", option)
+	remote, err := repo.Remotes.CreateWithOptions(TestGitRepoUri, option)
 	checkFatal(t, err)
 
 	err = remote.ConnectFetch(nil, nil, nil)
@@ -107,7 +109,7 @@ func TestRemoteLs(t *testing.T) {
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
-	remote, err := repo.Remotes.Create("origin", "https://github.com/libgit2/TestGitRepository")
+	remote, err := repo.Remotes.Create("origin", TestGitRepoUri)
 	checkFatal(t, err)
 	defer remote.Free()
 
@@ -127,7 +129,7 @@ func TestRemoteLsFiltering(t *testing.T) {
 	repo := createTestRepo(t)
 	defer cleanupTestRepo(t, repo)
 
-	remote, err := repo.Remotes.Create("origin", "https://github.com/libgit2/TestGitRepository")
+	remote, err := repo.Remotes.Create("origin", TestGitRepoUri)
 	checkFatal(t, err)
 	defer remote.Free()
 
@@ -162,7 +164,7 @@ func TestRemotePruneRefs(t *testing.T) {
 	err = config.SetBool("remote.origin.prune", true)
 	checkFatal(t, err)
 
-	remote, err := repo.Remotes.Create("origin", "https://github.com/libgit2/TestGitRepository")
+	remote, err := repo.Remotes.Create("origin", TestGitRepoUri)
 	checkFatal(t, err)
 	defer remote.Free()
 
@@ -492,4 +494,41 @@ func TestRemoteSSH(t *testing.T) {
 	if len(heads) == 0 {
 		t.Error("Expected remote heads")
 	}
+}
+
+func TestNewRemoteDetached(t *testing.T) {
+	_, err := NewRemoteDetached(TestGitRepoUri)
+	if err != nil {
+		t.Fatalf("error %v", err)
+	}
+}
+
+func TestRemoteDetached_LsDetached(t *testing.T) {
+	r, _ := NewRemoteDetached(TestGitRepoUri)
+
+	t.Run("NoInput", func(t *testing.T) {
+		rh, err := r.LsDetached(FetchOptions{})
+		if err != nil {
+			t.Fatalf("error %v", err)
+		}
+
+		if len(rh) == 0 {
+			t.Fatalf("Not listing all references")
+		}
+	})
+
+	t.Run("Filters", func(t *testing.T) {
+		rh, err := r.LsDetached(FetchOptions{}, "HEAD")
+		if err != nil {
+			t.Fatalf("error %v", err)
+		}
+
+		if len(rh) == 0 {
+			t.Fatalf("Not listing all references")
+		}
+
+		if rh[0].Name != "HEAD" {
+			t.Fatalf("Not listing all references")
+		}
+	})
 }
