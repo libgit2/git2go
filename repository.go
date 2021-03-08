@@ -165,6 +165,17 @@ func (v *Repository) Config() (*Config, error) {
 	return config, nil
 }
 
+// SetConfig sets the configuration file for this repository.
+//
+// This configuration file will be used for all configuration queries involving
+// this repository.
+func (v *Repository) SetConfig(c *Config) error {
+	C.git_repository_set_config(v.ptr, c.ptr)
+	runtime.KeepAlive(v)
+	runtime.KeepAlive(c)
+	return nil
+}
+
 func (v *Repository) Index() (*Index, error) {
 	var ptr *C.git_index
 
