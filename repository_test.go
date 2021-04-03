@@ -92,3 +92,14 @@ func TestRepositorySetConfig(t *testing.T) {
 		t.Fatal("result must be true")
 	}
 }
+
+func TestRepositoryItemPath(t *testing.T) {
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	gitDir, err := repo.ItemPath(RepositoryItemGitDir)
+	checkFatal(t, err)
+	if gitDir == "" {
+		t.Error("expected not empty gitDir")
+	}
+}
