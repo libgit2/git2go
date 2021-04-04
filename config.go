@@ -450,3 +450,17 @@ func ConfigFindProgramdata() (string, error) {
 
 	return C.GoString(buf.ptr), nil
 }
+
+// OpenDefault opens the default config according to git rules
+func OpenDefault() (*Config, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	config := new(Config)
+
+	if ret := C.git_config_open_default(&config.ptr); ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return config, nil
+}
