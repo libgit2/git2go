@@ -107,3 +107,13 @@ func TestConfigLookups(t *testing.T) {
 		test(c, t)
 	}
 }
+
+func TestOpenDefault(t *testing.T) {
+
+	c, err := OpenDefault()
+	if err != nil {
+		t.Errorf("OpenDefault error: '%v'. Expected none\n", err)
+		return
+	}
+	defer c.Free()
+}
