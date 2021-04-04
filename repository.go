@@ -45,6 +45,7 @@ func newRepositoryFromC(ptr *C.git_repository) *Repository {
 	repo := &Repository{ptr: ptr}
 
 	repo.Remotes.repo = repo
+	repo.Remotes.remotes = make(map[*C.git_remote]*Remote)
 	repo.Submodules.repo = repo
 	repo.References.repo = repo
 	repo.Notes.repo = repo
@@ -143,6 +144,7 @@ func (v *Repository) Free() {
 	ptr := v.ptr
 	v.ptr = nil
 	runtime.SetFinalizer(v, nil)
+	v.Remotes.Free()
 	if v.weak {
 		return
 	}
