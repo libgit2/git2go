@@ -739,5 +739,39 @@ func (r *Repository) RemoveMessage() error {
 	if cErr < 0 {
 		return MakeGitError(cErr)
 	}
-	return  nil
+	return nil
+}
+
+type RepositoryItem int
+
+const (
+	RepositoryItemGitDir     RepositoryItem = C.GIT_REPOSITORY_ITEM_GITDIR
+	RepositoryItemWorkDir    RepositoryItem = C.GIT_REPOSITORY_ITEM_WORKDIR
+	RepositoryItemCommonDir  RepositoryItem = C.GIT_REPOSITORY_ITEM_COMMONDIR
+	RepositoryItemIndex      RepositoryItem = C.GIT_REPOSITORY_ITEM_INDEX
+	RepositoryItemObjects    RepositoryItem = C.GIT_REPOSITORY_ITEM_OBJECTS
+	RepositoryItemRefs       RepositoryItem = C.GIT_REPOSITORY_ITEM_REFS
+	RepositoryItemPackedRefs RepositoryItem = C.GIT_REPOSITORY_ITEM_PACKED_REFS
+	RepositoryItemRemotes    RepositoryItem = C.GIT_REPOSITORY_ITEM_REMOTES
+	RepositoryItemConfig     RepositoryItem = C.GIT_REPOSITORY_ITEM_CONFIG
+	RepositoryItemInfo       RepositoryItem = C.GIT_REPOSITORY_ITEM_INFO
+	RepositoryItemHooks      RepositoryItem = C.GIT_REPOSITORY_ITEM_HOOKS
+	RepositoryItemLogs       RepositoryItem = C.GIT_REPOSITORY_ITEM_LOGS
+	RepositoryItemModules    RepositoryItem = C.GIT_REPOSITORY_ITEM_MODULES
+	RepositoryItemWorkTrees  RepositoryItem = C.GIT_REPOSITORY_ITEM_WORKTREES
+)
+
+func (r *Repository) ItemPath(item RepositoryItem) (string, error) {
+	var c_buf C.git_buf
+	defer C.git_buf_dispose(&c_buf)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_repository_item_path(&c_buf, r.ptr, C.git_repository_item_t(item))
+	runtime.KeepAlive(r)
+	if ret < 0 {
+		return "", MakeGitError(ret)
+	}
+	return C.GoString(c_buf.ptr), nil
 }
