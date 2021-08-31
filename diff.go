@@ -489,7 +489,7 @@ const (
 	DiffIgnoreWhitespaceChange DiffOptionsFlag = C.GIT_DIFF_IGNORE_WHITESPACE_CHANGE
 	DiffIgnoreWhitespaceEol    DiffOptionsFlag = C.GIT_DIFF_IGNORE_WHITESPACE_EOL
 	// Deprecated: use DiffIgnoreWhitespaceEol instead
-	DiffIgnoreWitespaceEol = DiffIgnoreWhitespaceEol
+	DiffIgnoreWitespaceEOL = DiffIgnoreWhitespaceEol
 
 	DiffShowUntrackedContent DiffOptionsFlag = C.GIT_DIFF_SHOW_UNTRACKED_CONTENT
 	DiffShowUnmodified       DiffOptionsFlag = C.GIT_DIFF_SHOW_UNMODIFIED
