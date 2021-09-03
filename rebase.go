@@ -9,6 +9,7 @@ import "C"
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"runtime"
 	"unsafe"
 )
@@ -71,75 +72,140 @@ func newRebaseOperationFromC(c *C.git_rebase_operation) *RebaseOperation {
 	return operation
 }
 
-//export commitSigningCallback
-func commitSigningCallback(errorMessage **C.char, _signature *C.git_buf, _signature_field *C.git_buf, _commit_content *C.char, handle unsafe.Pointer) C.int {
+//export commitCreateCallback
+func commitCreateCallback(
+	errorMessage **C.char,
+	_out *C.git_oid,
+	_author, _committer *C.git_signature,
+	_message_encoding, _message *C.char,
+	_tree *C.git_tree,
+	_parent_count C.size_t,
+	_parents **C.git_commit,
+	handle unsafe.Pointer,
+) C.int {
 	data, ok := pointerHandles.Get(handle).(*rebaseOptionsData)
 	if !ok {
 		panic("invalid sign payload")
 	}
 
-	if data.options.CommitSigningCallback == nil {
+	if data.options.CommitCreateCallback == nil && data.options.CommitSigningCallback == nil {
 		return C.int(ErrorCodePassthrough)
 	}
 
-	commitContent := C.GoString(_commit_content)
-
-	signature, signatureField, err := data.options.CommitSigningCallback(commitContent)
-	if err != nil {
-		if data.errorTarget != nil {
-			*data.errorTarget = err
-		}
-		return setCallbackError(errorMessage, err)
+	messageEncoding := MessageEncodingUTF8
+	if _message_encoding != nil {
+		messageEncoding = MessageEncoding(C.GoString(_message_encoding))
+	}
+	tree := &Tree{
+		Object: Object{
+			ptr:  (*C.git_object)(_tree),
+			repo: data.repo,
+		},
+		cast_ptr: _tree,
 	}
 
-	fillBuf := func(bufData string, buf *C.git_buf) error {
-		clen := C.size_t(len(bufData))
-		cstr := unsafe.Pointer(C.CString(bufData))
-		defer C.free(cstr)
-
-		// libgit2 requires the contents of the buffer to be NULL-terminated.
-		// C.CString() guarantees that the returned buffer will be
-		// NULL-terminated, so we can safely copy the terminator.
-		if int(C.git_buf_set(buf, cstr, clen+1)) != 0 {
-			return errors.New("could not set buffer")
+	var goParents []*C.git_commit
+	if _parent_count > 0 {
+		hdr := reflect.SliceHeader{
+			Data: uintptr(unsafe.Pointer(_parents)),
+			Len:  int(_parent_count),
+			Cap:  int(_parent_count),
 		}
-
-		return nil
+		goParents = *(*[]*C.git_commit)(unsafe.Pointer(&hdr))
 	}
 
-	if signatureField != "" {
-		err := fillBuf(signatureField, _signature_field)
+	parents := make([]*Commit, int(_parent_count))
+	for i, p := range goParents {
+		parents[i] = &Commit{
+			Object: Object{
+				ptr:  (*C.git_object)(p),
+				repo: data.repo,
+			},
+			cast_ptr: p,
+		}
+	}
+
+	if data.options.CommitCreateCallback != nil {
+		oid, err := data.options.CommitCreateCallback(
+			newSignatureFromC(_author),
+			newSignatureFromC(_committer),
+			messageEncoding,
+			C.GoString(_message),
+			tree,
+			parents...,
+		)
 		if err != nil {
 			if data.errorTarget != nil {
 				*data.errorTarget = err
 			}
 			return setCallbackError(errorMessage, err)
 		}
-	}
-
-	err = fillBuf(signature, _signature)
-	if err != nil {
-		if data.errorTarget != nil {
-			*data.errorTarget = err
+		if oid == nil {
+			return C.int(ErrorCodePassthrough)
 		}
-		return setCallbackError(errorMessage, err)
+		*_out = *oid.toC()
+	} else if data.options.CommitSigningCallback != nil {
+		commitContent, err := data.repo.CreateCommitBuffer(
+			newSignatureFromC(_author),
+			newSignatureFromC(_committer),
+			messageEncoding,
+			C.GoString(_message),
+			tree,
+			parents...,
+		)
+		if err != nil {
+			if data.errorTarget != nil {
+				*data.errorTarget = err
+			}
+			return setCallbackError(errorMessage, err)
+		}
+
+		signature, signatureField, err := data.options.CommitSigningCallback(string(commitContent))
+		if err != nil {
+			if data.errorTarget != nil {
+				*data.errorTarget = err
+			}
+			return setCallbackError(errorMessage, err)
+		}
+
+		oid, err := data.repo.CreateCommitWithSignature(string(commitContent), signature, signatureField)
+		if err != nil {
+			if data.errorTarget != nil {
+				*data.errorTarget = err
+			}
+			return setCallbackError(errorMessage, err)
+		}
+		*_out = *oid.toC()
 	}
 
 	return C.int(ErrorCodeOK)
 }
 
-// RebaseOptions are used to tell the rebase machinery how to operate
+// RebaseOptions are used to tell the rebase machinery how to operate.
 type RebaseOptions struct {
-	Quiet                 int
-	InMemory              int
-	RewriteNotesRef       string
-	MergeOptions          MergeOptions
-	CheckoutOptions       CheckoutOptions
+	Quiet           int
+	InMemory        int
+	RewriteNotesRef string
+	MergeOptions    MergeOptions
+	CheckoutOptions CheckoutOptions
+	// CommitCreateCallback is an optional callback that allows users to override
+	// commit creation when rebasing. If specified, users can create
+	// their own commit and provide the commit ID, which may be useful for
+	// signing commits or otherwise customizing the commit creation. If this
+	// callback returns a nil Oid, then the rebase will continue to create the
+	// commit.
+	CommitCreateCallback CommitCreateCallback
+	// Deprecated: CommitSigningCallback is an optional callback that will be
+	// called with the commit content, allowing a signature to be added to the
+	// rebase commit. This field is only used when rebasing.  This callback is
+	// not invoked if a CommitCreateCallback is specified.  CommitCreateCallback
+	// should be used instead of this.
 	CommitSigningCallback CommitSigningCallback
 }
 
 type rebaseOptionsData struct {
 	options     *RebaseOptions
+	repo        *Repository
 	errorTarget *error
 }
 
@@ -167,7 +233,7 @@ func rebaseOptionsFromC(opts *C.git_rebase_options) RebaseOptions {
 	}
 }
 
-func populateRebaseOptions(copts *C.git_rebase_options, opts *RebaseOptions, errorTarget *error) *C.git_rebase_options {
+func populateRebaseOptions(copts *C.git_rebase_options, opts *RebaseOptions, repo *Repository, errorTarget *error) *C.git_rebase_options {
 	C.git_rebase_options_init(copts, C.GIT_REBASE_OPTIONS_VERSION)
 	if opts == nil {
 		return nil
@@ -179,9 +245,10 @@ func populateRebaseOptions(copts *C.git_rebase_options, opts *RebaseOptions, err
 	populateMergeOptions(&copts.merge_options, &opts.MergeOptions)
 	populateCheckoutOptions(&copts.checkout_options, &opts.CheckoutOptions, errorTarget)
 
-	if opts.CommitSigningCallback != nil {
+	if opts.CommitCreateCallback != nil || opts.CommitSigningCallback != nil {
 		data := &rebaseOptionsData{
 			options:     opts,
+			repo:        repo,
 			errorTarget: errorTarget,
 		}
 		C._go_git_populate_rebase_callbacks(copts)
@@ -237,7 +304,7 @@ func (r *Repository) InitRebase(branch *AnnotatedCommit, upstream *AnnotatedComm
 
 	var ptr *C.git_rebase
 	var err error
-	cOpts := populateRebaseOptions(&C.git_rebase_options{}, opts, &err)
+	cOpts := populateRebaseOptions(&C.git_rebase_options{}, opts, r, &err)
 	ret := C.git_rebase_init(&ptr, r.ptr, branch.ptr, upstream.ptr, onto.ptr, cOpts)
 	runtime.KeepAlive(branch)
 	runtime.KeepAlive(upstream)
@@ -261,7 +328,7 @@ func (r *Repository) OpenRebase(opts *RebaseOptions) (*Rebase, error) {
 
 	var ptr *C.git_rebase
 	var err error
-	cOpts := populateRebaseOptions(&C.git_rebase_options{}, opts, &err)
+	cOpts := populateRebaseOptions(&C.git_rebase_options{}, opts, r, &err)
 	ret := C.git_rebase_open(&ptr, r.ptr, cOpts)
 	runtime.KeepAlive(r)
 	if ret == C.int(ErrorCodeUser) && err != nil {

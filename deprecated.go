@@ -237,6 +237,22 @@ func SubmoduleVisitor(csub unsafe.Pointer, name *C.char, handle unsafe.Pointer) 
 	return C.int(ErrorCodeOK)
 }
 
+// reference.go
+
+// Deprecated: ReferenceIsValidName is a deprecated alias of ReferenceNameIsValid.
+func ReferenceIsValidName(name string) bool {
+	valid, _ := ReferenceNameIsValid(name)
+	return valid
+}
+
+// remote.go
+
+// Deprecated: RemoteIsValidName is a deprecated alias of RemoteNameIsValid.
+func RemoteIsValidName(name string) bool {
+	valid, _ := RemoteNameIsValid(name)
+	return valid
+}
+
 // tree.go
 
 // Deprecated: CallbackGitTreeWalk is not used.

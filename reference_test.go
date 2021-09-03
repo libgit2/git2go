@@ -214,12 +214,16 @@ func TestIsNote(t *testing.T) {
 	}
 }
 
-func TestReferenceIsValidName(t *testing.T) {
+func TestReferenceNameIsValid(t *testing.T) {
 	t.Parallel()
-	if !ReferenceIsValidName("HEAD") {
+	valid, err := ReferenceNameIsValid("HEAD")
+	checkFatal(t, err)
+	if !valid {
 		t.Errorf("HEAD should be a valid reference name")
 	}
-	if ReferenceIsValidName("HEAD1") {
+	valid, err = ReferenceNameIsValid("HEAD1")
+	checkFatal(t, err)
+	if valid {
 		t.Errorf("HEAD1 should not be a valid reference name")
 	}
 }

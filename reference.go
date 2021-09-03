@@ -476,7 +476,7 @@ func (v *ReferenceIterator) Free() {
 	C.git_reference_iterator_free(v.ptr)
 }
 
-// ReferenceIsValidName returns whether the reference name is well-formed.
+// ReferenceNameIsValid returns whether the reference name is well-formed.
 //
 // Valid reference names must follow one of two patterns:
 //
@@ -486,11 +486,19 @@ func (v *ReferenceIterator) Free() {
 // 2. Names prefixed with "refs/" can be almost anything. You must avoid
 // the characters '~', '^', ':', ' \ ', '?', '[', and '*', and the sequences
 // ".." and " @ {" which have special meaning to revparse.
-func ReferenceIsValidName(name string) bool {
+func ReferenceNameIsValid(name string) (bool, error) {
 	cname := C.CString(name)
 	defer C.free(unsafe.Pointer(cname))
 
-	return C.git_reference_is_valid_name(cname) == 1
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var valid C.int
+	ret := C.git_reference_name_is_valid(&valid, cname)
+	if ret < 0 {
+		return false, MakeGitError(ret)
+	}
+	return valid == 1, nil
 }
 
 const (
