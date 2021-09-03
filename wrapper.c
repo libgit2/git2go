@@ -116,18 +116,28 @@ void _go_git_populate_apply_callbacks(git_apply_options *options)
 	options->hunk_cb = (git_apply_hunk_cb)&hunkApplyCallback;
 }
 
-static int commit_signing_callback(
-		git_buf *signature,
-		git_buf *signature_field,
-		const char *commit_contents,
+static int commit_create_callback(
+		git_oid *out,
+		const git_signature *author,
+		const git_signature *committer,
+		const char *message_encoding,
+		const char *message,
+		const git_tree *tree,
+		size_t parent_count,
+		const git_commit *parents[],
 		void *payload)
 {
 	char *error_message = NULL;
-	const int ret = commitSigningCallback(
+	const int ret = commitCreateCallback(
 			&error_message,
-			signature,
-			signature_field,
-			(char *)commit_contents,
+			out,
+			(git_signature *)author,
+			(git_signature *)committer,
+			(char *)message_encoding,
+			(char *)message,
+			(git_tree *)tree,
+			parent_count,
+			(git_commit **)parents,
 			payload
 	);
 	return set_callback_error(error_message, ret);
@@ -135,7 +145,7 @@ static int commit_signing_callback(
 
 void _go_git_populate_rebase_callbacks(git_rebase_options *opts)
 {
-	opts->signing_cb = commit_signing_callback;
+	opts->commit_create_cb = commit_create_callback;
 }
 
 void _go_git_populate_clone_callbacks(git_clone_options *opts)

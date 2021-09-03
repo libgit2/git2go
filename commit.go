@@ -37,10 +37,14 @@ func (c *Commit) Message() string {
 	return ret
 }
 
-func (c *Commit) MessageEncoding() string {
-	ret := C.GoString(C.git_commit_message_encoding(c.cast_ptr))
+func (c *Commit) MessageEncoding() MessageEncoding {
+	ptr := C.git_commit_message_encoding(c.cast_ptr)
+	if ptr == nil {
+		return MessageEncodingUTF8
+	}
+	ret := C.GoString(ptr)
 	runtime.KeepAlive(c)
-	return ret
+	return MessageEncoding(ret)
 }
 
 func (c *Commit) RawMessage() string {
@@ -63,6 +67,19 @@ func (c *Commit) ContentToSign() string {
 
 // CommitSigningCallback defines a function type that takes some data to sign and returns (signature, signature_field, error)
 type CommitSigningCallback func(string) (signature, signatureField string, err error)
+
+// CommitCreateCallback defines a function type that is called when another
+// function is going to create commits (for example, Rebase) to allow callers
+// to override the commit creation behavior. For example, users may wish to
+// sign commits by providing this information to Repository.CreateCommitBuffer,
+// signing that buffer, then calling Repository.CreateCommitWithSignature.
+type CommitCreateCallback func(
+	author, committer *Signature,
+	messageEncoding MessageEncoding,
+	message string,
+	tree *Tree,
+	parents ...*Commit,
+) (oid *Oid, err error)
 
 // WithSignatureUsing creates a new signed commit from this one using the given signing callback
 func (c *Commit) WithSignatureUsing(f CommitSigningCallback) (*Oid, error) {
