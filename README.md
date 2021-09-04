@@ -1,6 +1,6 @@
 git2go
 ======
-[![GoDoc](https://godoc.org/github.com/libgit2/git2go?status.svg)](http://godoc.org/github.com/libgit2/git2go) [![Build Status](https://travis-ci.org/libgit2/git2go.svg?branch=master)](https://travis-ci.org/libgit2/git2go)
+[![GoDoc](https://godoc.org/github.com/libgit2/git2go?status.svg)](http://godoc.org/github.com/libgit2/git2go) [![Build Status](https://travis-ci.org/libgit2/git2go.svg?branch=main)](https://travis-ci.org/libgit2/git2go)
 
 Go bindings for [libgit2](http://libgit2.github.com/).
 
@@ -10,7 +10,7 @@ Due to the fact that Go 1.11 module versions have semantic meaning and don't nec
 
 | libgit2 | git2go        |
 |---------|---------------|
-| master  | (will be v32) |
+| main    | (will be v32) |
 | 1.1     | v31           |
 | 1.0     | v30           |
 | 0.99    | v29           |
@@ -28,7 +28,7 @@ import "github.com/libgit2/git2go/v31"
 
 which will ensure there are no sudden changes to the API.
 
-The `master` branch follows the tip of libgit2 itself (with some lag) and as such has no guarantees on the stability of libgit2's API. Thus this only supports statically linking against libgit2.
+The `main` branch follows the tip of libgit2 itself (with some lag) and as such has no guarantees on the stability of libgit2's API. Thus this only supports statically linking against libgit2.
 
 ### Which branch to send Pull requests to
 
@@ -58,16 +58,16 @@ Follow the instructions for [Versioned branch, dynamic linking](#versioned-branc
     go test -tags static,system_libgit2 github.com/my/project/...
     go install -tags static,system_libgit2 github.com/my/project/...
 
-### Master branch, or vendored static linking
+### `main` branch, or vendored static linking
 
-If using `master` or building a branch with the vendored libgit2 statically, we need to build libgit2 first. In order to build it, you need `cmake`, `pkg-config` and a C compiler. You will also need the development packages for OpenSSL (outside of Windows or macOS) and LibSSH2 installed if you want libgit2 to support HTTPS and SSH respectively. Note that even if libgit2 is included in the resulting binary, its dependencies will not be.
+If using `main` or building a branch with the vendored libgit2 statically, we need to build libgit2 first. In order to build it, you need `cmake`, `pkg-config` and a C compiler. You will also need the development packages for OpenSSL (outside of Windows or macOS) and LibSSH2 installed if you want libgit2 to support HTTPS and SSH respectively. Note that even if libgit2 is included in the resulting binary, its dependencies will not be.
 
 Run `go get -d github.com/libgit2/git2go` to download the code and go to your `$GOPATH/src/github.com/libgit2/git2go` directory. From there, we need to build the C code and put it into the resulting go binary.
 
     git submodule update --init # get libgit2
     make install-static
 
-will compile libgit2, link it into git2go and install it. The `master` branch is set up to follow the specific libgit2 version that is vendored, so trying dynamic linking may or may not work depending on the exact versions involved.
+will compile libgit2, link it into git2go and install it. The `main` branch is set up to follow the specific libgit2 version that is vendored, so trying dynamic linking may or may not work depending on the exact versions involved.
 
 In order to let Go pass the correct flags to `pkg-config`, `-tags static` needs to be passed to all `go` commands that build any binaries. For instance:
 
@@ -87,7 +87,7 @@ libgit2 may use OpenSSL and LibSSH2 for performing encrypted network connections
 Running the tests
 -----------------
 
-For the stable version, `go test` will work as usual. For the `master` branch, similarly to installing, running the tests requires building a local libgit2 library, so the Makefile provides a wrapper that makes sure it's built
+For the stable version, `go test` will work as usual. For the `main` branch, similarly to installing, running the tests requires building a local libgit2 library, so the Makefile provides a wrapper that makes sure it's built
 
     make test-static
 

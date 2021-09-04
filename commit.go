@@ -12,6 +12,14 @@ import (
 	"unsafe"
 )
 
+// MessageEncoding is the encoding of commit messages.
+type MessageEncoding string
+
+const (
+	// MessageEncodingUTF8 is the default message encoding.
+	MessageEncodingUTF8 MessageEncoding = "UTF-8"
+)
+
 // Commit
 type Commit struct {
 	Object
@@ -67,40 +75,11 @@ func (c *Commit) WithSignatureUsing(f CommitSigningCallback) (*Oid, error) {
 
 // WithSignature creates a new signed commit from the given signature and signature field
 func (c *Commit) WithSignature(signature string, signatureField string) (*Oid, error) {
-	totalCommit := c.ContentToSign()
-
-	oid := new(Oid)
-
-	var csf *C.char = nil
-	if signatureField != "" {
-		csf = C.CString(signatureField)
-		defer C.free(unsafe.Pointer(csf))
-	}
-
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
-
-	cTotalCommit := C.CString(totalCommit)
-	cSignature := C.CString(signature)
-	defer C.free(unsafe.Pointer(cTotalCommit))
-	defer C.free(unsafe.Pointer(cSignature))
-
-	ret := C.git_commit_create_with_signature(
-		oid.toC(),
-		c.Owner().ptr,
-		cTotalCommit,
-		cSignature,
-		csf,
+	return c.Owner().CreateCommitWithSignature(
+		c.ContentToSign(),
+		signature,
+		signatureField,
 	)
-
-	runtime.KeepAlive(c)
-	runtime.KeepAlive(oid)
-
-	if ret < 0 {
-		return nil, MakeGitError(ret)
-	}
-
-	return oid, nil
 }
 
 func (c *Commit) ExtractSignature() (string, string, error) {
