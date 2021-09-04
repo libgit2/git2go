@@ -72,6 +72,13 @@ func NewCredDefault() (*Cred, error) {
 	return NewCredentialDefault()
 }
 
+// diff.go
+
+const (
+	// Deprecated: DiffIgnoreWhitespaceEol is a deprecated alias of DiffIgnoreWhitespaceEOL.
+	DiffIgnoreWitespaceEol = DiffIgnoreWhitespaceEOL
+)
+
 // features.go
 
 const (
