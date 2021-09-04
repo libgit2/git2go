@@ -485,6 +485,39 @@ func (v *Repository) CreateCommit(
 	return oid, nil
 }
 
+// CreateCommitWithSignature creates a commit object from the given contents and
+// signature.
+func (v *Repository) CreateCommitWithSignature(
+	commitContent, signature, signatureField string,
+) (*Oid, error) {
+	cCommitContent := C.CString(commitContent)
+	defer C.free(unsafe.Pointer(cCommitContent))
+	var cSignature *C.char
+	if signature != "" {
+		cSignature = C.CString(string(signature))
+		defer C.free(unsafe.Pointer(cSignature))
+	}
+	var cSignatureField *C.char
+	if signatureField != "" {
+		cSignatureField = C.CString(string(signatureField))
+		defer C.free(unsafe.Pointer(cSignatureField))
+	}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	oid := new(Oid)
+	ret := C.git_commit_create_with_signature(oid.toC(), v.ptr, cCommitContent, cSignature, cSignatureField)
+
+	runtime.KeepAlive(v)
+	runtime.KeepAlive(oid)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return oid, nil
+}
+
 // CreateCommitBuffer creates a commit and write it into a buffer.
 func (v *Repository) CreateCommitBuffer(
 	author, committer *Signature,
