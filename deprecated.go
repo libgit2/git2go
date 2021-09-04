@@ -27,6 +27,13 @@ type BlobCallbackData struct {
 // CheckoutOpts is a deprecated alias of CheckoutOptions.
 type CheckoutOpts = CheckoutOptions
 
+// diff.go
+
+const (
+	// Deprecated: DiffIgnoreWhitespaceEol is a deprecated alias of DiffIgnoreWhitespaceEOL.
+	DiffIgnoreWitespaceEol = DiffIgnoreWhitespaceEOL
+)
+
 // features.go
 
 const (
