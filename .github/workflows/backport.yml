@@ -2,7 +2,7 @@ name: Backport to older releases
 on:
   push:
     branches:
-    - master
+    - main
 
 jobs:
 
