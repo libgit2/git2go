@@ -479,6 +479,69 @@ func (v *Repository) CreateCommit(
 	return oid, nil
 }
 
+// CreateCommitBuffer creates a commit and write it into a buffer.
+func (v *Repository) CreateCommitBuffer(
+	author, committer *Signature,
+	messageEncoding MessageEncoding,
+	message string,
+	tree *Tree,
+	parents ...*Commit,
+) ([]byte, error) {
+	cmsg := C.CString(message)
+	defer C.free(unsafe.Pointer(cmsg))
+	var cencoding *C.char
+	// Since the UTF-8 encoding is the default, pass in nil whenever UTF-8 is
+	// provided. That will cause the commit to not have an explicit header for
+	// it.
+	if messageEncoding != MessageEncodingUTF8 && messageEncoding != MessageEncoding("") {
+		cencoding = C.CString(string(messageEncoding))
+		defer C.free(unsafe.Pointer(cencoding))
+	}
+
+	var cparents []*C.git_commit = nil
+	var parentsarg **C.git_commit = nil
+
+	nparents := len(parents)
+	if nparents > 0 {
+		cparents = make([]*C.git_commit, nparents)
+		for i, v := range parents {
+			cparents[i] = v.cast_ptr
+		}
+		parentsarg = &cparents[0]
+	}
+
+	authorSig, err := author.toC()
+	if err != nil {
+		return nil, err
+	}
+	defer C.git_signature_free(authorSig)
+
+	committerSig, err := committer.toC()
+	if err != nil {
+		return nil, err
+	}
+	defer C.git_signature_free(committerSig)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var buf C.git_buf
+	defer C.git_buf_free(&buf)
+	ret := C.git_commit_create_buffer(
+		&buf, v.ptr,
+		authorSig, committerSig,
+		cencoding, cmsg, tree.cast_ptr, C.size_t(nparents), parentsarg)
+
+	runtime.KeepAlive(v)
+	runtime.KeepAlive(buf)
+	runtime.KeepAlive(parents)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return C.GoBytes(unsafe.Pointer(buf.ptr), C.int(buf.size)), nil
+}
+
 func (v *Repository) CreateCommitFromIds(
 	refname string, author, committer *Signature,
 	message string, tree *Oid, parents ...*Oid) (*Oid, error) {

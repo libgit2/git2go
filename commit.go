@@ -12,6 +12,14 @@ import (
 	"unsafe"
 )
 
+// MessageEncoding is the encoding of commit messages.
+type MessageEncoding string
+
+const (
+	// MessageEncodingUTF8 is the default message encoding.
+	MessageEncodingUTF8 MessageEncoding = "UTF-8"
+)
+
 // Commit
 type Commit struct {
 	Object
