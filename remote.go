@@ -30,9 +30,9 @@ const (
 
 // RemoteCreateOptions contains options for creating a remote
 type RemoteCreateOptions struct {
-	Name       string
-	FetchSpec  string
-	Flags      RemoteCreateOptionsFlag
+	Name      string
+	FetchSpec string
+	Flags     RemoteCreateOptionsFlag
 }
 
 type TransferProgress struct {
