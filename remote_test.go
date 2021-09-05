@@ -232,6 +232,30 @@ func TestRemotePrune(t *testing.T) {
 	}
 }
 
+func TestRemoteCredentialsCalled(t *testing.T) {
+	t.Parallel()
+
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	remote, err := repo.Remotes.CreateAnonymous("https://github.com/libgit2/non-existent")
+	checkFatal(t, err)
+	defer remote.Free()
+
+	fetchOpts := FetchOptions{
+		RemoteCallbacks: RemoteCallbacks{
+			CredentialsCallback: func(url, username string, allowedTypes CredType) (ErrorCode, *Cred) {
+				return ErrorCodeUser, nil
+			},
+		},
+	}
+
+	err = remote.Fetch(nil, &fetchOpts, "fetch")
+	if IsErrorCode(err, ErrorCodeUser) {
+		t.Fatalf("remote.Fetch() = %v, want %v", err, ErrorCodeUser)
+	}
+}
+
 func newChannelPipe(t *testing.T, w io.Writer, wg *sync.WaitGroup) (*os.File, error) {
 	pr, pw, err := os.Pipe()
 	if err != nil {

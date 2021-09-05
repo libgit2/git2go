@@ -1,6 +1,8 @@
 package git
 
 /*
+#include <string.h>
+
 #include <git2.h>
 #include <git2/sys/transport.h>
 
@@ -83,6 +85,19 @@ type Transport struct {
 	ptr *C.git_transport
 }
 
+// SmartProxyOptions gets a copy of the proxy options for this transport.
+func (t *Transport) SmartProxyOptions() (*ProxyOptions, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var cpopts C.git_proxy_options
+	if ret := C.git_transport_smart_proxy_options(&cpopts, t.ptr); ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return proxyOptionsFromC(&cpopts), nil
+}
+
 // SmartCredentials calls the credentials callback for this transport.
 func (t *Transport) SmartCredentials(user string, methods CredType) (*Cred, error) {
 	cred := &Cred{}
@@ -101,6 +116,52 @@ func (t *Transport) SmartCredentials(user string, methods CredType) (*Cred, erro
 	}
 
 	return cred, nil
+}
+
+// SmartCertificateCheck calls the certificate check for this transport.
+func (t *Transport) SmartCertificateCheck(cert *Certificate, valid bool, hostname string) error {
+	var ccert *C.git_cert
+	switch cert.Kind {
+	case CertificateHostkey:
+		chostkeyCert := C.git_cert_hostkey{
+			parent: C.git_cert{
+				cert_type: C.GIT_CERT_HOSTKEY_LIBSSH2,
+			},
+			_type: C.git_cert_ssh_t(cert.Kind),
+		}
+		C.memcpy(unsafe.Pointer(&chostkeyCert.hash_md5[0]), unsafe.Pointer(&cert.Hostkey.HashMD5[0]), C.size_t(len(cert.Hostkey.HashMD5)))
+		C.memcpy(unsafe.Pointer(&chostkeyCert.hash_sha1[0]), unsafe.Pointer(&cert.Hostkey.HashSHA1[0]), C.size_t(len(cert.Hostkey.HashSHA1)))
+		ccert = (*C.git_cert)(unsafe.Pointer(&chostkeyCert))
+
+	case CertificateX509:
+		cx509Cert := C.git_cert_x509{
+			parent: C.git_cert{
+				cert_type: C.GIT_CERT_X509,
+			},
+			len:  C.size_t(len(cert.X509.Raw)),
+			data: C.CBytes(cert.X509.Raw),
+		}
+		defer C.free(cx509Cert.data)
+		ccert = (*C.git_cert)(unsafe.Pointer(&cx509Cert))
+	}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	chostname := C.CString(hostname)
+	defer C.free(unsafe.Pointer(chostname))
+
+	cvalid := C.int(0)
+	if valid {
+		cvalid = C.int(1)
+	}
+
+	ret := C.git_transport_smart_certificate_check(t.ptr, ccert, cvalid, chostname)
+	if ret != 0 {
+		return MakeGitError(ret)
+	}
+
+	return nil
 }
 
 // SmartSubtransport is the interface for custom subtransports which carry data
