@@ -14,6 +14,7 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	"sync"
 	"unsafe"
 )
 
@@ -171,6 +172,64 @@ type Remote struct {
 	ptr       *C.git_remote
 	callbacks RemoteCallbacks
 	repo      *Repository
+}
+
+type remotePointerList struct {
+	sync.RWMutex
+	// stores the Go pointers
+	pointers map[*C.git_remote]*Remote
+}
+
+func newRemotePointerList() *remotePointerList {
+	return &remotePointerList{
+		pointers: make(map[*C.git_remote]*Remote),
+	}
+}
+
+// track adds the given pointer to the list of pointers to track and
+// returns a pointer value which can be passed to C as an opaque
+// pointer.
+func (v *remotePointerList) track(remote *Remote) {
+	v.Lock()
+	v.pointers[remote.ptr] = remote
+	v.Unlock()
+
+	runtime.SetFinalizer(remote, (*Remote).Free)
+}
+
+// untrack stops tracking the git_remote pointer.
+func (v *remotePointerList) untrack(remote *Remote) {
+	v.Lock()
+	delete(v.pointers, remote.ptr)
+	v.Unlock()
+}
+
+// clear stops tracking all the git_remote pointers.
+func (v *remotePointerList) clear() {
+	v.Lock()
+	var remotes []*Remote
+	for remotePtr, remote := range v.pointers {
+		remotes = append(remotes, remote)
+		delete(v.pointers, remotePtr)
+	}
+	v.Unlock()
+
+	for _, remote := range remotes {
+		remote.free()
+	}
+}
+
+// get retrieves the pointer from the given *git_remote.
+func (v *remotePointerList) get(ptr *C.git_remote) (*Remote, bool) {
+	v.RLock()
+	defer v.RUnlock()
+
+	r, ok := v.pointers[ptr]
+	if !ok {
+		return nil, false
+	}
+
+	return r, true
 }
 
 type CertificateKind uint
@@ -507,17 +566,42 @@ func RemoteIsValidName(name string) bool {
 	return C.git_remote_is_valid_name(cname) == 1
 }
 
-// Free releases the resources of the Remote.
-func (r *Remote) Free() {
+// free releases the resources of the Remote.
+func (r *Remote) free() {
 	runtime.SetFinalizer(r, nil)
 	C.git_remote_free(r.ptr)
 	r.ptr = nil
 	r.repo = nil
 }
 
+// Free releases the resources of the Remote.
+func (r *Remote) Free() {
+	r.repo.Remotes.untrackRemote(r)
+	r.free()
+}
+
 type RemoteCollection struct {
 	doNotCompare
 	repo *Repository
+
+	sync.RWMutex
+	remotes map[*C.git_remote]*Remote
+}
+
+func (c *RemoteCollection) trackRemote(r *Remote) {
+	c.Lock()
+	c.remotes[r.ptr] = r
+	c.Unlock()
+
+	remotePointers.track(r)
+}
+
+func (c *RemoteCollection) untrackRemote(r *Remote) {
+	c.Lock()
+	delete(c.remotes, r.ptr)
+	c.Unlock()
+
+	remotePointers.untrack(r)
 }
 
 func (c *RemoteCollection) List() ([]string, error) {
@@ -552,7 +636,7 @@ func (c *RemoteCollection) Create(name string, url string) (*Remote, error) {
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	runtime.SetFinalizer(remote, (*Remote).Free)
+	c.trackRemote(remote)
 	return remote, nil
 }
 
@@ -568,13 +652,13 @@ func (c *RemoteCollection) CreateWithOptions(url string, option *RemoteCreateOpt
 
 	copts := populateRemoteCreateOptions(&C.git_remote_create_options{}, option, c.repo)
 	defer freeRemoteCreateOptions(copts)
+
 	ret := C.git_remote_create_with_opts(&remote.ptr, curl, copts)
 	runtime.KeepAlive(c.repo)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-
-	runtime.SetFinalizer(remote, (*Remote).Free)
+	c.trackRemote(remote)
 	return remote, nil
 }
 
@@ -610,7 +694,7 @@ func (c *RemoteCollection) CreateWithFetchspec(name string, url string, fetch st
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	runtime.SetFinalizer(remote, (*Remote).Free)
+	c.trackRemote(remote)
 	return remote, nil
 }
 
@@ -627,7 +711,7 @@ func (c *RemoteCollection) CreateAnonymous(url string) (*Remote, error) {
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	runtime.SetFinalizer(remote, (*Remote).Free)
+	c.trackRemote(remote)
 	return remote, nil
 }
 
@@ -644,8 +728,22 @@ func (c *RemoteCollection) Lookup(name string) (*Remote, error) {
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
-	runtime.SetFinalizer(remote, (*Remote).Free)
+	c.trackRemote(remote)
 	return remote, nil
+}
+
+func (c *RemoteCollection) Free() {
+	var remotes []*Remote
+	c.Lock()
+	for remotePtr, remote := range c.remotes {
+		remotes = append(remotes, remote)
+		delete(c.remotes, remotePtr)
+	}
+	c.Unlock()
+
+	for _, remote := range remotes {
+		remotePointers.untrack(remote)
+	}
 }
 
 func (o *Remote) Name() string {

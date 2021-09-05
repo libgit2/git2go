@@ -476,3 +476,116 @@ int _go_git_indexer_new(
 	indexer_options.progress_cb_payload = progress_cb_payload;
 	return git_indexer_new(out, path, mode, odb, &indexer_options);
 }
+
+static int smart_transport_callback(
+		git_transport **out,
+		git_remote *owner,
+		void *param)
+{
+	char *error_message = NULL;
+	const int ret = smartTransportCallback(
+			&error_message,
+			out,
+			owner,
+			param);
+	return set_callback_error(error_message, ret);
+}
+
+int _go_git_transport_register(const char *prefix, void *param)
+{
+	return git_transport_register(prefix, smart_transport_callback, param);
+}
+
+static int smart_subtransport_action_callback(
+		git_smart_subtransport_stream **out,
+		git_smart_subtransport *transport,
+		const char *url,
+		git_smart_service_t action)
+{
+	char *error_message = NULL;
+	const int ret = smartSubtransportActionCallback(
+			&error_message,
+			out,
+			transport,
+			(char *)url,
+			action);
+	return set_callback_error(error_message, ret);
+}
+
+static int smart_subtransport_close_callback(git_smart_subtransport *transport)
+{
+	char *error_message = NULL;
+	const int ret = smartSubtransportCloseCallback(
+			&error_message,
+			transport);
+	return set_callback_error(error_message, ret);
+}
+
+static int smart_subtransport_callback(
+		git_smart_subtransport **out,
+		git_transport *owner,
+		void *param)
+{
+	_go_managed_smart_subtransport *subtransport = (_go_managed_smart_subtransport *)param;
+	subtransport->parent.action = smart_subtransport_action_callback;
+	subtransport->parent.close = smart_subtransport_close_callback;
+	subtransport->parent.free = smartSubtransportFreeCallback;
+
+	*out = &subtransport->parent;
+	char *error_message = NULL;
+	const int ret = smartTransportSubtransportCallback(&error_message, subtransport, owner);
+	return set_callback_error(error_message, ret);
+}
+
+int _go_git_transport_smart(
+		git_transport **out,
+		git_remote *owner,
+		int stateless,
+		_go_managed_smart_subtransport *subtransport_payload)
+{
+	git_smart_subtransport_definition definition = {
+		smart_subtransport_callback,
+		stateless,
+		subtransport_payload,
+	};
+
+	return git_transport_smart(out, owner, &definition);
+}
+
+static int smart_subtransport_stream_read_callback(
+		git_smart_subtransport_stream *stream,
+		char *buffer,
+		size_t buf_size,
+		size_t *bytes_read)
+{
+	char *error_message = NULL;
+	const int ret = smartSubtransportStreamReadCallback(
+			&error_message,
+			stream,
+			buffer,
+			buf_size,
+			bytes_read);
+	return set_callback_error(error_message, ret);
+}
+
+static int smart_subtransport_stream_write_callback(
+		git_smart_subtransport_stream *stream,
+		const char *buffer,
+		size_t len)
+{
+	char *error_message = NULL;
+	const int ret = smartSubtransportStreamWriteCallback(
+			&error_message,
+			stream,
+			(char *)buffer,
+			len);
+	return set_callback_error(error_message, ret);
+}
+
+void _go_git_setup_smart_subtransport_stream(_go_managed_smart_subtransport_stream *stream)
+{
+	_go_managed_smart_subtransport_stream *managed_stream = (_go_managed_smart_subtransport_stream *)stream;
+	managed_stream->parent.read = smart_subtransport_stream_read_callback;
+	managed_stream->parent.write = smart_subtransport_stream_write_callback;
+	managed_stream->parent.free = smartSubtransportStreamFreeCallback;
+}
