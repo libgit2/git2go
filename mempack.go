@@ -18,6 +18,7 @@ import (
 
 // Mempack is a custom ODB backend that permits packing object in-memory.
 type Mempack struct {
+	doNotCompare
 	ptr *C.git_odb_backend
 }
 

@@ -22,6 +22,7 @@ const (
 )
 
 type RevWalk struct {
+	doNotCompare
 	ptr  *C.git_revwalk
 	repo *Repository
 }

@@ -14,6 +14,7 @@ import (
 
 // Repository
 type Repository struct {
+	doNotCompare
 	ptr *C.git_repository
 	// Remotes represents the collection of remotes and can be
 	// used to add, remove and configure remotes for this

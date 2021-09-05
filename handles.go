@@ -11,6 +11,7 @@ import (
 )
 
 type HandleList struct {
+	doNotCompare
 	sync.RWMutex
 	// stores the Go pointers
 	handles map[unsafe.Pointer]interface{}

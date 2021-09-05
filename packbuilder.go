@@ -16,6 +16,7 @@ import (
 )
 
 type Packbuilder struct {
+	doNotCompare
 	ptr *C.git_packbuilder
 	r   *Repository
 }
