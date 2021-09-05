@@ -21,6 +21,7 @@ type SubmoduleUpdateOptions struct {
 
 // Submodule
 type Submodule struct {
+	doNotCompare
 	ptr *C.git_submodule
 	r   *Repository
 }
@@ -82,6 +83,7 @@ const (
 )
 
 type SubmoduleCollection struct {
+	doNotCompare
 	repo *Repository
 }
 
@@ -117,7 +119,7 @@ type submoduleCallbackData struct {
 
 //export submoduleCallback
 func submoduleCallback(csub unsafe.Pointer, name *C.char, handle unsafe.Pointer) C.int {
-	sub := &Submodule{(*C.git_submodule)(csub), nil}
+	sub := &Submodule{ptr: (*C.git_submodule)(csub)}
 
 	data, ok := pointerHandles.Get(handle).(submoduleCallbackData)
 	if !ok {

@@ -24,6 +24,7 @@ const (
 )
 
 type Tree struct {
+	doNotCompare
 	Object
 	cast_ptr *C.git_tree
 }
@@ -167,6 +168,7 @@ func (t *Tree) Walk(callback TreeWalkCallback) error {
 }
 
 type TreeBuilder struct {
+	doNotCompare
 	ptr  *C.git_treebuilder
 	repo *Repository
 }

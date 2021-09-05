@@ -55,6 +55,7 @@ func statusEntryFromC(statusEntry *C.git_status_entry) StatusEntry {
 }
 
 type StatusList struct {
+	doNotCompare
 	ptr *C.git_status_list
 	r   *Repository
 }
