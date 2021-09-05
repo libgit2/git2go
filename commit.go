@@ -22,6 +22,7 @@ const (
 
 // Commit
 type Commit struct {
+	doNotCompare
 	Object
 	cast_ptr *C.git_commit
 }

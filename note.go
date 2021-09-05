@@ -13,6 +13,7 @@ import (
 // This object represents the possible operations which can be
 // performed on the collection of notes for a repository.
 type NoteCollection struct {
+	doNotCompare
 	repo *Repository
 }
 
@@ -139,6 +140,7 @@ func (c *NoteCollection) DefaultRef() (string, error) {
 
 // Note
 type Note struct {
+	doNotCompare
 	ptr *C.git_note
 	r   *Repository
 }
@@ -189,6 +191,7 @@ func (n *Note) Message() string {
 
 // NoteIterator
 type NoteIterator struct {
+	doNotCompare
 	ptr *C.git_note_iterator
 	r   *Repository
 }

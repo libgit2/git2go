@@ -20,6 +20,7 @@ const (
 )
 
 type Revspec struct {
+	doNotCompare
 	to    *Object
 	from  *Object
 	flags RevparseFlag
