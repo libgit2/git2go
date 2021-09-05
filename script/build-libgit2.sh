@@ -51,8 +51,11 @@ if [ -n "${BUILD_LIBGIT_REF}" ]; then
 	trap "git submodule update --init" EXIT
 fi
 
+BUILD_DEPRECATED_HARD="ON"
 if [ "${BUILD_SYSTEM}" = "ON" ]; then
 	BUILD_INSTALL_PREFIX=${SYSTEM_INSTALL_PREFIX-"/usr"}
+	# Most system-wide installations won't intentionally omit deprecated symbols.
+	BUILD_DEPRECATED_HARD="OFF"
 else
 	BUILD_INSTALL_PREFIX="${BUILD_PATH}/install"
 	mkdir -p "${BUILD_PATH}/install/lib"
@@ -68,7 +71,7 @@ cmake -DTHREADSAFE=ON \
       -DCMAKE_BUILD_TYPE="RelWithDebInfo" \
       -DCMAKE_INSTALL_PREFIX="${BUILD_INSTALL_PREFIX}" \
       -DCMAKE_INSTALL_LIBDIR="lib" \
-      -DDEPRECATE_HARD=ON \
+      -DDEPRECATE_HARD="${BUILD_DEPRECATE_HARD}" \
       "${VENDORED_PATH}"
 
 if which make nproc >/dev/null && [ -f Makefile ]; then
