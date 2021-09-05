@@ -52,6 +52,7 @@ const (
 )
 
 type Index struct {
+	doNotCompare
 	ptr  *C.git_index
 	repo *Repository
 }
@@ -108,7 +109,7 @@ func freeCIndexEntry(entry *C.git_index_entry) {
 }
 
 func newIndexFromC(ptr *C.git_index, repo *Repository) *Index {
-	idx := &Index{ptr, repo}
+	idx := &Index{ptr: ptr, repo: repo}
 	runtime.SetFinalizer(idx, (*Index).Free)
 	return idx
 }
@@ -616,6 +617,7 @@ func (v *Index) RemoveConflict(path string) error {
 }
 
 type IndexConflictIterator struct {
+	doNotCompare
 	ptr   *C.git_index_conflict_iterator
 	index *Index
 }

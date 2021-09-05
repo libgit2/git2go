@@ -79,6 +79,7 @@ func (t CredentialType) String() string {
 }
 
 type Credential struct {
+	doNotCompare
 	ptr *C.git_credential
 }
 

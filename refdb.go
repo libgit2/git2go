@@ -13,11 +13,13 @@ import (
 )
 
 type Refdb struct {
+	doNotCompare
 	ptr *C.git_refdb
 	r   *Repository
 }
 
 type RefdbBackend struct {
+	doNotCompare
 	ptr *C.git_refdb_backend
 }
 
@@ -38,7 +40,7 @@ func (v *Repository) NewRefdb() (refdb *Refdb, err error) {
 }
 
 func NewRefdbBackendFromC(ptr unsafe.Pointer) (backend *RefdbBackend) {
-	backend = &RefdbBackend{(*C.git_refdb_backend)(ptr)}
+	backend = &RefdbBackend{ptr: (*C.git_refdb_backend)(ptr)}
 	return backend
 }
 
