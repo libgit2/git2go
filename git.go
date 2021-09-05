@@ -135,22 +135,28 @@ func initLibGit2() {
 	remotePointers = newRemotePointerList()
 
 	C.git_libgit2_init()
+	features := Features()
 
 	// Due to the multithreaded nature of Go and its interaction with
 	// calling C functions, we cannot work with a library that was not built
 	// with multi-threading support. The most likely outcome is a segfault
 	// or panic at an incomprehensible time, so let's make it easy by
 	// panicking right here.
-	if Features()&FeatureThreads == 0 {
+	if features&FeatureThreads == 0 {
 		panic("libgit2 was not built with threading support")
 	}
 
-	// This is not something we should be doing, as we may be
-	// stomping all over someone else's setup. The user should do
-	// this themselves or use some binding/wrapper which does it
-	// in such a way that they can be sure they're the only ones
-	// setting it up.
-	C.git_openssl_set_locking()
+	if features&FeatureHTTPS == 0 {
+		if err := registerManagedHTTP(); err != nil {
+			panic(err)
+		}
+	} else {
+		// This is not something we should be doing, as we may be stomping all over
+		// someone else's setup. The user should do this themselves or use some
+		// binding/wrapper which does it in such a way that they can be sure
+		// they're the only ones setting it up.
+		C.git_openssl_set_locking()
+	}
 }
 
 // Shutdown frees all the resources acquired by libgit2. Make sure no
