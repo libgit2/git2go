@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"crypto/rand"
 	"crypto/rsa"
+	"errors"
 	"fmt"
 	"io"
 	"net"
@@ -229,6 +230,31 @@ func TestRemotePrune(t *testing.T) {
 	if err == nil {
 		ref.Free()
 		t.Fatal("Expected error getting a pruned reference")
+	}
+}
+
+func TestRemoteCredentialsCalled(t *testing.T) {
+	t.Parallel()
+
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	remote, err := repo.Remotes.CreateAnonymous("https://github.com/libgit2/non-existent")
+	checkFatal(t, err)
+	defer remote.Free()
+
+	errNonExistent := errors.New("non-existent repository")
+	fetchOpts := FetchOptions{
+		RemoteCallbacks: RemoteCallbacks{
+			CredentialsCallback: func(url, username string, allowedTypes CredentialType) (*Credential, error) {
+				return nil, errNonExistent
+			},
+		},
+	}
+
+	err = remote.Fetch(nil, &fetchOpts, "fetch")
+	if err != errNonExistent {
+		t.Fatalf("remote.Fetch() = %v, want %v", err, errNonExistent)
 	}
 }
 
