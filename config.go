@@ -52,6 +52,7 @@ func newConfigEntryFromC(centry *C.git_config_entry) *ConfigEntry {
 }
 
 type Config struct {
+	doNotCompare
 	ptr *C.git_config
 }
 
@@ -361,6 +362,7 @@ func OpenOndisk(parent *Config, path string) (*Config, error) {
 }
 
 type ConfigIterator struct {
+	doNotCompare
 	ptr *C.git_config_iterator
 	cfg *Config
 }

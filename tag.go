@@ -13,6 +13,7 @@ import (
 
 // Tag
 type Tag struct {
+	doNotCompare
 	Object
 	cast_ptr *C.git_tag
 }
@@ -64,6 +65,7 @@ func (t *Tag) TargetType() ObjectType {
 }
 
 type TagsCollection struct {
+	doNotCompare
 	repo *Repository
 }
 

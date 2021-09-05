@@ -15,6 +15,7 @@ import (
 )
 
 type Blob struct {
+	doNotCompare
 	Object
 	cast_ptr *C.git_blob
 }
@@ -96,6 +97,7 @@ func (repo *Repository) CreateFromStream(hintPath string) (*BlobWriteStream, err
 }
 
 type BlobWriteStream struct {
+	doNotCompare
 	ptr  *C.git_writestream
 	repo *Repository
 }

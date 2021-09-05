@@ -150,6 +150,7 @@ type ProxyOptions struct {
 }
 
 type Remote struct {
+	doNotCompare
 	ptr       *C.git_remote
 	callbacks RemoteCallbacks
 	repo      *Repository
@@ -498,6 +499,7 @@ func (r *Remote) Free() {
 }
 
 type RemoteCollection struct {
+	doNotCompare
 	repo *Repository
 }
 

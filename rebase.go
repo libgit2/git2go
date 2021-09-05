@@ -142,6 +142,7 @@ func mapEmptyStringToNull(ref string) *C.char {
 
 // Rebase is the struct representing a Rebase object.
 type Rebase struct {
+	doNotCompare
 	ptr     *C.git_rebase
 	r       *Repository
 	options *C.git_rebase_options
