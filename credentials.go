@@ -8,6 +8,8 @@ void _go_git_populate_credential_ssh_custom(git_cred_ssh_custom *cred);
 import "C"
 import (
 	"crypto/rand"
+	"errors"
+	"runtime"
 	"unsafe"
 
 	"golang.org/x/crypto/ssh"
@@ -40,6 +42,29 @@ func (o *Cred) Type() CredType {
 
 func credFromC(ptr *C.git_cred) *Cred {
 	return &Cred{ptr: ptr}
+}
+
+// GetUserpassPlaintext returns the plaintext username/password combination stored in the Cred.
+func (o *Cred) GetUserpassPlaintext() (username, password string, err error) {
+	if o.Type() != CredTypeUserpassPlaintext {
+		err = errors.New("credential is not userpass plaintext")
+		return
+	}
+
+	plaintextCredPtr := (*C.git_cred_userpass_plaintext)(unsafe.Pointer(o.ptr))
+	username = C.GoString(plaintextCredPtr.username)
+	password = C.GoString(plaintextCredPtr.password)
+	return
+}
+
+func NewCredUsername(username string) (int, Cred) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	cred := Cred{}
+	cusername := C.CString(username)
+	ret := C.git_cred_username_new(&cred.ptr, cusername)
+	return int(ret), cred
 }
 
 func NewCredUserpassPlaintext(username string, password string) (int, Cred) {
