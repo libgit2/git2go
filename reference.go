@@ -17,11 +17,13 @@ const (
 )
 
 type Reference struct {
+	doNotCompare
 	ptr  *C.git_reference
 	repo *Repository
 }
 
 type ReferenceCollection struct {
+	doNotCompare
 	repo *Repository
 }
 
@@ -363,11 +365,13 @@ func (v *Reference) Free() {
 }
 
 type ReferenceIterator struct {
+	doNotCompare
 	ptr  *C.git_reference_iterator
 	repo *Repository
 }
 
 type ReferenceNameIterator struct {
+	doNotCompare
 	*ReferenceIterator
 }
 
@@ -422,7 +426,7 @@ func (repo *Repository) NewReferenceIteratorGlob(glob string) (*ReferenceIterato
 }
 
 func (i *ReferenceIterator) Names() *ReferenceNameIterator {
-	return &ReferenceNameIterator{i}
+	return &ReferenceNameIterator{ReferenceIterator: i}
 }
 
 // NextName retrieves the next reference name. If the iteration is over,

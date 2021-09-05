@@ -23,6 +23,7 @@ const (
 )
 
 type Cred struct {
+	doNotCompare
 	ptr *C.git_cred
 }
 
@@ -38,7 +39,7 @@ func (o *Cred) Type() CredType {
 }
 
 func credFromC(ptr *C.git_cred) *Cred {
-	return &Cred{ptr}
+	return &Cred{ptr: ptr}
 }
 
 func NewCredUserpassPlaintext(username string, password string) (int, Cred) {

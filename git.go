@@ -119,6 +119,10 @@ var (
 	ErrInvalid = errors.New("Invalid state for operation")
 )
 
+// doNotCompare is an idiomatic way of making structs non-comparable to avoid
+// future field additions to make them non-comparable.
+type doNotCompare [0]func()
+
 var pointerHandles *HandleList
 
 func init() {

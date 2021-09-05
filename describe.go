@@ -176,6 +176,7 @@ func (repo *Repository) DescribeWorkdir(opts *DescribeOptions) (*DescribeResult,
 //
 // Use Format() to get a string out of it.
 type DescribeResult struct {
+	doNotCompare
 	ptr *C.git_describe_result
 }
 

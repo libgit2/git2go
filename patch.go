@@ -10,6 +10,7 @@ import (
 )
 
 type Patch struct {
+	doNotCompare
 	ptr *C.git_patch
 }
 

@@ -19,6 +19,7 @@ import (
 // Indexer can post-process packfiles and create an .idx file for efficient
 // lookup.
 type Indexer struct {
+	doNotCompare
 	ptr        *C.git_indexer
 	stats      C.git_transfer_progress
 	ccallbacks C.git_remote_callbacks

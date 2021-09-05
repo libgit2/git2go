@@ -22,6 +22,7 @@ const (
 )
 
 type Object struct {
+	doNotCompare
 	ptr  *C.git_object
 	repo *Repository
 }

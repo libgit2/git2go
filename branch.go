@@ -19,6 +19,7 @@ const (
 )
 
 type Branch struct {
+	doNotCompare
 	*Reference
 }
 
@@ -27,6 +28,7 @@ func (r *Reference) Branch() *Branch {
 }
 
 type BranchIterator struct {
+	doNotCompare
 	ptr  *C.git_branch_iterator
 	repo *Repository
 }

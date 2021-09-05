@@ -22,10 +22,12 @@ import (
 )
 
 type Odb struct {
+	doNotCompare
 	ptr *C.git_odb
 }
 
 type OdbBackend struct {
+	doNotCompare
 	ptr *C.git_odb_backend
 }
 
@@ -45,7 +47,7 @@ func NewOdb() (odb *Odb, err error) {
 }
 
 func NewOdbBackendFromC(ptr unsafe.Pointer) (backend *OdbBackend) {
-	backend = &OdbBackend{(*C.git_odb_backend)(ptr)}
+	backend = &OdbBackend{ptr: (*C.git_odb_backend)(ptr)}
 	return backend
 }
 
@@ -313,6 +315,7 @@ func (v *OdbBackend) Free() {
 }
 
 type OdbObject struct {
+	doNotCompare
 	ptr *C.git_odb_object
 }
 
@@ -356,6 +359,7 @@ func (object *OdbObject) Data() (data []byte) {
 }
 
 type OdbReadStream struct {
+	doNotCompare
 	ptr  *C.git_odb_stream
 	Size uint64
 	Type ObjectType
@@ -396,6 +400,7 @@ func (stream *OdbReadStream) Free() {
 }
 
 type OdbWriteStream struct {
+	doNotCompare
 	ptr *C.git_odb_stream
 	Id  Oid
 }
@@ -440,6 +445,7 @@ func (stream *OdbWriteStream) Free() {
 
 // OdbWritepack is a stream to write a packfile to the ODB.
 type OdbWritepack struct {
+	doNotCompare
 	ptr        *C.git_odb_writepack
 	stats      C.git_transfer_progress
 	ccallbacks C.git_remote_callbacks

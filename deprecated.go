@@ -177,7 +177,7 @@ type SubmoduleCbk = SubmoduleCallback
 
 // Deprecated: SubmoduleVisitor is not used.
 func SubmoduleVisitor(csub unsafe.Pointer, name *C.char, handle unsafe.Pointer) C.int {
-	sub := &Submodule{(*C.git_submodule)(csub), nil}
+	sub := &Submodule{ptr: (*C.git_submodule)(csub)}
 
 	callback, ok := pointerHandles.Get(handle).(SubmoduleCallback)
 	if !ok {

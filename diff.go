@@ -131,6 +131,7 @@ func diffLineFromC(line *C.git_diff_line) DiffLine {
 }
 
 type Diff struct {
+	doNotCompare
 	ptr          *C.git_diff
 	repo         *Repository
 	runFinalizer bool
@@ -218,6 +219,7 @@ func (diff *Diff) FindSimilar(opts *DiffFindOptions) error {
 }
 
 type DiffStats struct {
+	doNotCompare
 	ptr *C.git_diff_stats
 }
 
