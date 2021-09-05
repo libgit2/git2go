@@ -13,6 +13,10 @@ import (
 func TestMain(m *testing.M) {
 	ret := m.Run()
 
+	if err := unregisterManagedTransports(); err != nil {
+		panic(err)
+	}
+
 	// Ensure that we are not leaking any pointer handles.
 	pointerHandles.Lock()
 	if len(pointerHandles.handles) > 0 {
@@ -22,6 +26,16 @@ func TestMain(m *testing.M) {
 		panic("pointer handle list not empty")
 	}
 	pointerHandles.Unlock()
+
+	// Or remote pointers.
+	remotePointers.Lock()
+	if len(remotePointers.pointers) > 0 {
+		for ptr, remote := range remotePointers.pointers {
+			fmt.Printf("%016p: %+v\n", ptr, remote)
+		}
+		panic("remote pointer list not empty")
+	}
+	remotePointers.Unlock()
 
 	Shutdown()
 

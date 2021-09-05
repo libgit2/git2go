@@ -97,6 +97,7 @@ func TestRemoteConnectOption(t *testing.T) {
 
 	remote, err := repo.Remotes.CreateWithOptions("https://github.com/libgit2/TestGitRepository", option)
 	checkFatal(t, err)
+	defer remote.Free()
 
 	err = remote.ConnectFetch(nil, nil, nil)
 	checkFatal(t, err)
