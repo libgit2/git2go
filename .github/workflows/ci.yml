@@ -61,7 +61,10 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        libgit2: [ '1.0.0', '1.1.0' ]
+        libgit2:
+          - 'v1.0.0'
+          - 'v1.1.0'
+          - 'v1.2.0'
     name: Go (system-wide, dynamic)
 
     runs-on: ubuntu-20.04
@@ -78,7 +81,7 @@ jobs:
       run: |
         git submodule update --init
         sudo apt-get install -y --no-install-recommends libssh2-1-dev
-        sudo env BUILD_LIBGIT_REF=v${{ matrix.libgit2 }} ./script/build-libgit2.sh --dynamic --system
+        sudo env BUILD_LIBGIT_REF=${{ matrix.libgit2 }} ./script/build-libgit2.sh --dynamic --system
     - name: Test
       run: make TEST_ARGS=-test.v test
 
