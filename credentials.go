@@ -11,6 +11,7 @@ void _go_git_populate_credential_ssh_custom(git_credential_ssh_custom *cred);
 import "C"
 import (
 	"crypto/rand"
+	"errors"
 	"fmt"
 	"runtime"
 	"strings"
@@ -104,6 +105,19 @@ func (o *Credential) Free() {
 	C.git_credential_free(o.ptr)
 	runtime.SetFinalizer(o, nil)
 	o.ptr = nil
+}
+
+// GetUserpassPlaintext returns the plaintext username/password combination stored in the Cred.
+func (o *Credential) GetUserpassPlaintext() (username, password string, err error) {
+	if o.Type() != CredentialTypeUserpassPlaintext {
+		err = errors.New("credential is not userpass plaintext")
+		return
+	}
+
+	plaintextCredPtr := (*C.git_cred_userpass_plaintext)(unsafe.Pointer(o.ptr))
+	username = C.GoString(plaintextCredPtr.username)
+	password = C.GoString(plaintextCredPtr.password)
+	return
 }
 
 func NewCredentialUsername(username string) (*Credential, error) {

@@ -11,6 +11,10 @@ import (
 )
 
 func TestMain(m *testing.M) {
+	if err := registerManagedHTTP(); err != nil {
+		panic(err)
+	}
+
 	ret := m.Run()
 
 	if err := unregisterManagedTransports(); err != nil {
