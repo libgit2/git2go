@@ -85,6 +85,7 @@ func remoteCreateCallback(
 	// clear finalizer as the calling C function will
 	// free the remote itself
 	runtime.SetFinalizer(remote, nil)
+	remote.repo.Remotes.untrackRemote(remote)
 
 	return C.int(ErrorCodeOK)
 }
