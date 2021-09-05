@@ -87,6 +87,7 @@ func (v *Repository) BlameFile(path string, opts *BlameOptions) (*Blame, error) 
 }
 
 type Blame struct {
+	doNotCompare
 	ptr *C.git_blame
 }
 

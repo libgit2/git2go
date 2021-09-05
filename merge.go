@@ -17,6 +17,7 @@ import (
 )
 
 type AnnotatedCommit struct {
+	doNotCompare
 	ptr *C.git_annotated_commit
 	r   *Repository
 }
@@ -426,11 +427,12 @@ func (r *Repository) MergeBaseOctopus(oids []*Oid) (*Oid, error) {
 }
 
 type MergeFileResult struct {
+	doNotCompare
+	ptr           *C.git_merge_file_result
 	Automergeable bool
 	Path          string
 	Mode          uint
 	Contents      []byte
-	ptr           *C.git_merge_file_result
 }
 
 func newMergeFileResultFromC(c *C.git_merge_file_result) *MergeFileResult {

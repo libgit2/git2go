@@ -35,6 +35,7 @@ const (
 // StashCollection represents the possible operations that can be
 // performed on the collection of stashes for a repository.
 type StashCollection struct {
+	doNotCompare
 	repo *Repository
 }
 
