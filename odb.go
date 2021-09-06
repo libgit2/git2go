@@ -176,6 +176,32 @@ func (v *Odb) Read(oid *Oid) (obj *OdbObject, err error) {
 	return obj, nil
 }
 
+func (odb *Odb) Refresh() error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_odb_refresh(odb.ptr)
+	runtime.KeepAlive(odb)
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+
+	return nil
+}
+
+func (odb *Odb) WriteMultiPackIndex() error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_odb_write_multi_pack_index(odb.ptr)
+	runtime.KeepAlive(odb)
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+
+	return nil
+}
+
 type OdbForEachCallback func(id *Oid) error
 type odbForEachCallbackData struct {
 	callback    OdbForEachCallback
