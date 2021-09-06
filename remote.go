@@ -252,7 +252,7 @@ const (
 // Certificate represents the two possible certificates which libgit2
 // knows it might find. If Kind is CertficateX509 then the X509 field
 // will be filled. If Kind is CertificateHostkey then the Hostkey
-// field will be fille.d
+// field will be filled.
 type Certificate struct {
 	Kind    CertificateKind
 	X509    *x509.Certificate
@@ -266,7 +266,7 @@ const (
 	HostkeyMD5    HostkeyKind = C.GIT_CERT_SSH_MD5
 	HostkeySHA1   HostkeyKind = C.GIT_CERT_SSH_SHA1
 	HostkeySHA256 HostkeyKind = C.GIT_CERT_SSH_SHA256
-	HostkeyRaw    HostkeyKind = 1 << 3
+	HostkeyRaw    HostkeyKind = C.GIT_CERT_SSH_RAW
 )
 
 // Server host key information. A bitmask containing the available fields.
@@ -481,6 +481,17 @@ func certificateCheckCallback(
 		C.memcpy(unsafe.Pointer(&cert.Hostkey.HashMD5[0]), unsafe.Pointer(&ccert.hash_md5[0]), C.size_t(len(cert.Hostkey.HashMD5)))
 		C.memcpy(unsafe.Pointer(&cert.Hostkey.HashSHA1[0]), unsafe.Pointer(&ccert.hash_sha1[0]), C.size_t(len(cert.Hostkey.HashSHA1)))
 		C.memcpy(unsafe.Pointer(&cert.Hostkey.HashSHA256[0]), unsafe.Pointer(&ccert.hash_sha256[0]), C.size_t(len(cert.Hostkey.HashSHA256)))
+		if (cert.Hostkey.Kind & HostkeyRaw) == HostkeyRaw {
+			cert.Hostkey.Hostkey = C.GoBytes(unsafe.Pointer(ccert.hostkey), C.int(ccert.hostkey_len))
+			var err error
+			cert.Hostkey.SSHPublicKey, err = ssh.ParsePublicKey(cert.Hostkey.Hostkey)
+			if err != nil {
+				if data.errorTarget != nil {
+					*data.errorTarget = err
+				}
+				return setCallbackError(errorMessage, err)
+			}
+		}
 	} else {
 		err := errors.New("unsupported certificate type")
 		if data.errorTarget != nil {
