@@ -16,6 +16,8 @@ import (
 	"strings"
 	"sync"
 	"unsafe"
+
+	"golang.org/x/crypto/ssh"
 )
 
 // RemoteCreateOptionsFlag is Remote creation options flags
@@ -256,20 +258,25 @@ type Certificate struct {
 	Hostkey HostkeyCertificate
 }
 
+// HostkeyKind is a bitmask of the available hashes in HostkeyCertificate.
 type HostkeyKind uint
 
 const (
-	HostkeyMD5  HostkeyKind = C.GIT_CERT_SSH_MD5
-	HostkeySHA1 HostkeyKind = C.GIT_CERT_SSH_SHA1
+	HostkeyMD5    HostkeyKind = C.GIT_CERT_SSH_MD5
+	HostkeySHA1   HostkeyKind = C.GIT_CERT_SSH_SHA1
+	HostkeySHA256 HostkeyKind = 1 << 2
+	HostkeyRaw    HostkeyKind = 1 << 3
 )
 
-// Server host key information. If Kind is HostkeyMD5 the MD5 field
-// will be filled. If Kind is HostkeySHA1, then HashSHA1 will be
-// filled.
+// Server host key information. A bitmask containing the available fields.
+// Check for combinations of: HostkeyMD5, HostkeySHA1, HostkeySHA256, HostkeyRaw.
 type HostkeyCertificate struct {
-	Kind     HostkeyKind
-	HashMD5  [16]byte
-	HashSHA1 [20]byte
+	Kind         HostkeyKind
+	HashMD5      [16]byte
+	HashSHA1     [20]byte
+	HashSHA256   [32]byte
+	Hostkey      []byte
+	SSHPublicKey ssh.PublicKey
 }
 
 type PushOptions struct {

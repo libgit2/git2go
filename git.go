@@ -161,6 +161,11 @@ func initLibGit2() {
 		// they're the only ones setting it up.
 		C.git_openssl_set_locking()
 	}
+	if features&FeatureSSH == 0 {
+		if err := registerManagedSSH(); err != nil {
+			panic(err)
+		}
+	}
 }
 
 // Shutdown frees all the resources acquired by libgit2. Make sure no
