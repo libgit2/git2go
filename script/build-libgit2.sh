@@ -58,12 +58,18 @@ else
 	mkdir -p "${BUILD_PATH}/install/lib"
 fi
 
+USE_BUNDLED_ZLIB="ON"
+if [ "${USE_CHROMIUM_ZLIB}" = "ON" ]; then
+	USE_BUNDLED_ZLIB="Chromium"
+fi
+
 mkdir -p "${BUILD_PATH}/build" &&
 cd "${BUILD_PATH}/build" &&
 cmake -DTHREADSAFE=ON \
       -DBUILD_CLAR=OFF \
       -DBUILD_SHARED_LIBS"=${BUILD_SHARED_LIBS}" \
       -DREGEX_BACKEND=builtin \
+      -DUSE_BUNDLED_ZLIB="${USE_BUNDLED_ZLIB}" \
       -DUSE_HTTPS=OFF \
       -DUSE_SSH=OFF \
       -DCMAKE_C_FLAGS=-fPIC \
