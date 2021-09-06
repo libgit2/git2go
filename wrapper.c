@@ -434,6 +434,11 @@ void _go_git_populate_credential_ssh_custom(git_cred_ssh_custom *cred)
 	cred->sign_callback = credential_ssh_sign_callback;
 }
 
+void _go_git_credential_free(git_cred *cred)
+{
+	cred->free(cred);
+}
+
 int _go_git_odb_write_pack(git_odb_writepack **out, git_odb *db, void *progress_payload)
 {
 	return git_odb_write_pack(out, db, transfer_progress_callback, progress_payload);
