@@ -9,7 +9,7 @@ import "C"
 import (
 	"crypto/rand"
 	"errors"
-	"runtime"
+	"fmt"
 	"unsafe"
 
 	"golang.org/x/crypto/ssh"
@@ -57,10 +57,22 @@ func (o *Cred) GetUserpassPlaintext() (username, password string, err error) {
 	return
 }
 
-func NewCredUsername(username string) (int, Cred) {
-	runtime.LockOSThread()
-	defer runtime.UnlockOSThread()
+// GetSSHKey returns the SSH-specific key information from the Cred object.
+func (o *Cred) GetSSHKey() (username, publickey, privatekey, passphrase string, err error) {
+	if o.Type() != CredTypeSshKey {
+		err = fmt.Errorf("credential is not an SSH key: %v", o.Type())
+		return
+	}
 
+	sshKeyCredPtr := (*C.git_cred_ssh_key)(unsafe.Pointer(o.ptr))
+	username = C.GoString(sshKeyCredPtr.username)
+	publickey = C.GoString(sshKeyCredPtr.publickey)
+	privatekey = C.GoString(sshKeyCredPtr.privatekey)
+	passphrase = C.GoString(sshKeyCredPtr.passphrase)
+	return
+}
+
+func NewCredUsername(username string) (int, Cred) {
 	cred := Cred{}
 	cusername := C.CString(username)
 	ret := C.git_cred_username_new(&cred.ptr, cusername)
