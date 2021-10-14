@@ -1,4 +1,4 @@
-module github.com/libgit2/git2go/v32
+module github.com/libgit2/git2go/v33
 
 go 1.13
 
