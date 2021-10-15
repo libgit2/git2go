@@ -22,7 +22,6 @@ void _go_git_setup_smart_subtransport_stream(_go_managed_smart_subtransport_stre
 */
 import "C"
 import (
-	"errors"
 	"fmt"
 	"io"
 	"reflect"
@@ -306,10 +305,10 @@ func smartTransportCallback(
 	registeredSmartTransport := pointerHandles.Get(handle).(*RegisteredSmartTransport)
 	remote, ok := remotePointers.get(owner)
 	if !ok {
-		err := errors.New("remote pointer not found")
+		// create a new empty remote and set it
+		// as a weak pointer, so that control stays in golang
 		remote = createNewEmptyRemote()
 		remote.weak = true
-		return setCallbackError(errorMessage, err)
 	}
 
 	managed := &managedSmartSubtransport{

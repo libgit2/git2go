@@ -1,8 +1,11 @@
 package git
 
 import (
+	"fmt"
 	"io/ioutil"
+	"net"
 	"testing"
+	"time"
 )
 
 const (
@@ -69,4 +72,22 @@ func TestCloneWithCallback(t *testing.T) {
 		t.Fatal("Remote was not created properly")
 	}
 	defer remote.Free()
+}
+
+// TestCloneWithExternalHTTPSUrl warning: this test might be flaky
+func TestCloneWithExternalHTTPSUrl(t *testing.T) {
+	// fail the test, if the URL is not reachable
+	timeout := 1 * time.Second
+	_, err := net.DialTimeout("tcp", "github.com:443", timeout)
+	if err != nil {
+		t.Fatal("Site unreachable, retry later, error: ", err)
+	}
+
+	url := "https://github.com/libgit2/git2go.git"
+	fmt.Println(url)
+	path, err := ioutil.TempDir("", "git2go")
+	_, err = Clone(url, path, &CloneOptions{})
+	if err != nil {
+		t.Fatal("cannot clone remote repo via https, error: ", err)
+	}
 }
