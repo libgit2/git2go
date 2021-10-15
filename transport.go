@@ -307,6 +307,8 @@ func smartTransportCallback(
 	remote, ok := remotePointers.get(owner)
 	if !ok {
 		err := errors.New("remote pointer not found")
+		remote = createNewEmptyRemote()
+		remote.weak = true
 		return setCallbackError(errorMessage, err)
 	}
 
