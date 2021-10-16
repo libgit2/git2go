@@ -65,6 +65,7 @@ jobs:
           - 'v1.0.0'
           - 'v1.1.0'
           - 'v1.2.0'
+          - 'v1.3.0'
     name: Go (system-wide, dynamic)
 
     runs-on: ubuntu-20.04
