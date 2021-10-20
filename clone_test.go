@@ -1,11 +1,10 @@
 package git
 
 import (
-	"fmt"
+	"github.com/sosedoff/gitkit"
 	"io/ioutil"
-	"net"
+	"net/http/httptest"
 	"testing"
-	"time"
 )
 
 const (
@@ -74,17 +73,37 @@ func TestCloneWithCallback(t *testing.T) {
 	defer remote.Free()
 }
 
-// TestCloneWithExternalHTTPSUrl warning: this test might be flaky
-func TestCloneWithExternalHTTPSUrl(t *testing.T) {
-	// fail the test, if the URL is not reachable
-	timeout := 1 * time.Second
-	_, err := net.DialTimeout("tcp", "github.com:443", timeout)
-	if err != nil {
-		t.Fatal("Site unreachable, retry later, error: ", err)
-	}
+// StartHTTP starts a new HTTP git server with the current configuration.
+func StartHTTP(repoDir string) (*httptest.Server, error) {
+	service := gitkit.New(gitkit.Config{
+		Dir:        repoDir,
+		Auth:       false,
+		Hooks:      &gitkit.HookScripts{},
+		AutoCreate: false,
+	})
 
-	url := "https://github.com/libgit2/git2go.git"
-	fmt.Println(url)
+	if err := service.Setup(); err != nil {
+		return nil, err
+	}
+	server := httptest.NewServer(service)
+	return server, nil
+}
+
+// TestCloneWithExternalHTTPUrWithLocalServer
+func TestCloneWithExternalHTTPUrWithLocalServer(t *testing.T) {
+
+	// create an empty repo
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	seedTestRepo(t, repo)
+
+	// initialize a git server at the path of the newly created repo
+	serv, err := StartHTTP(repo.Workdir())
+	checkFatal(t, err)
+
+	// clone the repo
+	url := serv.URL + "/.git"
 	path, err := ioutil.TempDir("", "git2go")
 	_, err = Clone(url, path, &CloneOptions{})
 	if err != nil {
