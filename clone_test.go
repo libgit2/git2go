@@ -4,6 +4,7 @@ import (
 	"github.com/sosedoff/gitkit"
 	"io/ioutil"
 	"net/http/httptest"
+	"os"
 	"testing"
 )
 
@@ -89,25 +90,16 @@ func StartHTTP(repoDir string) (*httptest.Server, error) {
 	return server, nil
 }
 
-// TestCloneWithExternalHTTPUrWithLocalServer
-func TestCloneWithExternalHTTPUrWithLocalServer(t *testing.T) {
+// TestCloneWithExternalHTTPUrl
+func TestCloneWithExternalHTTPUrl(t *testing.T) {
 
-	// create an empty repo
-	repo := createTestRepo(t)
-	defer cleanupTestRepo(t, repo)
-
-	seedTestRepo(t, repo)
-
-	// initialize a git server at the path of the newly created repo
-	serv, err := StartHTTP(repo.Workdir())
-	checkFatal(t, err)
-
-	// clone the repo
-	url := serv.URL + "/.git"
 	path, err := ioutil.TempDir("", "git2go")
 	defer os.RemoveAll(path)
+
+	// clone the repo
+	url := "https://github.com/libgit2/TestGitRepository"
 	_, err = Clone(url, path, &CloneOptions{})
 	if err != nil {
-		t.Fatal("cannot clone remote repo via http, error: ", err)
+		t.Fatal("cannot clone remote repo via https, error: ", err)
 	}
 }
