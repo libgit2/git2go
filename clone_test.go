@@ -105,6 +105,7 @@ func TestCloneWithExternalHTTPUrWithLocalServer(t *testing.T) {
 	// clone the repo
 	url := serv.URL + "/.git"
 	path, err := ioutil.TempDir("", "git2go")
+	defer os.RemoveAll(path)
 	_, err = Clone(url, path, &CloneOptions{})
 	if err != nil {
 		t.Fatal("cannot clone remote repo via http, error: ", err)
