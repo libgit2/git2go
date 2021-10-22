@@ -1,7 +1,6 @@
 package git
 
 import (
-	"github.com/sosedoff/gitkit"
 	"io/ioutil"
 	"net/http/httptest"
 	"os"
