@@ -2,7 +2,6 @@ package git
 
 import (
 	"io/ioutil"
-	"net/http/httptest"
 	"os"
 	"testing"
 )
@@ -71,22 +70,6 @@ func TestCloneWithCallback(t *testing.T) {
 		t.Fatal("Remote was not created properly")
 	}
 	defer remote.Free()
-}
-
-// StartHTTP starts a new HTTP git server with the current configuration.
-func StartHTTP(repoDir string) (*httptest.Server, error) {
-	service := gitkit.New(gitkit.Config{
-		Dir:        repoDir,
-		Auth:       false,
-		Hooks:      &gitkit.HookScripts{},
-		AutoCreate: false,
-	})
-
-	if err := service.Setup(); err != nil {
-		return nil, err
-	}
-	server := httptest.NewServer(service)
-	return server, nil
 }
 
 // TestCloneWithExternalHTTPUrl
