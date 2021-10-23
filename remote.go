@@ -181,6 +181,9 @@ type Remote struct {
 	ptr       *C.git_remote
 	callbacks RemoteCallbacks
 	repo      *Repository
+	// weak indicates that a remote is a weak pointer and should not be
+	// freed.
+	weak bool
 }
 
 type remotePointerList struct {
@@ -591,6 +594,9 @@ func (r *Remote) free() {
 // Free releases the resources of the Remote.
 func (r *Remote) Free() {
 	r.repo.Remotes.untrackRemote(r)
+	if r.weak {
+		return
+	}
 	r.free()
 }
 
@@ -1219,4 +1225,13 @@ func freeRemoteCreateOptions(ptr *C.git_remote_create_options) {
 	}
 	C.free(unsafe.Pointer(ptr.name))
 	C.free(unsafe.Pointer(ptr.fetchspec))
+}
+
+// createNewEmptyRemote used to get a new empty object of *Remote
+func createNewEmptyRemote() *Remote {
+	return &Remote{
+		callbacks: RemoteCallbacks{},
+		repo:      nil,
+		weak:      false,
+	}
 }
