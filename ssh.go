@@ -76,8 +76,8 @@ func (t *sshSmartSubtransport) Action(urlString string, action SmartServiceActio
 	}
 
 	// Escape \ and '.
-	uPath := strings.ReplaceAll(u.Path, `\`, `\\`)
-	uPath = strings.ReplaceAll(uPath, `'`, `\'`)
+	uPath := strings.Replace(u.Path, `\`, `\\`, -1)
+	uPath = strings.Replace(uPath, `'`, `\'`, -1)
 
 	// TODO: Add percentage decode similar to libgit2.
 	// Refer: https://github.com/libgit2/libgit2/blob/358a60e1b46000ea99ef10b4dd709e92f75ff74b/src/str.c#L455-L481
