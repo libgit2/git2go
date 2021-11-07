@@ -1,6 +1,8 @@
 package git
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
@@ -190,8 +192,19 @@ func (self *httpSmartSubtransportStream) sendRequest() error {
 
 	var resp *http.Response
 	var err error
-	var userName string
-	var password string
+
+	// Obtain the credentials and use them.
+	cred, err := self.owner.transport.SmartCredentials("", CredentialTypeUserpassPlaintext)
+	if err != nil {
+		return err
+	}
+	defer cred.Free()
+
+	userName, password, err := cred.GetUserpassPlaintext()
+	if err != nil {
+		return err
+	}
+
 	for {
 		req := &http.Request{
 			Method: self.req.Method,
@@ -204,30 +217,38 @@ func (self *httpSmartSubtransportStream) sendRequest() error {
 		}
 
 		req.SetBasicAuth(userName, password)
-		resp, err = http.DefaultClient.Do(req)
+
+		c := http.Client{}
+
+		cap := x509.NewCertPool()
+
+		// NOTE: self.req.URL.Host returns only host without port. To be
+		// able to fetch the correct certs from the global certs, parse again
+		// and get host+port with url.Host.
+		u, err := url.Parse(self.req.URL.String())
+		if err != nil {
+			return fmt.Errorf("failed to parse URL: %v", err)
+		}
+
+		// Use CA cert if found.
+		if cert, found := globalCACertPool.certPool[u.Host]; found {
+			if ok := cap.AppendCertsFromPEM(cert); !ok {
+				return fmt.Errorf("failed to parse CA cert")
+			}
+			c.Transport = &http.Transport{
+				TLSClientConfig: &tls.Config{
+					RootCAs: cap,
+				},
+			}
+		}
+
+		resp, err = c.Do(req)
 		if err != nil {
 			return err
 		}
 
 		if resp.StatusCode == http.StatusOK {
 			break
-		}
-
-		if resp.StatusCode == http.StatusUnauthorized {
-			resp.Body.Close()
-
-			cred, err := self.owner.transport.SmartCredentials("", CredentialTypeUserpassPlaintext)
-			if err != nil {
-				return err
-			}
-			defer cred.Free()
-
-			userName, password, err = cred.GetUserpassPlaintext()
-			if err != nil {
-				return err
-			}
-
-			continue
 		}
 
 		// Any other error we treat as a hard error and punt back to the caller
