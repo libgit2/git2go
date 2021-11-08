@@ -14,6 +14,7 @@ import (
 	"unsafe"
 )
 
+//go:generate stringer -type ErrorClass -trimprefix ErrorClass -tags static
 type ErrorClass int
 
 const (
@@ -48,6 +49,7 @@ const (
 	ErrorClassPatch      ErrorClass = C.GIT_ERROR_PATCH
 )
 
+//go:generate stringer -type ErrorCode -trimprefix ErrorCode -tags static
 type ErrorCode int
 
 const (

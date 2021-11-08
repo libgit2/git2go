@@ -107,3 +107,26 @@ jobs:
         sudo ./script/build-libgit2.sh --static --system
     - name: Test
       run: go test --count=1 --tags "static,system_libgit2" ./...
+
+  check-generate:
+    name: Check generated files were not modified
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Set up Go
+      uses: actions/setup-go@v1
+      with:
+        go-version: '1.17'
+      id: go
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+    - name: Install libgit2 build dependencies
+      run: |
+        git submodule update --init
+        sudo apt-get install -y --no-install-recommends libssh2-1-dev
+        go install golang.org/x/tools/cmd/stringer@latest
+    - name: Generate files
+      run: |
+        export PATH=$(go env GOPATH)/bin:$PATH
+        make generate
+    - name: Check nothing changed
+      run: git diff --quiet --exit-code || (echo "detected changes after generate" ; git status ; exit 1)
