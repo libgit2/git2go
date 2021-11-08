@@ -121,6 +121,7 @@ jobs:
       run: |
         git submodule update --init
         sudo apt-get install -y --no-install-recommends libssh2-1-dev
+        go install golang.org/x/tools/cmd/stringer@latest
     - name: Generate files
       run: make generate
     - name: Check nothing changed
