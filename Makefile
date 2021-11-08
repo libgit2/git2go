@@ -2,6 +2,10 @@ TEST_ARGS ?= --count=1
 
 default: test
 
+
+generate: static-build/install/lib/libgit2.a
+	go generate --tags "static" ./...
+
 # System library
 # ==============
 # This uses whatever version of libgit2 can be found in the system.
@@ -53,17 +57,3 @@ test-static: static-build/install/lib/libgit2.a
 
 install-static: static-build/install/lib/libgit2.a
 	go install --tags "static" ./...
-
-define _gen_file
-	rm -fr _obj
-	go tool cgo $(1)
-	find ./_obj -type f ! -name '*.go' -exec rm {} \;
-	mv ./_obj/_cgo_gotypes.go ./_obj/cgo_gotypes.go
-	cd ./_obj && go generate ./...
-	find ./_obj -type f -name '*_string.go' -exec mv -v {} . \;
-	rm -fr ./_obj
-endef
-
-generate:
-	$(call _gen_file,diff.go)
-	$(call _gen_file,git.go)
