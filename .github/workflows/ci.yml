@@ -117,6 +117,10 @@ jobs:
       id: go
     - name: Check out code into the Go module directory
       uses: actions/checkout@v2
+    - name: Install libgit2 build dependencies
+      run: |
+        git submodule update --init
+        sudo apt-get install -y --no-install-recommends libssh2-1-dev
     - name: Generate files
       run: make generate
     - name: Check nothing changed
