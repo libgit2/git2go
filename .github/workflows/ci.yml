@@ -120,4 +120,4 @@ jobs:
     - name: Generate files
       run: make generate
     - name: Check nothing changed
-      run: git diff --quiet --exit-code || (echo "detected changes after generate" && exit 1)
+      run: git diff --quiet --exit-code || (echo "detected changes after generate" ; git status ; exit 1)
