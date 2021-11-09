@@ -77,7 +77,7 @@ In order to let Go pass the correct flags to `pkg-config`, `-tags static` needs 
 
 One thing to take into account is that since Go expects the `pkg-config` file to be within the same directory where `make install-static` was called, so the `go.mod` file may need to have a [`replace` directive](https://github.com/golang/go/wiki/Modules#when-should-i-use-the-replace-directive) so that the correct setup is achieved. So if `git2go` is checked out at `$GOPATH/src/github.com/libgit2/git2go` and your project at `$GOPATH/src/github.com/my/project`, the `go.mod` file of `github.com/my/project` might need to have a line like
 
-    replace github.com/libgit2/git2go/v31 ../../libgit2/git2go
+    replace github.com/libgit2/git2go/v31 => ../../libgit2/git2go
 
 Parallelism and network operations
 ----------------------------------
