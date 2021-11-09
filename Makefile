@@ -2,6 +2,10 @@ TEST_ARGS ?= --count=1
 
 default: test
 
+
+generate: static-build/install/lib/libgit2.a
+	go generate --tags "static" ./...
+
 # System library
 # ==============
 # This uses whatever version of libgit2 can be found in the system.
