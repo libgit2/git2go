@@ -2,6 +2,7 @@ package git
 
 import (
 	"io/ioutil"
+	"os"
 	"testing"
 )
 
@@ -75,4 +76,18 @@ func TestCloneWithCallback(t *testing.T) {
 		t.Fatal("Remote was not created properly")
 	}
 	defer remote.Free()
+}
+
+// TestCloneWithExternalHTTPUrl
+func TestCloneWithExternalHTTPUrl(t *testing.T) {
+
+	path, err := ioutil.TempDir("", "git2go")
+	defer os.RemoveAll(path)
+
+	// clone the repo
+	url := "https://github.com/libgit2/TestGitRepository"
+	_, err = Clone(url, path, &CloneOptions{})
+	if err != nil {
+		t.Fatal("cannot clone remote repo via https, error: ", err)
+	}
 }
