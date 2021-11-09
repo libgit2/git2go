@@ -17,6 +17,7 @@ import (
 	"net"
 	"net/url"
 	"runtime"
+	"strings"
 	"unsafe"
 
 	"golang.org/x/crypto/ssh"
@@ -74,6 +75,13 @@ func (t *sshSmartSubtransport) Action(urlString string, action SmartServiceActio
 		return nil, err
 	}
 
+	// Escape \ and '.
+	uPath := strings.Replace(u.Path, `\`, `\\`, -1)
+	uPath = strings.Replace(uPath, `'`, `\'`, -1)
+
+	// TODO: Add percentage decode similar to libgit2.
+	// Refer: https://github.com/libgit2/libgit2/blob/358a60e1b46000ea99ef10b4dd709e92f75ff74b/src/str.c#L455-L481
+
 	var cmd string
 	switch action {
 	case SmartServiceActionUploadpackLs, SmartServiceActionUploadpack:
@@ -83,7 +91,7 @@ func (t *sshSmartSubtransport) Action(urlString string, action SmartServiceActio
 			}
 			t.Close()
 		}
-		cmd = fmt.Sprintf("git-upload-pack %q", u.Path)
+		cmd = fmt.Sprintf("git-upload-pack '%s'", uPath)
 
 	case SmartServiceActionReceivepackLs, SmartServiceActionReceivepack:
 		if t.currentStream != nil {
@@ -92,7 +100,7 @@ func (t *sshSmartSubtransport) Action(urlString string, action SmartServiceActio
 			}
 			t.Close()
 		}
-		cmd = fmt.Sprintf("git-receive-pack %q", u.Path)
+		cmd = fmt.Sprintf("git-receive-pack '%s'", uPath)
 
 	default:
 		return nil, fmt.Errorf("unexpected action: %v", action)
