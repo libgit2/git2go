@@ -110,7 +110,7 @@ func (t *httpSmartSubtransport) Action(url string, action SmartServiceAction) (S
 		req, err = http.NewRequest("GET", url+"/info/refs?service=git-receive-pack", nil)
 
 	case SmartServiceActionReceivepack:
-		req, err = http.NewRequest("POST", url+"/info/refs?service=git-receive-pack", nil)
+		req, err = http.NewRequest("POST", url+"/git-receive-pack", nil)
 		if err != nil {
 			break
 		}
