@@ -291,6 +291,9 @@ type PushOptions struct {
 
 	// Headers are extra headers for the push operation.
 	Headers []string
+
+	// Proxy options to use for this push operation
+	ProxyOptions ProxyOptions
 }
 
 type RemoteHead struct {
@@ -1001,6 +1004,7 @@ func populatePushOptions(copts *C.git_push_options, opts *PushOptions, errorTarg
 		strings: makeCStringsFromStrings(opts.Headers),
 	}
 	populateRemoteCallbacks(&copts.callbacks, &opts.RemoteCallbacks, errorTarget)
+	populateProxyOptions(&copts.proxy_opts, &opts.ProxyOptions)
 	return copts
 }
 
@@ -1010,6 +1014,7 @@ func freePushOptions(copts *C.git_push_options) {
 	}
 	untrackCallbacksPayload(&copts.callbacks)
 	freeStrarray(&copts.custom_headers)
+	freeProxyOptions(&copts.proxy_opts)
 }
 
 // Fetch performs a fetch operation. refspecs specifies which refspecs
