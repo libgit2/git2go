@@ -65,6 +65,14 @@ func TestEnableStrictHashVerification(t *testing.T) {
 	checkFatal(t, err)
 }
 
+func TestEnableFsyncGitDir(t *testing.T) {
+	err := EnableFsyncGitDir(false)
+	checkFatal(t, err)
+
+	err = EnableFsyncGitDir(true)
+	checkFatal(t, err)
+}
+
 func TestCachedMemory(t *testing.T) {
 	current, allowed, err := CachedMemory()
 	checkFatal(t, err)

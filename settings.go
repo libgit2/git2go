@@ -101,6 +101,14 @@ func EnableStrictHashVerification(enabled bool) error {
 	}
 }
 
+func EnableFsyncGitDir(enabled bool) error {
+	if enabled {
+		return setSizet(C.GIT_OPT_ENABLE_FSYNC_GITDIR, 1)
+	} else {
+		return setSizet(C.GIT_OPT_ENABLE_FSYNC_GITDIR, 0)
+	}
+}
+
 func CachedMemory() (current int, allowed int, err error) {
 	return getSizetSizet(C.GIT_OPT_GET_CACHED_MEMORY)
 }
