@@ -318,7 +318,7 @@ func (r *Repository) InitRebase(branch *AnnotatedCommit, upstream *AnnotatedComm
 		return nil, MakeGitError(ret)
 	}
 
-	return newRebaseFromC(ptr, cOpts), nil
+	return newRebaseFromC(ptr, r, cOpts), nil
 }
 
 // OpenRebase opens an existing rebase that was previously started by either an invocation of InitRebase or by another client.
@@ -340,7 +340,7 @@ func (r *Repository) OpenRebase(opts *RebaseOptions) (*Rebase, error) {
 		return nil, MakeGitError(ret)
 	}
 
-	return newRebaseFromC(ptr, cOpts), nil
+	return newRebaseFromC(ptr, r, cOpts), nil
 }
 
 // OperationAt gets the rebase operation specified by the given index.
@@ -457,8 +457,8 @@ func (r *Rebase) Free() {
 	freeRebaseOptions(r.options)
 }
 
-func newRebaseFromC(ptr *C.git_rebase, opts *C.git_rebase_options) *Rebase {
-	rebase := &Rebase{ptr: ptr, options: opts}
+func newRebaseFromC(ptr *C.git_rebase, repo *Repository, opts *C.git_rebase_options) *Rebase {
+    rebase := &Rebase{ptr: ptr, r: repo, options: opts}
 	runtime.SetFinalizer(rebase, (*Rebase).Free)
 	return rebase
 }
