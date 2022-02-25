@@ -181,7 +181,7 @@ func (r *Repository) InitRebase(branch *AnnotatedCommit, upstream *AnnotatedComm
 		return nil, MakeGitError(ret)
 	}
 
-	return newRebaseFromC(ptr, cOpts), nil
+	return newRebaseFromC(ptr, r, cOpts), nil
 }
 
 // OpenRebase opens an existing rebase that was previously started by either an invocation of InitRebase or by another client.
@@ -203,7 +203,7 @@ func (r *Repository) OpenRebase(opts *RebaseOptions) (*Rebase, error) {
 		return nil, MakeGitError(ret)
 	}
 
-	return newRebaseFromC(ptr, cOpts), nil
+	return newRebaseFromC(ptr, r, cOpts), nil
 }
 
 // OperationAt gets the rebase operation specified by the given index.
@@ -253,6 +253,27 @@ func (rebase *Rebase) Next() (*RebaseOperation, error) {
 	}
 
 	return newRebaseOperationFromC(ptr), nil
+}
+
+// InmemoryIndex gets the index produced by the last operation, which is the
+// result of `Next()` and which will be committed by the next invocation of
+// `Commit()`. This is useful for resolving conflicts in an in-memory rebase
+// before committing them.
+//
+// This is only applicable for in-memory rebases; for rebases within a working
+// directory, the changes were applied to the repository's index.
+func (rebase *Rebase) InmemoryIndex() (*Index, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var ptr *C.git_index
+	err := C.git_rebase_inmemory_index(&ptr, rebase.ptr)
+	runtime.KeepAlive(rebase)
+	if err < 0 {
+		return nil, MakeGitError(err)
+	}
+
+	return newIndexFromC(ptr, rebase.r), nil
 }
 
 // Commit commits the current patch.
@@ -320,8 +341,8 @@ func (r *Rebase) Free() {
 	freeRebaseOptions(r.options)
 }
 
-func newRebaseFromC(ptr *C.git_rebase, opts *C.git_rebase_options) *Rebase {
-	rebase := &Rebase{ptr: ptr, options: opts}
+func newRebaseFromC(ptr *C.git_rebase, repo *Repository, opts *C.git_rebase_options) *Rebase {
+    rebase := &Rebase{ptr: ptr, r: repo, options: opts}
 	runtime.SetFinalizer(rebase, (*Rebase).Free)
 	return rebase
 }

@@ -9,6 +9,80 @@ import (
 
 // Tests
 
+func TestRebaseInMemoryWithConflict(t *testing.T) {
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+	seedTestRepo(t, repo)
+
+    // Create two branches with common history, where both modify "common-file"
+    // in a conflicting way.
+    _, err := commitSomething(repo, "common-file", "a\nb\nc\n", commitOptions{})
+    checkFatal(t, err)
+	checkFatal(t, createBranch(repo, "branch-a"))
+	checkFatal(t, createBranch(repo, "branch-b"))
+
+	checkFatal(t, repo.SetHead("refs/heads/branch-a"))
+    _, err = commitSomething(repo, "common-file", "1\nb\nc\n", commitOptions{})
+    checkFatal(t, err)
+
+	checkFatal(t, repo.SetHead("refs/heads/branch-b"))
+    _, err = commitSomething(repo, "common-file", "x\nb\nc\n", commitOptions{})
+    checkFatal(t, err)
+
+	branchA, err := repo.LookupBranch("branch-a", BranchLocal)
+    checkFatal(t, err)
+	onto, err := repo.AnnotatedCommitFromRef(branchA.Reference)
+    checkFatal(t, err)
+
+    // We then rebase "branch-b" onto "branch-a" in-memory, which should result
+    // in a conflict.
+    rebase, err := repo.InitRebase(nil, nil, onto, &RebaseOptions{InMemory: 1})
+    checkFatal(t, err)
+
+    _, err = rebase.Next()
+	checkFatal(t, err)
+
+    index, err := rebase.InmemoryIndex()
+	checkFatal(t, err)
+
+    // We simply resolve the conflict and commit the rebase.
+    if !index.HasConflicts() {
+        t.Fatal("expected index to have conflicts")
+    }
+
+    conflict, err := index.Conflict("common-file")
+    checkFatal(t, err)
+
+    resolvedBlobID, err := repo.CreateBlobFromBuffer([]byte("resolved contents"))
+    checkFatal(t, err)
+
+    resolvedEntry := *conflict.Our
+    resolvedEntry.Id = resolvedBlobID
+    checkFatal(t, index.Add(&resolvedEntry))
+    checkFatal(t, index.RemoveConflict("common-file"))
+
+    var commitID Oid
+    checkFatal(t, rebase.Commit(&commitID, signature(), signature(), "rebased message"))
+    checkFatal(t, rebase.Finish())
+
+    // And then assert that we can look up the new merge commit, and that the
+    // "common-file" has the expected contents.
+    commit, err := repo.LookupCommit(&commitID)
+    checkFatal(t, err)
+    if commit.Message() != "rebased message" {
+        t.Fatalf("unexpected commit message %q", commit.Message())
+    }
+
+    tree, err := commit.Tree()
+    checkFatal(t, err)
+
+    blob, err := repo.LookupBlob(tree.EntryByName("common-file").Id)
+    checkFatal(t, err)
+    if string(blob.Contents()) != "resolved contents" {
+        t.Fatalf("unexpected resolved blob contents %q", string(blob.Contents()))
+    }
+}
+
 func TestRebaseAbort(t *testing.T) {
 	// TEST DATA
 
