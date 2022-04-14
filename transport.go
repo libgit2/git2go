@@ -4,6 +4,7 @@ package git
 #include <string.h>
 
 #include <git2.h>
+#include <git2/sys/remote.h>
 #include <git2/sys/transport.h>
 
 typedef struct {
@@ -84,17 +85,19 @@ type Transport struct {
 	ptr *C.git_transport
 }
 
-// SmartProxyOptions gets a copy of the proxy options for this transport.
-func (t *Transport) SmartProxyOptions() (*ProxyOptions, error) {
+// SmartRemoteConnectOptions gets a copy of the connection options for this transport.
+func (t *Transport) SmartRemoteConnectOptions() (*RemoteConnectOptions, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	var cpopts C.git_proxy_options
-	if ret := C.git_transport_smart_proxy_options(&cpopts, t.ptr); ret < 0 {
+	var copts C.git_remote_connect_options
+	if ret := C.git_transport_smart_remote_connect_options(&copts, t.ptr); ret < 0 {
 		return nil, MakeGitError(ret)
 	}
+	opts := remoteConnectOptionsFromC(&copts)
+	C.git_remote_connect_options_dispose(&copts)
 
-	return proxyOptionsFromC(&cpopts), nil
+	return opts, nil
 }
 
 // SmartCredentials calls the credentials callback for this transport.
