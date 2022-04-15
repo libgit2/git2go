@@ -1,6 +1,8 @@
 package git
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"errors"
 	"fmt"
 	"io"
@@ -16,7 +18,7 @@ import (
 // If Shutdown or ReInit are called, make sure that the smart transports are
 // freed before it.
 func RegisterManagedHTTPTransport(protocol string) (*RegisteredSmartTransport, error) {
-	return NewRegisteredSmartTransport(protocol, true, httpSmartSubtransportFactory)
+	return NewRegisteredSmartTransport(protocol, true, httpSmartSubtransportFactory(nil))
 }
 
 func registerManagedHTTP() error {
@@ -27,7 +29,7 @@ func registerManagedHTTP() error {
 		if _, ok := globalRegisteredSmartTransports.transports[protocol]; ok {
 			continue
 		}
-		managed, err := newRegisteredSmartTransport(protocol, true, httpSmartSubtransportFactory, true)
+		managed, err := newRegisteredSmartTransport(protocol, true, httpSmartSubtransportFactory(nil), true)
 		if err != nil {
 			return fmt.Errorf("failed to register transport for %q: %v", protocol, err)
 		}
@@ -36,34 +38,53 @@ func registerManagedHTTP() error {
 	return nil
 }
 
-func httpSmartSubtransportFactory(remote *Remote, transport *Transport) (SmartSubtransport, error) {
-	var proxyFn func(*http.Request) (*url.URL, error)
-	proxyOpts, err := transport.SmartProxyOptions()
-	if err != nil {
-		return nil, err
-	}
-	switch proxyOpts.Type {
-	case ProxyTypeNone:
-		proxyFn = nil
-	case ProxyTypeAuto:
-		proxyFn = http.ProxyFromEnvironment
-	case ProxyTypeSpecified:
-		parsedUrl, err := url.Parse(proxyOpts.Url)
+// httpSmartSubtransportFactory implements SmartSubtransportCallback which
+// returns a SmartSubtransport for a remote and transport.
+func httpSmartSubtransportFactory(opts *SmartSubtransportOptions) SmartSubtransportCallback {
+	return func(remote *Remote, transport *Transport) (SmartSubtransport, error) {
+		sst := &httpSmartSubtransport{
+			transport: transport,
+		}
+
+		var proxyFn func(*http.Request) (*url.URL, error)
+		proxyOpts, err := transport.SmartProxyOptions()
 		if err != nil {
 			return nil, err
 		}
+		switch proxyOpts.Type {
+		case ProxyTypeNone:
+			proxyFn = nil
+		case ProxyTypeAuto:
+			proxyFn = http.ProxyFromEnvironment
+		case ProxyTypeSpecified:
+			parsedUrl, err := url.Parse(proxyOpts.Url)
+			if err != nil {
+				return nil, err
+			}
 
-		proxyFn = http.ProxyURL(parsedUrl)
+			proxyFn = http.ProxyURL(parsedUrl)
+		}
+
+		// Add the proxy to the http transport.
+		httpTransport := &http.Transport{
+			Proxy: proxyFn,
+		}
+
+		// Add any provided certificate to the http transport.
+		if opts != nil && len(opts.CABundle) > 0 {
+			cap := x509.NewCertPool()
+			if ok := cap.AppendCertsFromPEM(opts.CABundle); !ok {
+				return nil, fmt.Errorf("failed to use certificate from PEM")
+			}
+			httpTransport.TLSClientConfig = &tls.Config{
+				RootCAs: cap,
+			}
+		}
+
+		sst.client = &http.Client{Transport: httpTransport}
+
+		return sst, nil
 	}
-
-	return &httpSmartSubtransport{
-		transport: transport,
-		client: &http.Client{
-			Transport: &http.Transport{
-				Proxy: proxyFn,
-			},
-		},
-	}, nil
 }
 
 type httpSmartSubtransport struct {
@@ -89,7 +110,7 @@ func (t *httpSmartSubtransport) Action(url string, action SmartServiceAction) (S
 		req, err = http.NewRequest("GET", url+"/info/refs?service=git-receive-pack", nil)
 
 	case SmartServiceActionReceivepack:
-		req, err = http.NewRequest("POST", url+"/info/refs?service=git-upload-pack", nil)
+		req, err = http.NewRequest("POST", url+"/git-receive-pack", nil)
 		if err != nil {
 			break
 		}
@@ -105,7 +126,7 @@ func (t *httpSmartSubtransport) Action(url string, action SmartServiceAction) (S
 
 	req.Header.Set("User-Agent", "git/2.0 (git2go)")
 
-	stream := newManagedHttpStream(t, req)
+	stream := newManagedHttpStream(t, req, t.client)
 	if req.Method == "POST" {
 		stream.recvReply.Add(1)
 		stream.sendRequestBackground()
@@ -124,6 +145,7 @@ func (t *httpSmartSubtransport) Free() {
 
 type httpSmartSubtransportStream struct {
 	owner       *httpSmartSubtransport
+	client      *http.Client
 	req         *http.Request
 	resp        *http.Response
 	reader      *io.PipeReader
@@ -133,10 +155,11 @@ type httpSmartSubtransportStream struct {
 	httpError   error
 }
 
-func newManagedHttpStream(owner *httpSmartSubtransport, req *http.Request) *httpSmartSubtransportStream {
+func newManagedHttpStream(owner *httpSmartSubtransport, req *http.Request, client *http.Client) *httpSmartSubtransportStream {
 	r, w := io.Pipe()
 	return &httpSmartSubtransportStream{
 		owner:  owner,
+		client: client,
 		req:    req,
 		reader: r,
 		writer: w,
@@ -192,6 +215,23 @@ func (self *httpSmartSubtransportStream) sendRequest() error {
 	var err error
 	var userName string
 	var password string
+
+	// Obtain the credentials and use them if available.
+	cred, err := self.owner.transport.SmartCredentials("", CredentialTypeUserpassPlaintext)
+	if err != nil {
+		// Passthrough error indicates that no credentials were provided.
+		// Continue without credentials.
+		if err.Error() != ErrorCodePassthrough.String() {
+			return err
+		}
+	} else {
+		userName, password, err = cred.GetUserpassPlaintext()
+		if err != nil {
+			return err
+		}
+		defer cred.Free()
+	}
+
 	for {
 		req := &http.Request{
 			Method: self.req.Method,
@@ -204,30 +244,13 @@ func (self *httpSmartSubtransportStream) sendRequest() error {
 		}
 
 		req.SetBasicAuth(userName, password)
-		resp, err = http.DefaultClient.Do(req)
+		resp, err = self.client.Do(req)
 		if err != nil {
 			return err
 		}
 
 		if resp.StatusCode == http.StatusOK {
 			break
-		}
-
-		if resp.StatusCode == http.StatusUnauthorized {
-			resp.Body.Close()
-
-			cred, err := self.owner.transport.SmartCredentials("", CredentialTypeUserpassPlaintext)
-			if err != nil {
-				return err
-			}
-			defer cred.Free()
-
-			userName, password, err = cred.GetUserpassPlaintext()
-			if err != nil {
-				return err
-			}
-
-			continue
 		}
 
 		// Any other error we treat as a hard error and punt back to the caller

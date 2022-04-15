@@ -219,6 +219,22 @@ type RegisteredSmartTransport struct {
 	handle    unsafe.Pointer
 }
 
+// SmartSubtransportOptions is an option for configuring the smart subtransport.
+type SmartSubtransportOptions struct {
+	CABundle []byte
+}
+
+// NewRegisterSmartTransportWithOptions registers Go-native transport configured
+// with options.
+func NewRegisterSmartTransportWithOptions(protocol string, opts *SmartSubtransportOptions) (*RegisteredSmartTransport, error) {
+	switch protocol {
+	case "http", "https":
+		return NewRegisteredSmartTransport(protocol, true, httpSmartSubtransportFactory(opts))
+	default:
+		return nil, nil
+	}
+}
+
 // NewRegisteredSmartTransport adds a custom transport definition, to be used
 // in addition to the built-in set of transports that come with libgit2.
 func NewRegisteredSmartTransport(
