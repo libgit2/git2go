@@ -24,6 +24,7 @@ import "C"
 import (
 	"fmt"
 	"io"
+	"net/url"
 	"reflect"
 	"runtime"
 	"sync"
@@ -39,7 +40,37 @@ var (
 	}{
 		transports: make(map[string]*RegisteredSmartTransport),
 	}
+	// globalCACertPool is a mapping of global CA certs used by git2go-managed
+	// transports. The map's key is hostname+port and the value is a
+	// corresponding CA cert.
+	// Since the git2go-managed transports aren't public, this can be used to
+	// provide certs to the subtransports that can be looked up for a given
+	// host.
+	globalCACertPool = struct {
+		sync.Mutex
+		certPool map[string][]byte
+	}{
+		certPool: make(map[string][]byte),
+	}
 )
+
+// RegisterCACerts registers CA cert associated with an address in the
+// globalCACertPool.
+func RegisterCACerts(address string, caBundle []byte) error {
+	globalCACertPool.Lock()
+	defer globalCACertPool.Unlock()
+	// Ignore empty CA bundles.
+	if len(caBundle) == 0 {
+		return nil
+	}
+	u, err := url.Parse(address)
+	if err != nil {
+		return err
+	}
+	// Store the certificate based on host+port, e.g.: 127.0.0.1:42107.
+	globalCACertPool.certPool[u.Host] = caBundle
+	return nil
+}
 
 // unregisterManagedTransports unregisters all git2go-managed transports.
 func unregisterManagedTransports() error {
