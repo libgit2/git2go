@@ -203,7 +203,9 @@ func (self *httpSmartSubtransportStream) sendRequest() error {
 			req.ContentLength = -1
 		}
 
-		req.SetBasicAuth(userName, password)
+		if userName != "" && password != "" {
+			req.SetBasicAuth(userName, password)
+		}
 		resp, err = http.DefaultClient.Do(req)
 		if err != nil {
 			return err
