@@ -62,7 +62,7 @@ jobs:
       fail-fast: false
       matrix:
         libgit2:
-          - 'v1.3.1'
+          - '1d88605ca9d51f9e8695030853d5914743fbb091'
     name: Go (system-wide, dynamic)
 
     runs-on: ubuntu-20.04

@@ -177,6 +177,49 @@ func proxyOptionsFromC(copts *C.git_proxy_options) *ProxyOptions {
 	}
 }
 
+// RemoteRedirect are remote redirection settings; whether redirects to another
+// host are permitted.  By default, git will follow a redirect on the initial
+// request (`/info/refs`), but not subsequent requests.
+type RemoteRedirect uint32
+
+const (
+	// RemoteRedirectNone makes remote operations not follow any off-site redirects at any stage of
+	// the fetch or push.
+	RemoteRedirectNone RemoteRedirect = C.GIT_REMOTE_REDIRECT_NONE
+
+	// RemoteRedirectInitial allows off-site redirects only upon the initial request.
+	// This is the default.
+	RemoteRedirectInitial RemoteRedirect = C.GIT_REMOTE_REDIRECT_INITIAL
+
+	// RemoteRedirectAll allows redirects at any stage in the fetch or push.
+	RemoteRedirectAll RemoteRedirect = C.GIT_REMOTE_REDIRECT_ALL
+)
+
+// RemoteConnectOptions is the remote creation options structure.
+type RemoteConnectOptions struct {
+	// Callbacks are the callbacks to use for this connection.
+	Callbacks RemoteCallbacks
+
+	// ProxyOpts are the HTTP proxy settings.
+	ProxyOpts ProxyOptions
+
+	// FollowRedirects determines whether to allow off-site redirects.  If this
+	// is not specified, the `http.followRedirects` configuration setting will be
+	// consulted.
+	FollowRedirects RemoteRedirect
+
+	// CustomHeaders are extra HTTP headers to use in this connection.
+	CustomHeaders []string
+}
+
+func remoteConnectOptionsFromC(copts *C.git_remote_connect_options) *RemoteConnectOptions {
+	return &RemoteConnectOptions{
+		ProxyOpts:       *proxyOptionsFromC(&copts.proxy_opts),
+		FollowRedirects: RemoteRedirect(copts.follow_redirects),
+		CustomHeaders:   makeStringsFromCStrings(copts.custom_headers.strings, int(copts.custom_headers.count)),
+	}
+}
+
 type Remote struct {
 	doNotCompare
 	ptr       *C.git_remote
