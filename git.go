@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"errors"
+	"os"
 	"runtime"
 	"strings"
 	"unsafe"
@@ -148,7 +149,7 @@ func initLibGit2() {
 	// with multi-threading support. The most likely outcome is a segfault
 	// or panic at an incomprehensible time, so let's make it easy by
 	// panicking right here.
-	if features&FeatureThreads == 0 {
+	if features&FeatureThreads == 0 && !strings.EqualFold(os.Getenv("ALLOW_THREADLESS_LIBGIT2"), "true") {
 		panic("libgit2 was not built with threading support")
 	}
 
