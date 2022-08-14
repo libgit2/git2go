@@ -7,7 +7,9 @@ extern int _go_git_tag_foreach(git_repository *repo, void *payload);
 */
 import "C"
 import (
+	"bytes"
 	"runtime"
+	"strings"
 	"unsafe"
 )
 
@@ -92,6 +94,53 @@ func (c *TagsCollection) Create(name string, obj Objecter, tagger *Signature, me
 	ret := C.git_tag_create(oid.toC(), c.repo.ptr, cname, o.ptr, taggerSig, cmessage, 0)
 	runtime.KeepAlive(c)
 	runtime.KeepAlive(obj)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return oid, nil
+}
+
+// CreateTagBuffer creates a tag and write it into a Golang-buffer.
+// libgit2 does not contain git_tag_create_buffer function.
+func (c *TagsCollection) CreateTagBuffer(name string, obj Objecter, tagger *Signature, message string) []byte {
+	buf := bytes.NewBuffer(nil)
+	buf.WriteString("object " + obj.AsObject().Id().String() + "\n")
+	buf.WriteString("type " + strings.ToLower(obj.AsObject().Type().String()) + "\n")
+	buf.WriteString("tag " + name + "\n")
+	buf.WriteString("tagger " + tagger.ToString(true) + "\n\n")
+	if !strings.HasSuffix(message, "\n") {
+		buf.WriteString(message + "\n")
+	} else {
+		buf.WriteString(message)
+	}
+
+	return buf.Bytes()
+}
+
+// CreateTagWithSignature creates a tag object from the given contents and
+// signature.
+func (c *TagsCollection) CreateTagWithSignature(
+	tagContent, signature string, force bool,
+) (*Oid, error) {
+	if !strings.HasSuffix(signature, "\n") {
+		signature += "\n"
+	}
+
+	tagContent += signature
+
+	cTagContent := C.CString(tagContent)
+	defer C.free(unsafe.Pointer(cTagContent))
+	cForce := cbool(force)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	oid := new(Oid)
+	ret := C.git_tag_create_from_buffer(oid.toC(), c.repo.ptr, cTagContent, cForce)
+
+	runtime.KeepAlive(c)
+	runtime.KeepAlive(oid)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}

@@ -1,9 +1,14 @@
 package git
 
 import (
+	"bytes"
 	"errors"
+	"strings"
 	"testing"
 	"time"
+
+	"golang.org/x/crypto/openpgp"
+	"golang.org/x/crypto/openpgp/packet"
 )
 
 func TestCreateTag(t *testing.T) {
@@ -24,6 +29,39 @@ func TestCreateTag(t *testing.T) {
 	compareStrings(t, "v0.0.0", tag.Name())
 	compareStrings(t, "This is a tag", tag.Message())
 	compareStrings(t, commitId.String(), tag.TargetId().String())
+}
+
+func TestCreateTagWithSignature(t *testing.T) {
+	t.Parallel()
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	commitID, _ := seedTestRepo(t, repo)
+
+	commit, err := repo.LookupCommit(commitID)
+	checkFatal(t, err)
+
+	tagContent := repo.Tags.CreateTagBuffer("v0.1.0", commit, &Signature{
+		Name:  "Alice",
+		Email: "alice@example.com",
+		When:  time.Now(),
+	}, "This is a tag")
+
+	entity, err := openpgp.NewEntity("Alice", "test comment", "alice@example.com", nil)
+	checkFatal(t, err)
+
+	pgpSignatureBuf := new(bytes.Buffer)
+	err = openpgp.ArmoredDetachSignText(pgpSignatureBuf, entity, strings.NewReader(string(tagContent)), &packet.Config{})
+	checkFatal(t, err)
+
+	tagID, err := repo.Tags.CreateTagWithSignature(string(tagContent), pgpSignatureBuf.String(), false)
+	checkFatal(t, err)
+
+	tag, err := repo.LookupTag(tagID)
+	checkFatal(t, err)
+
+	compareStrings(t, "v0.1.0", tag.Name())
+	compareStrings(t, commitID.String(), tag.TargetId().String())
 }
 
 func TestCreateTagLightweight(t *testing.T) {

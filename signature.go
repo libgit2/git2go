@@ -5,6 +5,8 @@ package git
 */
 import "C"
 import (
+	"fmt"
+	"math"
 	"runtime"
 	"time"
 	"unsafe"
@@ -31,9 +33,27 @@ func newSignatureFromC(sig *C.git_signature) *Signature {
 }
 
 // Offset returns the time zone offset of v.When in minutes, which is what git wants.
-func (v *Signature) Offset() int {
-	_, offset := v.When.Zone()
+func (sig *Signature) Offset() int {
+	_, offset := sig.When.Zone()
 	return offset / 60
+}
+
+// ToString creates a string representation of signature, optionally with time.
+func (sig *Signature) ToString(withTime bool) string {
+	str := sig.Name + " <" + sig.Email + ">"
+
+	if !withTime {
+		return str
+	}
+
+	offsetModulus := int(math.Abs(float64(sig.Offset())))
+
+	sign := "+"
+	if sig.Offset() < 0 {
+		sign = "-"
+	}
+
+	return str + fmt.Sprintf(" %d %s%02d%02d", sig.When.Unix(), sign, offsetModulus/60, offsetModulus%60)
 }
 
 func (sig *Signature) toC() (*C.git_signature, error) {
