@@ -32,7 +32,7 @@ func newSignatureFromC(sig *C.git_signature) *Signature {
 	}
 }
 
-// Offset returns the time zone offset of v.When in minutes, which is what git wants.
+// Offset returns the time zone offset of sig.When in minutes, which is what git wants.
 func (sig *Signature) Offset() int {
 	_, offset := sig.When.Zone()
 	return offset / 60
