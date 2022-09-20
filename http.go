@@ -38,17 +38,17 @@ func registerManagedHTTP() error {
 
 func httpSmartSubtransportFactory(remote *Remote, transport *Transport) (SmartSubtransport, error) {
 	var proxyFn func(*http.Request) (*url.URL, error)
-	proxyOpts, err := transport.SmartProxyOptions()
+	remoteConnectOpts, err := transport.SmartRemoteConnectOptions()
 	if err != nil {
 		return nil, err
 	}
-	switch proxyOpts.Type {
+	switch remoteConnectOpts.ProxyOptions.Type {
 	case ProxyTypeNone:
 		proxyFn = nil
 	case ProxyTypeAuto:
 		proxyFn = http.ProxyFromEnvironment
 	case ProxyTypeSpecified:
-		parsedUrl, err := url.Parse(proxyOpts.Url)
+		parsedUrl, err := url.Parse(remoteConnectOpts.ProxyOptions.Url)
 		if err != nil {
 			return nil, err
 		}

@@ -146,6 +146,17 @@ type FetchOptions struct {
 	ProxyOptions ProxyOptions
 }
 
+type RemoteConnectOptions struct {
+	// Proxy options to use for this fetch operation
+	ProxyOptions ProxyOptions
+}
+
+func remoteConnectOptionsFromC(copts *C.git_remote_connect_options) *RemoteConnectOptions {
+	return &RemoteConnectOptions{
+		ProxyOptions: proxyOptionsFromC(&copts.proxy_opts),
+	}
+}
+
 type ProxyType uint
 
 const (
@@ -170,8 +181,8 @@ type ProxyOptions struct {
 	Url string
 }
 
-func proxyOptionsFromC(copts *C.git_proxy_options) *ProxyOptions {
-	return &ProxyOptions{
+func proxyOptionsFromC(copts *C.git_proxy_options) ProxyOptions {
+	return ProxyOptions{
 		Type: ProxyType(copts._type),
 		Url:  C.GoString(copts.url),
 	}
