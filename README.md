@@ -12,7 +12,7 @@ Due to the fact that Go 1.11 module versions have semantic meaning and don't nec
 |---------|---------------|
 | main    | (will be v35) |
 | 1.5     | v34           |
-| 1.3     | v34           |
+| 1.3     | v33           |
 | 1.2     | v32           |
 | 1.1     | v31           |
 | 1.0     | v30           |

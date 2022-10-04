@@ -84,6 +84,7 @@ type Transport struct {
 	ptr *C.git_transport
 }
 
+// SmartRemoteConnectOptions gets a copy of the proxy options for this transport.
 func (t *Transport) SmartRemoteConnectOptions() (*RemoteConnectOptions, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
