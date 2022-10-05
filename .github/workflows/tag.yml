@@ -19,7 +19,7 @@ jobs:
         fetch-depth: 0
     - name: Bump version and push tag
       id: bump-version
-      uses: anothrNick/github-tag-action@9aaabdb5e989894e95288328d8b17a6347217ae3
+      uses: anothrNick/github-tag-action@43ed073f5c1445ca8b80d920ce2f8fa550ae4e8d
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         WITH_V: true
