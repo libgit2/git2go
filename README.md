@@ -20,7 +20,7 @@ Due to the fact that Go 1.11 module versions have semantic meaning and don't nec
 | 0.28    | v28           |
 | 0.27    | v27           |
 
-You can import them in your project with the version's major number as a suffix. For example, if you have libgit2 v1.2 installed, you'd import git2go v34 with:
+You can import them in your project with the version's major number as a suffix. For example, if you have libgit2 v1.5 installed, you'd import git2go v34 with:
 
 ```sh
 go get github.com/libgit2/git2go/v34
@@ -47,7 +47,7 @@ This project wraps the functionality provided by libgit2. If you're using a vers
 
 ### Versioned branch, dynamic linking
 
-When linking dynamically against a released version of libgit2, install it via your system's package manager. CGo will take care of finding its pkg-config file and set up the linking. Import via Go modules, e.g. to work against libgit2 v1.2
+When linking dynamically against a released version of libgit2, install it via your system's package manager. CGo will take care of finding its pkg-config file and set up the linking. Import via Go modules, e.g. to work against libgit2 v1.5
 
 ```go
 import "github.com/libgit2/git2go/v34"
