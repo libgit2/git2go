@@ -134,6 +134,22 @@ func SetCacheObjectLimit(objectType ObjectType, size int) error {
 	return nil
 }
 
+func OwnerValidation() (enabled bool, err error) {
+	val, err := getSizet(C.GIT_OPT_GET_OWNER_VALIDATION)
+	if val == 1 {
+		return true, err
+	}
+	return false, err
+}
+
+func SetOwnerValidation(enabled bool) error {
+	if enabled {
+		return setSizet(C.GIT_OPT_SET_OWNER_VALIDATION, 1)
+	} else {
+		return setSizet(C.GIT_OPT_SET_OWNER_VALIDATION, 0)
+	}
+}
+
 func getSizet(opt C.int) (int, error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()

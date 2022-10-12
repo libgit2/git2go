@@ -97,3 +97,27 @@ func TestSetCacheMaxSize(t *testing.T) {
 	err = SetCacheMaxSize(256 * 1024 * 1024)
 	checkFatal(t, err)
 }
+
+func TestOwnerValidation(t *testing.T) {
+	enabled, err := OwnerValidation()
+	checkFatal(t, err)
+
+	err = SetOwnerValidation(!enabled)
+	checkFatal(t, err)
+
+	var enabled2 bool
+	enabled2, err = OwnerValidation()
+	checkFatal(t, err)
+
+	if enabled == enabled2 {
+		t.Fatal("set owner validation failed")
+	}
+}
+
+func TestSetOwnerValidation(t *testing.T) {
+	err := SetOwnerValidation(false)
+	checkFatal(t, err)
+
+	err = SetOwnerValidation(true)
+	checkFatal(t, err)
+}
