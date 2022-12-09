@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"golang.org/x/crypto/openpgp"
-	"golang.org/x/crypto/openpgp/packet"
+	"github.com/ProtonMail/go-crypto/openpgp"
+	"github.com/ProtonMail/go-crypto/openpgp/packet"
 )
 
 // Tests
@@ -319,7 +319,7 @@ func checkCommitSigned(t *testing.T, entity *openpgp.Entity, commit *Commit) err
 		return err
 	}
 
-	_, err = openpgp.CheckArmoredDetachedSignature(openpgp.EntityList{entity}, strings.NewReader(signedData), bytes.NewBufferString(signature))
+	_, err = openpgp.CheckArmoredDetachedSignature(openpgp.EntityList{entity}, strings.NewReader(signedData), bytes.NewBufferString(signature), nil)
 	if err != nil {
 		t.Logf("Commit is not signed correctly\n%s", commit.ContentToSign())
 		return err
