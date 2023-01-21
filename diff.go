@@ -7,6 +7,8 @@ extern void _go_git_populate_apply_callbacks(git_apply_options *options);
 extern int _go_git_diff_foreach(git_diff *diff, int eachFile, int eachHunk, int eachLine, void *payload);
 extern void _go_git_setup_diff_notify_callbacks(git_diff_options* opts);
 extern int _go_git_diff_blobs(git_blob *old, const char *old_path, git_blob *new, const char *new_path, git_diff_options *opts, int eachFile, int eachHunk, int eachLine, void *payload);
+extern int _go_git_diff_buffers(const void *old_buffer, size_t old_len, const char *old_as_path, const void *new_buffer, size_t new_len, const char *new_as_path, const git_diff_options *opts, int eachFile, int eachHunk, int eachLine, void *payload);
+
 */
 import "C"
 import (
@@ -878,6 +880,58 @@ func DiffBlobs(oldBlob *Blob, oldAsPath string, newBlob *Blob, newAsPath string,
 	ret := C._go_git_diff_blobs(oldBlobPtr, oldBlobPath, newBlobPtr, newBlobPath, copts, 1, intHunks, intLines, handle)
 	runtime.KeepAlive(oldBlob)
 	runtime.KeepAlive(newBlob)
+	if ret == C.int(ErrorCodeUser) && err != nil {
+		return err
+	}
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+
+	return nil
+}
+
+// DiffBuffers performs a diff between two arbitrary buffers. You can pass
+// whatever file names you'd like for them to appear as in the diff.
+func DiffBuffers(oldBuffer []byte, oldAsPath string, newBufer []byte, newAsPath string, opts *DiffOptions, fileCallback DiffForEachFileCallback, detail DiffDetail) error {
+	var err error
+	data := &diffForEachCallbackData{
+		fileCallback: fileCallback,
+		errorTarget:  &err,
+	}
+
+	intHunks := C.int(0)
+	if detail >= DiffDetailHunks {
+		intHunks = C.int(1)
+	}
+
+	intLines := C.int(0)
+	if detail >= DiffDetailLines {
+		intLines = C.int(1)
+	}
+
+	handle := pointerHandles.Track(data)
+	defer pointerHandles.Untrack(handle)
+
+	cOldBuffer := C.CBytes(oldBuffer)
+	defer C.free(unsafe.Pointer(cOldBuffer))
+	cNewBuffer := C.CBytes(newBufer)
+	defer C.free(unsafe.Pointer(cNewBuffer))
+
+	cOldLen := C.size_t(len(oldBuffer))
+	cNewLen := C.size_t(len(newBufer))
+
+	oldPath := C.CString(oldAsPath)
+	defer C.free(unsafe.Pointer(oldPath))
+	newPath := C.CString(newAsPath)
+	defer C.free(unsafe.Pointer(newPath))
+
+	copts := populateDiffOptions(&C.git_diff_options{}, opts, nil, &err)
+	defer freeDiffOptions(copts)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C._go_git_diff_buffers(cOldBuffer, cOldLen, oldPath, cNewBuffer, cNewLen, newPath, copts, 1, intHunks, intLines, handle)
 	if ret == C.int(ErrorCodeUser) && err != nil {
 		return err
 	}
