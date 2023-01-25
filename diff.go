@@ -917,13 +917,10 @@ func DiffBuffers(oldBuffer []byte, oldAsPath string, newBufer []byte, newAsPath 
 	cNewBuffer := C.CBytes(newBufer)
 	defer C.free(unsafe.Pointer(cNewBuffer))
 
-	cOldLen := C.size_t(len(oldBuffer))
-	cNewLen := C.size_t(len(newBufer))
-
-	oldPath := C.CString(oldAsPath)
-	defer C.free(unsafe.Pointer(oldPath))
-	newPath := C.CString(newAsPath)
-	defer C.free(unsafe.Pointer(newPath))
+	cOldAsPath := C.CString(oldAsPath)
+	defer C.free(unsafe.Pointer(cOldAsPath))
+	cNewAsPath := C.CString(newAsPath)
+	defer C.free(unsafe.Pointer(cNewAsPath))
 
 	copts := populateDiffOptions(&C.git_diff_options{}, opts, nil, &err)
 	defer freeDiffOptions(copts)
@@ -931,7 +928,7 @@ func DiffBuffers(oldBuffer []byte, oldAsPath string, newBufer []byte, newAsPath 
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
 
-	ret := C._go_git_diff_buffers(cOldBuffer, cOldLen, oldPath, cNewBuffer, cNewLen, newPath, copts, 1, intHunks, intLines, handle)
+	ret := C._go_git_diff_buffers(cOldBuffer, C.size_t(len(oldBuffer)), cOldAsPath, cNewBuffer, C.size_t(len(newBufer)), cNewAsPath, copts, 1, intHunks, intLines, handle)
 	if ret == C.int(ErrorCodeUser) && err != nil {
 		return err
 	}
