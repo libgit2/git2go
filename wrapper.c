@@ -234,6 +234,34 @@ int _go_git_diff_blobs(
 	return git_diff_blobs(old, old_path, new, new_path, opts, fcb, NULL, hcb, lcb, payload);
 }
 
+int _go_git_diff_buffers(
+		const void *old_buffer,
+		size_t old_len,
+		const char *old_as_path,
+		const void *new_buffer,
+		size_t new_len,
+		const char *new_as_path,
+		const git_diff_options *opts,
+		int eachFile,
+		int eachHunk,
+		int eachLine,
+		void *payload)
+{
+	git_diff_file_cb fcb = NULL;
+	git_diff_hunk_cb hcb = NULL;
+	git_diff_line_cb lcb = NULL;
+
+	if (eachFile)
+		fcb = (git_diff_file_cb)&diffForEachFileCallback;
+	if (eachHunk)
+		hcb = (git_diff_hunk_cb)&diffForEachHunkCallback;
+	if (eachLine)
+		lcb = (git_diff_line_cb)&diffForEachLineCallback;
+
+	return git_diff_buffers(old_buffer, old_len, old_as_path, new_buffer, new_len, new_as_path, opts, fcb, NULL, hcb, lcb, payload);
+}
+
+
 void _go_git_setup_diff_notify_callbacks(git_diff_options *opts)
 {
 	opts->notify_cb = (git_diff_notify_cb)&diffNotifyCallback;
