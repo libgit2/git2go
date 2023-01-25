@@ -157,6 +157,20 @@ func (diff *Diff) Delta(index int) (DiffDelta, error) {
 	return ret, nil
 }
 
+func (diff *Diff) Merge(from *Diff) error {
+	if diff.ptr == nil {
+		return ErrInvalid
+	}
+	ret := C.git_diff_merge(diff.ptr, from.ptr)
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+
+	runtime.KeepAlive(diff)
+	runtime.KeepAlive(from)
+	return nil
+}
+
 // deprecated: You should use `Diff.Delta()` instead.
 func (diff *Diff) GetDelta(index int) (DiffDelta, error) {
 	return diff.Delta(index)
