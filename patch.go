@@ -61,7 +61,7 @@ func (patch *Patch) NumHunks() (int, error) {
 	if patch.ptr == nil {
 		return -1, ErrInvalid
 	}
-	ret := int(C.git_patch_num_hunks())
+	ret := int(C.git_patch_num_hunks(patch.ptr))
 	runtime.KeepAlive(patch)
 	return ret, nil
 }
