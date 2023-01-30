@@ -57,6 +57,54 @@ func (patch *Patch) String() (string, error) {
 	return C.GoString(buf.ptr), nil
 }
 
+func (patch *Patch) NumHunks() (int, error) {
+	if patch.ptr == nil {
+		return -1, ErrInvalid
+	}
+	ret := int(C.git_patch_num_hunks(patch.ptr))
+	runtime.KeepAlive(patch)
+	return ret, nil
+}
+
+func (patch *Patch) Hunk(hunkIndex int) (DiffHunk, int, error) {
+	if patch.ptr == nil {
+		return DiffHunk{}, 0, ErrInvalid
+	}
+
+	var diffHunkPtr *C.git_diff_hunk
+	var cLinesInHunk C.size_t
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C.git_patch_get_hunk(&diffHunkPtr, &cLinesInHunk, patch.ptr, C.size_t(hunkIndex))
+	runtime.KeepAlive(patch)
+	if ecode < 0 {
+		return DiffHunk{}, 0, MakeGitError(ecode)
+	}
+
+	return diffHunkFromC(diffHunkPtr), int(cLinesInHunk), nil
+}
+
+func (patch *Patch) HunkLine(hunkIndex, hunkLine int) (DiffLine, error) {
+	if patch.ptr == nil {
+		return DiffLine{}, ErrInvalid
+	}
+
+	var diffLinePtr *C.git_diff_line
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ecode := C.git_patch_get_line_in_hunk(&diffLinePtr, patch.ptr, C.size_t(hunkIndex), C.size_t(hunkLine))
+	runtime.KeepAlive(patch)
+	if ecode < 0 {
+		return DiffLine{}, MakeGitError(ecode)
+	}
+
+	return diffLineFromC(diffLinePtr), nil
+}
+
 func toPointer(data []byte) (ptr unsafe.Pointer) {
 	if len(data) > 0 {
 		ptr = unsafe.Pointer(&data[0])
