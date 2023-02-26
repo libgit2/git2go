@@ -322,6 +322,24 @@ static int pack_progress_callback(int stage, unsigned int current, unsigned int 
 	return set_callback_error(error_message, ret);
 }
 
+static int packbuilder_progress_callback(int stage, unsigned int current, unsigned int total, void *data)
+{
+	char *error_message = NULL;
+	const int ret = packbuilderProgressCallback(
+			&error_message,
+			stage,
+			current,
+			total,
+			data
+	);
+	return set_callback_error(error_message, ret);
+}
+
+int _go_git_packbuilder_set_callbacks(git_packbuilder *pb, void *payload)
+{
+	return git_packbuilder_set_callbacks(pb, (git_packbuilder_progress)&packbuilder_progress_callback, payload);
+}
+
 static int push_transfer_progress_callback(
 		unsigned int current,
 		unsigned int total,
