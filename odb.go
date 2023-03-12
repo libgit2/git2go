@@ -64,6 +64,21 @@ func (v *Odb) AddAlternate(backend *OdbBackend, priority int) (err error) {
 	return nil
 }
 
+func (v *Odb) AddDiskAlternate(path string) (err error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	cstr := C.CString(path)
+	defer C.free(unsafe.Pointer(cstr))
+
+	ret := C.git_odb_add_disk_alternate(v.ptr, cstr)
+	runtime.KeepAlive(v)
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+	return nil
+}
+
 func (v *Odb) AddBackend(backend *OdbBackend, priority int) (err error) {
 	runtime.LockOSThread()
 	defer runtime.UnlockOSThread()
