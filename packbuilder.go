@@ -6,6 +6,7 @@ package git
 #include <stdlib.h>
 
 extern int _go_git_packbuilder_foreach(git_packbuilder *pb, void *payload);
+extern int _go_git_packbuilder_set_callbacks(git_packbuilder *pb, void *payload);
 */
 import "C"
 import (
@@ -15,10 +16,16 @@ import (
 	"unsafe"
 )
 
+const (
+	PackbuilderAddingObjects int32 = C.GIT_PACKBUILDER_ADDING_OBJECTS
+	PackbuilderDeltafication int32 = C.GIT_PACKBUILDER_DELTAFICATION
+)
+
 type Packbuilder struct {
 	doNotCompare
-	ptr *C.git_packbuilder
-	r   *Repository
+	ptr            *C.git_packbuilder
+	r              *Repository
+	callbackHandle unsafe.Pointer
 }
 
 func (repo *Repository) NewPackbuilder() (*Packbuilder, error) {
@@ -34,13 +41,16 @@ func (repo *Repository) NewPackbuilder() (*Packbuilder, error) {
 }
 
 func newPackbuilderFromC(ptr *C.git_packbuilder, r *Repository) *Packbuilder {
-	pb := &Packbuilder{ptr: ptr, r: r}
+	pb := &Packbuilder{ptr: ptr, r: r, callbackHandle: nil}
 	runtime.SetFinalizer(pb, (*Packbuilder).Free)
 	return pb
 }
 
 func (pb *Packbuilder) Free() {
 	runtime.SetFinalizer(pb, nil)
+	if pb.callbackHandle != nil {
+		pointerHandles.Untrack(pb.callbackHandle)
+	}
 	C.git_packbuilder_free(pb.ptr)
 }
 
@@ -181,5 +191,49 @@ func (pb *Packbuilder) ForEach(callback PackbuilderForeachCallback) error {
 		return MakeGitError(ret)
 	}
 
+	return nil
+}
+
+type packbuilderProgressCallbackData struct {
+	callback    PackbuilderProgressCallback
+	errorTarget *error
+}
+
+//export packbuilderProgressCallback
+func packbuilderProgressCallback(errorMessage **C.char, stage C.int, current, total C.uint, handle unsafe.Pointer) C.int {
+	data := pointerHandles.Get(handle).(*packbuilderProgressCallbackData)
+	if data.callback == nil {
+		return C.int(ErrorCodeOK)
+	}
+
+	err := data.callback(int32(stage), uint32(current), uint32(total))
+	if err != nil {
+		if data.errorTarget != nil {
+			*data.errorTarget = err
+		}
+		return setCallbackError(errorMessage, err)
+	}
+	return C.int(ErrorCodeOK)
+}
+
+func (pb *Packbuilder) SetCallbacks(callback PackbuilderProgressCallback) error {
+	var err error
+	data := packbuilderProgressCallbackData{
+		callback:    callback,
+		errorTarget: &err,
+	}
+	handle := pointerHandles.Track(&data)
+	if pb.callbackHandle != nil {
+		pointerHandles.Untrack(pb.callbackHandle)
+	}
+	pb.callbackHandle = handle
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+	ret := C._go_git_packbuilder_set_callbacks(pb.ptr, handle)
+	runtime.KeepAlive(pb)
+	if ret != 0 {
+		return MakeGitError(ret)
+	}
 	return nil
 }
