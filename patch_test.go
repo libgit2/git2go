@@ -36,12 +36,12 @@ func TestPatch(t *testing.T) {
 		t.Fatalf("patch was bad")
 	}
 
-	numAdditions, numDeletions, err := patch.Stats()
+	numAdditions, numDeletions, err := patch.LineStats()
 	checkFatal(t, err)
 	if numAdditions != 1 {
-		t.Fatal("Incorrect number of additions in stats")
+		t.Fatal("Incorrect number of additions in line stats")
 	}
 	if numDeletions != 1 {
-		t.Fatal("Incorrect number of deletions in stats")
+		t.Fatal("Incorrect number of deletions in line stats")
 	}
 }

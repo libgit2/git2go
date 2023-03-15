@@ -37,7 +37,7 @@ func (patch *Patch) Free() error {
 	return nil
 }
 
-func (patch *Patch) Stats() (uint, uint, error) {
+func (patch *Patch) LineStats() (uint, uint, error) {
 	if patch.ptr == nil {
 		return 0, 0, ErrInvalid
 	}
