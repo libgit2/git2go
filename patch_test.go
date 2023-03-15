@@ -35,4 +35,13 @@ func TestPatch(t *testing.T) {
 	if strings.Index(patchStr, "diff --git a/README b/README\nindex 257cc56..820734a 100644\n--- a/README\n+++ b/README\n@@ -1 +1 @@\n-foo\n+file changed") == -1 {
 		t.Fatalf("patch was bad")
 	}
+
+	numAdditions, numDeletions, err := patch.LineStats()
+	checkFatal(t, err)
+	if numAdditions != 1 {
+		t.Fatal("Incorrect number of additions in line stats")
+	}
+	if numDeletions != 1 {
+		t.Fatal("Incorrect number of deletions in line stats")
+	}
 }
