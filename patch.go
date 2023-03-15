@@ -37,6 +37,24 @@ func (patch *Patch) Free() error {
 	return nil
 }
 
+func (patch *Patch) Stats() (uint, uint, error) {
+	if patch.ptr == nil {
+		return 0, 0, ErrInvalid
+	}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var context, additions, deletions C.size_t
+	ecode := C.git_patch_line_stats(&context, &additions, &deletions, patch.ptr)
+	runtime.KeepAlive(patch)
+	if ecode < 0 {
+		return 0, 0, MakeGitError(ecode)
+	}
+
+	return uint(additions), uint(deletions), nil
+}
+
 func (patch *Patch) String() (string, error) {
 	if patch.ptr == nil {
 		return "", ErrInvalid
