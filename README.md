@@ -1,6 +1,9 @@
 git2go
 ======
-[![GoDoc](https://godoc.org/github.com/libgit2/git2go?status.svg)](http://godoc.org/github.com/libgit2/git2go/v34) [![Build Status](https://travis-ci.org/libgit2/git2go.svg?branch=main)](https://travis-ci.org/libgit2/git2go)
+[![GoDoc](https://pkg.go.dev/badge/github.com/libgit2/git2go)](https://pkg.go.dev/github.com/libgit2/git2go) 
+[![git2go CI](https://github.com/libgit2/git2go/actions/workflows/ci.yml/badge.svg?event=push)](https://github.com/libgit2/git2go/actions/workflows/ci.yml) 
+[![Go Report Card](https://goreportcard.com/badge/github.com/lhchavez/git2go)](https://goreportcard.com/report/github.com/lhchavez/git2go) 
+
 
 Go bindings for [libgit2](http://libgit2.github.com/).
 
