@@ -10,8 +10,8 @@ package git
 #cgo CFLAGS: -DLIBGIT2_STATIC
 #include <git2.h>
 
-#if LIBGIT2_VER_MAJOR != 1 || LIBGIT2_VER_MINOR < 6 || LIBGIT2_VER_MINOR > 6
-# error "Invalid libgit2 version; this git2go supports libgit2 v1.6.x"
+#if LIBGIT2_VER_MAJOR != 1 || LIBGIT2_VER_MINOR < 7 || LIBGIT2_VER_MINOR > 7
+# error "Invalid libgit2 version; this git2go supports libgit2 v1.7.x"
 #endif
 */
 import "C"
