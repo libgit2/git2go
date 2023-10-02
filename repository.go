@@ -36,6 +36,9 @@ type Repository struct {
 	// Stashes represents the collection of stashes and can be used to
 	// save, apply and iterate over stash states in this repository.
 	Stashes StashCollection
+	// Worktrees represents the collection of worktrees and can be used to
+	// add, list and remove worktrees for this repository
+	Worktrees WorktreeCollection
 
 	// weak indicates that a repository is a weak pointer and should not be
 	// freed.
@@ -52,6 +55,7 @@ func newRepositoryFromC(ptr *C.git_repository) *Repository {
 	repo.Notes.repo = repo
 	repo.Tags.repo = repo
 	repo.Stashes.repo = repo
+	repo.Worktrees.repo = repo
 
 	runtime.SetFinalizer(repo, (*Repository).Free)
 
