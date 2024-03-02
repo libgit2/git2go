@@ -93,7 +93,7 @@ func TestRebaseAbort(t *testing.T) {
 
 	// Inputs
 	branchName := "emile"
-	masterCommit := "something"
+	mainCommit := "something"
 	emileCommits := []string{
 		"fou",
 		"barre",
@@ -112,7 +112,7 @@ func TestRebaseAbort(t *testing.T) {
 	seedTestRepo(t, repo)
 
 	// Setup a repo with 2 branches and a different tree
-	err := setupRepoForRebase(repo, masterCommit, branchName, commitOptions{})
+	err := setupRepoForRebase(repo, mainCommit, branchName, commitOptions{})
 	checkFatal(t, err)
 
 	// Create several commits in emile
@@ -126,8 +126,8 @@ func TestRebaseAbort(t *testing.T) {
 	checkFatal(t, err)
 	assertStringList(t, expectedHistory, actualHistory)
 
-	// Rebase onto master
-	rebase, err := performRebaseOnto(repo, "master", nil)
+	// Rebase onto main
+	rebase, err := performRebaseOnto(repo, "main", nil)
 	checkFatal(t, err)
 	defer rebase.Free()
 
@@ -145,7 +145,7 @@ func TestRebaseNoConflicts(t *testing.T) {
 
 	// Inputs
 	branchName := "emile"
-	masterCommit := "something"
+	mainCommit := "something"
 	emileCommits := []string{
 		"fou",
 		"barre",
@@ -157,7 +157,7 @@ func TestRebaseNoConflicts(t *testing.T) {
 		"Test rebase, Baby! " + emileCommits[2],
 		"Test rebase, Baby! " + emileCommits[1],
 		"Test rebase, Baby! " + emileCommits[0],
-		"Test rebase, Baby! " + masterCommit,
+		"Test rebase, Baby! " + mainCommit,
 		"This is a commit\n",
 	}
 
@@ -173,7 +173,7 @@ func TestRebaseNoConflicts(t *testing.T) {
 	}
 
 	// Setup a repo with 2 branches and a different tree
-	err = setupRepoForRebase(repo, masterCommit, branchName, commitOptions{})
+	err = setupRepoForRebase(repo, mainCommit, branchName, commitOptions{})
 	checkFatal(t, err)
 
 	// Create several commits in emile
@@ -182,8 +182,8 @@ func TestRebaseNoConflicts(t *testing.T) {
 		checkFatal(t, err)
 	}
 
-	// Rebase onto master
-	rebase, err := performRebaseOnto(repo, "master", nil)
+	// Rebase onto main
+	rebase, err := performRebaseOnto(repo, "main", nil)
 	checkFatal(t, err)
 	defer rebase.Free()
 
@@ -237,7 +237,7 @@ func TestRebaseGpgSigned(t *testing.T) {
 
 	// Inputs
 	branchName := "emile"
-	masterCommit := "something"
+	mainCommit := "something"
 	emileCommits := []string{
 		"fou",
 		"barre",
@@ -249,7 +249,7 @@ func TestRebaseGpgSigned(t *testing.T) {
 		"Test rebase, Baby! " + emileCommits[2],
 		"Test rebase, Baby! " + emileCommits[1],
 		"Test rebase, Baby! " + emileCommits[0],
-		"Test rebase, Baby! " + masterCommit,
+		"Test rebase, Baby! " + mainCommit,
 		"This is a commit\n",
 	}
 
@@ -265,7 +265,7 @@ func TestRebaseGpgSigned(t *testing.T) {
 	}
 
 	// Setup a repo with 2 branches and a different tree
-	err = setupRepoForRebase(repo, masterCommit, branchName, commitOpts)
+	err = setupRepoForRebase(repo, mainCommit, branchName, commitOpts)
 	checkFatal(t, err)
 
 	// Create several commits in emile
@@ -274,8 +274,8 @@ func TestRebaseGpgSigned(t *testing.T) {
 		checkFatal(t, err)
 	}
 
-	// Rebase onto master
-	rebase, err := performRebaseOnto(repo, "master", &rebaseOpts)
+	// Rebase onto main
+	rebase, err := performRebaseOnto(repo, "main", &rebaseOpts)
 	checkFatal(t, err)
 	defer rebase.Free()
 
@@ -329,15 +329,15 @@ func checkCommitSigned(t *testing.T, entity *openpgp.Entity, commit *Commit) err
 }
 
 // Utils
-func setupRepoForRebase(repo *Repository, masterCommit, branchName string, commitOpts commitOptions) error {
-	// Create a new branch from master
+func setupRepoForRebase(repo *Repository, mainCommit, branchName string, commitOpts commitOptions) error {
+	// Create a new branch from main
 	err := createBranch(repo, branchName)
 	if err != nil {
 		return err
 	}
 
-	// Create a commit in master
-	_, err = commitSomething(repo, masterCommit, masterCommit, commitOpts)
+	// Create a commit in main
+	_, err = commitSomething(repo, mainCommit, mainCommit, commitOpts)
 	if err != nil {
 		return err
 	}
@@ -348,22 +348,22 @@ func setupRepoForRebase(repo *Repository, masterCommit, branchName string, commi
 		return err
 	}
 
-	// Check master commit is not in emile branch
-	if entryExists(repo, masterCommit) {
-		return errors.New(masterCommit + " entry should not exist in " + branchName + " branch.")
+	// Check main commit is not in emile branch
+	if entryExists(repo, mainCommit) {
+		return errors.New(mainCommit + " entry should not exist in " + branchName + " branch.")
 	}
 
 	return nil
 }
 
 func performRebaseOnto(repo *Repository, branch string, rebaseOpts *RebaseOptions) (*Rebase, error) {
-	master, err := repo.LookupBranch(branch, BranchLocal)
+	main, err := repo.LookupBranch(branch, BranchLocal)
 	if err != nil {
 		return nil, err
 	}
-	defer master.Free()
+	defer main.Free()
 
-	onto, err := repo.AnnotatedCommitFromRef(master.Reference)
+	onto, err := repo.AnnotatedCommitFromRef(main.Reference)
 	if err != nil {
 		return nil, err
 	}
