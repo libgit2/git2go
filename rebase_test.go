@@ -19,73 +19,73 @@ func TestRebaseInMemoryWithConflict(t *testing.T) {
 	defer cleanupTestRepo(t, repo)
 	seedTestRepo(t, repo)
 
-    // Create two branches with common history, where both modify "common-file"
-    // in a conflicting way.
-    _, err := commitSomething(repo, "common-file", "a\nb\nc\n", commitOptions{})
-    checkFatal(t, err)
+	// Create two branches with common history, where both modify "common-file"
+	// in a conflicting way.
+	_, err := commitSomething(repo, "common-file", "a\nb\nc\n", commitOptions{})
+	checkFatal(t, err)
 	checkFatal(t, createBranch(repo, "branch-a"))
 	checkFatal(t, createBranch(repo, "branch-b"))
 
 	checkFatal(t, repo.SetHead("refs/heads/branch-a"))
-    _, err = commitSomething(repo, "common-file", "1\nb\nc\n", commitOptions{})
-    checkFatal(t, err)
+	_, err = commitSomething(repo, "common-file", "1\nb\nc\n", commitOptions{})
+	checkFatal(t, err)
 
 	checkFatal(t, repo.SetHead("refs/heads/branch-b"))
-    _, err = commitSomething(repo, "common-file", "x\nb\nc\n", commitOptions{})
-    checkFatal(t, err)
+	_, err = commitSomething(repo, "common-file", "x\nb\nc\n", commitOptions{})
+	checkFatal(t, err)
 
 	branchA, err := repo.LookupBranch("branch-a", BranchLocal)
-    checkFatal(t, err)
+	checkFatal(t, err)
 	onto, err := repo.AnnotatedCommitFromRef(branchA.Reference)
-    checkFatal(t, err)
-
-    // We then rebase "branch-b" onto "branch-a" in-memory, which should result
-    // in a conflict.
-    rebase, err := repo.InitRebase(nil, nil, onto, &RebaseOptions{InMemory: 1})
-    checkFatal(t, err)
-
-    _, err = rebase.Next()
 	checkFatal(t, err)
 
-    index, err := rebase.InmemoryIndex()
+	// We then rebase "branch-b" onto "branch-a" in-memory, which should result
+	// in a conflict.
+	rebase, err := repo.InitRebase(nil, nil, onto, &RebaseOptions{InMemory: 1})
 	checkFatal(t, err)
 
-    // We simply resolve the conflict and commit the rebase.
-    if !index.HasConflicts() {
-        t.Fatal("expected index to have conflicts")
-    }
+	_, err = rebase.Next()
+	checkFatal(t, err)
 
-    conflict, err := index.Conflict("common-file")
-    checkFatal(t, err)
+	index, err := rebase.InmemoryIndex()
+	checkFatal(t, err)
 
-    resolvedBlobID, err := repo.CreateBlobFromBuffer([]byte("resolved contents"))
-    checkFatal(t, err)
+	// We simply resolve the conflict and commit the rebase.
+	if !index.HasConflicts() {
+		t.Fatal("expected index to have conflicts")
+	}
 
-    resolvedEntry := *conflict.Our
-    resolvedEntry.Id = resolvedBlobID
-    checkFatal(t, index.Add(&resolvedEntry))
-    checkFatal(t, index.RemoveConflict("common-file"))
+	conflict, err := index.Conflict("common-file")
+	checkFatal(t, err)
 
-    var commitID Oid
-    checkFatal(t, rebase.Commit(&commitID, signature(), signature(), "rebased message"))
-    checkFatal(t, rebase.Finish())
+	resolvedBlobID, err := repo.CreateBlobFromBuffer([]byte("resolved contents"))
+	checkFatal(t, err)
 
-    // And then assert that we can look up the new merge commit, and that the
-    // "common-file" has the expected contents.
-    commit, err := repo.LookupCommit(&commitID)
-    checkFatal(t, err)
-    if commit.Message() != "rebased message" {
-        t.Fatalf("unexpected commit message %q", commit.Message())
-    }
+	resolvedEntry := *conflict.Our
+	resolvedEntry.Id = resolvedBlobID
+	checkFatal(t, index.Add(&resolvedEntry))
+	checkFatal(t, index.RemoveConflict("common-file"))
 
-    tree, err := commit.Tree()
-    checkFatal(t, err)
+	var commitID Oid
+	checkFatal(t, rebase.Commit(&commitID, signature(), signature(), "rebased message"))
+	checkFatal(t, rebase.Finish())
 
-    blob, err := repo.LookupBlob(tree.EntryByName("common-file").Id)
-    checkFatal(t, err)
-    if string(blob.Contents()) != "resolved contents" {
-        t.Fatalf("unexpected resolved blob contents %q", string(blob.Contents()))
-    }
+	// And then assert that we can look up the new merge commit, and that the
+	// "common-file" has the expected contents.
+	commit, err := repo.LookupCommit(&commitID)
+	checkFatal(t, err)
+	if commit.Message() != "rebased message" {
+		t.Fatalf("unexpected commit message %q", commit.Message())
+	}
+
+	tree, err := commit.Tree()
+	checkFatal(t, err)
+
+	blob, err := repo.LookupBlob(tree.EntryByName("common-file").Id)
+	checkFatal(t, err)
+	if string(blob.Contents()) != "resolved contents" {
+		t.Fatalf("unexpected resolved blob contents %q", string(blob.Contents()))
+	}
 }
 
 func TestRebaseAbort(t *testing.T) {
@@ -93,7 +93,7 @@ func TestRebaseAbort(t *testing.T) {
 
 	// Inputs
 	branchName := "emile"
-	masterCommit := "something"
+	mainCommit := "something"
 	emileCommits := []string{
 		"fou",
 		"barre",
@@ -112,7 +112,7 @@ func TestRebaseAbort(t *testing.T) {
 	seedTestRepo(t, repo)
 
 	// Setup a repo with 2 branches and a different tree
-	err := setupRepoForRebase(repo, masterCommit, branchName, commitOptions{})
+	err := setupRepoForRebase(repo, mainCommit, branchName, commitOptions{})
 	checkFatal(t, err)
 
 	// Create several commits in emile
@@ -126,8 +126,8 @@ func TestRebaseAbort(t *testing.T) {
 	checkFatal(t, err)
 	assertStringList(t, expectedHistory, actualHistory)
 
-	// Rebase onto master
-	rebase, err := performRebaseOnto(repo, "master", nil)
+	// Rebase onto main
+	rebase, err := performRebaseOnto(repo, "main", nil)
 	checkFatal(t, err)
 	defer rebase.Free()
 
@@ -145,7 +145,7 @@ func TestRebaseNoConflicts(t *testing.T) {
 
 	// Inputs
 	branchName := "emile"
-	masterCommit := "something"
+	mainCommit := "something"
 	emileCommits := []string{
 		"fou",
 		"barre",
@@ -157,7 +157,7 @@ func TestRebaseNoConflicts(t *testing.T) {
 		"Test rebase, Baby! " + emileCommits[2],
 		"Test rebase, Baby! " + emileCommits[1],
 		"Test rebase, Baby! " + emileCommits[0],
-		"Test rebase, Baby! " + masterCommit,
+		"Test rebase, Baby! " + mainCommit,
 		"This is a commit\n",
 	}
 
@@ -173,7 +173,7 @@ func TestRebaseNoConflicts(t *testing.T) {
 	}
 
 	// Setup a repo with 2 branches and a different tree
-	err = setupRepoForRebase(repo, masterCommit, branchName, commitOptions{})
+	err = setupRepoForRebase(repo, mainCommit, branchName, commitOptions{})
 	checkFatal(t, err)
 
 	// Create several commits in emile
@@ -182,8 +182,8 @@ func TestRebaseNoConflicts(t *testing.T) {
 		checkFatal(t, err)
 	}
 
-	// Rebase onto master
-	rebase, err := performRebaseOnto(repo, "master", nil)
+	// Rebase onto main
+	rebase, err := performRebaseOnto(repo, "main", nil)
 	checkFatal(t, err)
 	defer rebase.Free()
 
@@ -237,7 +237,7 @@ func TestRebaseGpgSigned(t *testing.T) {
 
 	// Inputs
 	branchName := "emile"
-	masterCommit := "something"
+	mainCommit := "something"
 	emileCommits := []string{
 		"fou",
 		"barre",
@@ -249,7 +249,7 @@ func TestRebaseGpgSigned(t *testing.T) {
 		"Test rebase, Baby! " + emileCommits[2],
 		"Test rebase, Baby! " + emileCommits[1],
 		"Test rebase, Baby! " + emileCommits[0],
-		"Test rebase, Baby! " + masterCommit,
+		"Test rebase, Baby! " + mainCommit,
 		"This is a commit\n",
 	}
 
@@ -265,7 +265,7 @@ func TestRebaseGpgSigned(t *testing.T) {
 	}
 
 	// Setup a repo with 2 branches and a different tree
-	err = setupRepoForRebase(repo, masterCommit, branchName, commitOpts)
+	err = setupRepoForRebase(repo, mainCommit, branchName, commitOpts)
 	checkFatal(t, err)
 
 	// Create several commits in emile
@@ -274,8 +274,8 @@ func TestRebaseGpgSigned(t *testing.T) {
 		checkFatal(t, err)
 	}
 
-	// Rebase onto master
-	rebase, err := performRebaseOnto(repo, "master", &rebaseOpts)
+	// Rebase onto main
+	rebase, err := performRebaseOnto(repo, "main", &rebaseOpts)
 	checkFatal(t, err)
 	defer rebase.Free()
 
@@ -329,15 +329,15 @@ func checkCommitSigned(t *testing.T, entity *openpgp.Entity, commit *Commit) err
 }
 
 // Utils
-func setupRepoForRebase(repo *Repository, masterCommit, branchName string, commitOpts commitOptions) error {
-	// Create a new branch from master
+func setupRepoForRebase(repo *Repository, mainCommit, branchName string, commitOpts commitOptions) error {
+	// Create a new branch from main
 	err := createBranch(repo, branchName)
 	if err != nil {
 		return err
 	}
 
-	// Create a commit in master
-	_, err = commitSomething(repo, masterCommit, masterCommit, commitOpts)
+	// Create a commit in main
+	_, err = commitSomething(repo, mainCommit, mainCommit, commitOpts)
 	if err != nil {
 		return err
 	}
@@ -348,22 +348,22 @@ func setupRepoForRebase(repo *Repository, masterCommit, branchName string, commi
 		return err
 	}
 
-	// Check master commit is not in emile branch
-	if entryExists(repo, masterCommit) {
-		return errors.New(masterCommit + " entry should not exist in " + branchName + " branch.")
+	// Check main commit is not in emile branch
+	if entryExists(repo, mainCommit) {
+		return errors.New(mainCommit + " entry should not exist in " + branchName + " branch.")
 	}
 
 	return nil
 }
 
 func performRebaseOnto(repo *Repository, branch string, rebaseOpts *RebaseOptions) (*Rebase, error) {
-	master, err := repo.LookupBranch(branch, BranchLocal)
+	main, err := repo.LookupBranch(branch, BranchLocal)
 	if err != nil {
 		return nil, err
 	}
-	defer master.Free()
+	defer main.Free()
 
-	onto, err := repo.AnnotatedCommitFromRef(master.Reference)
+	onto, err := repo.AnnotatedCommitFromRef(main.Reference)
 	if err != nil {
 		return nil, err
 	}
