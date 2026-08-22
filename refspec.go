@@ -14,6 +14,13 @@ type Refspec struct {
 	ptr *C.git_refspec
 }
 
+func newRefspecFromC(ptr *C.git_refspec) *Refspec {
+	if ptr == nil {
+		return nil
+	}
+	return &Refspec{ptr: ptr}
+}
+
 // ParseRefspec parses a given refspec string
 func ParseRefspec(input string, isFetch bool) (*Refspec, error) {
 	var ptr *C.git_refspec

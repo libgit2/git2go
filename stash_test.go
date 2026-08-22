@@ -89,9 +89,10 @@ func TestStash(t *testing.T) {
 
 	// Stash foreach
 
+	branchName := defaultBranchName(t, repo)
 	expected := []stash{
-		{0, "On master: Second stash", stash2.String()},
-		{1, "On master: First stash", stash1.String()},
+		{0, "On " + branchName + ": Second stash", stash2.String()},
+		{1, "On " + branchName + ": First stash", stash1.String()},
 	}
 	checkStashes(t, repo, expected)
 
@@ -108,7 +109,7 @@ func TestStash(t *testing.T) {
 	}
 
 	expected = []stash{
-		{0, "On master: Second stash", stash2.String()},
+		{0, "On " + branchName + ": Second stash", stash2.String()},
 	}
 	checkStashes(t, repo, expected)
 
@@ -195,4 +196,38 @@ func fileExistsInRepo(repo *Repository, name string) bool {
 		return false
 	}
 	return true
+}
+
+func TestStashSaveWithOptions(t *testing.T) {
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	prepareStashRepo(t, repo)
+
+	sig := &Signature{
+		Name:  "Rand Om Hacker",
+		Email: "random@hacker.com",
+		When:  time.Now(),
+	}
+
+	// Stash only the README using pathspec
+	stashId, err := repo.Stashes.SaveWithOptions(&StashSaveOptions{
+		Flags:   StashDefault,
+		Stasher: sig,
+		Message: "Pathspec stash",
+		Paths:   []string{"README"},
+	})
+	checkFatal(t, err)
+
+	if stashId == nil || stashId.IsZero() {
+		t.Fatal("expected a valid stash OID")
+	}
+
+	_, err = repo.LookupCommit(stashId)
+	checkFatal(t, err)
+
+	// Untracked file should still exist since we only stashed README
+	if !fileExistsInRepo(repo, "untracked.txt") {
+		t.Error("untracked.txt should still exist when stashing by path")
+	}
 }

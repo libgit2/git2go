@@ -20,7 +20,8 @@ func TestClone(t *testing.T) {
 	path, err := ioutil.TempDir("", "git2go")
 	checkFatal(t, err)
 
-	ref, err := repo.References.Lookup("refs/heads/master")
+	branchName := defaultBranchName(t, repo)
+	ref, err := repo.References.Lookup("refs/heads/" + branchName)
 	checkFatal(t, err)
 
 	repo2, err := Clone(repo.Path(), path, &CloneOptions{Bare: true})
@@ -28,7 +29,7 @@ func TestClone(t *testing.T) {
 
 	checkFatal(t, err)
 
-	ref2, err := repo2.References.Lookup("refs/heads/master")
+	ref2, err := repo2.References.Lookup("refs/heads/" + branchName)
 	checkFatal(t, err)
 
 	if ref.Cmp(ref2) != 0 {

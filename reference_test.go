@@ -92,8 +92,12 @@ func TestReferenceIterator(t *testing.T) {
 	checkFatal(t, err)
 
 	var list []string
+	headRef, err := repo.Head()
+	checkFatal(t, err)
+	defer headRef.Free()
+	headBranchName := headRef.Name()
 	expected := []string{
-		"refs/heads/master",
+		headBranchName,
 		"refs/heads/one",
 		"refs/heads/three",
 		"refs/heads/two",

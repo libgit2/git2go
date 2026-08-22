@@ -29,6 +29,9 @@ const (
 	// non-bare repos
 	ConfigLevelLocal ConfigLevel = C.GIT_CONFIG_LEVEL_LOCAL
 
+	// Worktree-specific configuration; typically $GIT_DIR/config.worktree
+	ConfigLevelWorktree ConfigLevel = C.GIT_CONFIG_LEVEL_WORKTREE
+
 	// Application specific configuration file; freely defined by applications
 	ConfigLevelApp ConfigLevel = C.GIT_CONFIG_LEVEL_APP
 
@@ -38,16 +41,20 @@ const (
 )
 
 type ConfigEntry struct {
-	Name  string
-	Value string
-	Level ConfigLevel
+	Name        string
+	Value       string
+	Level       ConfigLevel
+	BackendType string // The type of backend that this entry exists in (e.g. "file")
+	OriginPath  string // The path to the origin of this entry
 }
 
 func newConfigEntryFromC(centry *C.git_config_entry) *ConfigEntry {
 	return &ConfigEntry{
-		Name:  C.GoString(centry.name),
-		Value: C.GoString(centry.value),
-		Level: ConfigLevel(centry.level),
+		Name:        C.GoString(centry.name),
+		Value:       C.GoString(centry.value),
+		Level:       ConfigLevel(centry.level),
+		BackendType: C.GoString(centry.backend_type),
+		OriginPath:  C.GoString(centry.origin_path),
 	}
 }
 
@@ -387,7 +394,7 @@ func (iter *ConfigIterator) Next() (*ConfigEntry, error) {
 
 func (iter *ConfigIterator) Free() {
 	runtime.SetFinalizer(iter, nil)
-	C.free(unsafe.Pointer(iter.ptr))
+	C.git_config_iterator_free(iter.ptr)
 }
 
 func ConfigFindGlobal() (string, error) {

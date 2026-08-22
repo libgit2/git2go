@@ -18,14 +18,15 @@ func TestRemotePush(t *testing.T) {
 
 	seedTestRepo(t, localRepo)
 
-	err = remote.Push([]string{"refs/heads/master"}, nil)
+	branchName := defaultBranchName(t, localRepo)
+	err = remote.Push([]string{"refs/heads/" + branchName}, nil)
 	checkFatal(t, err)
 
-	ref, err := localRepo.References.Lookup("refs/remotes/test_push/master")
+	ref, err := localRepo.References.Lookup("refs/remotes/test_push/" + branchName)
 	checkFatal(t, err)
 	defer ref.Free()
 
-	ref, err = repo.References.Lookup("refs/heads/master")
+	ref, err = repo.References.Lookup("refs/heads/" + branchName)
 	checkFatal(t, err)
 	defer ref.Free()
 }

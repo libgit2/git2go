@@ -16,8 +16,9 @@ func TestBranchIterator(t *testing.T) {
 
 	b, bt, err := i.Next()
 	checkFatal(t, err)
-	if name, _ := b.Name(); name != "master" {
-		t.Fatalf("expected master")
+	branchName := defaultBranchName(t, repo)
+	if name, _ := b.Name(); name != branchName {
+		t.Fatalf("expected %s, got %s", branchName, name)
 	} else if bt != BranchLocal {
 		t.Fatalf("expected BranchLocal, not %v", t)
 	}
@@ -57,7 +58,8 @@ func TestBranchIteratorEach(t *testing.T) {
 		t.Fatalf("expect 1 branch, but it was %d\n", len(names))
 	}
 
-	if names[0] != "master" {
-		t.Fatalf("expect branch master, but it was %s\n", names[0])
+	branchName := defaultBranchName(t, repo)
+	if names[0] != branchName {
+		t.Fatalf("expect branch %s, but it was %s\n", branchName, names[0])
 	}
 }

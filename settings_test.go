@@ -1,6 +1,8 @@
 package git
 
 import (
+	"io/ioutil"
+	"os"
 	"testing"
 )
 
@@ -95,5 +97,70 @@ func TestSetCacheMaxSize(t *testing.T) {
 
 	// revert to default 256MB
 	err = SetCacheMaxSize(256 * 1024 * 1024)
+	checkFatal(t, err)
+}
+
+func TestHomeDir(t *testing.T) {
+	t.Parallel()
+	dir, err := HomeDir()
+	checkFatal(t, err)
+
+	if dir == "" {
+		t.Fatal("HomeDir returned empty string")
+	}
+}
+
+func TestSetHomeDir(t *testing.T) {
+	t.Parallel()
+	original, err := HomeDir()
+	checkFatal(t, err)
+
+	tmpDir, err := ioutil.TempDir("", "git2go-homedir")
+	checkFatal(t, err)
+	defer os.RemoveAll(tmpDir)
+
+	err = SetHomeDir(tmpDir)
+	checkFatal(t, err)
+
+	actual, err := HomeDir()
+	checkFatal(t, err)
+	if actual != tmpDir {
+		t.Fatalf("expected %q, got %q", tmpDir, actual)
+	}
+
+	// Restore original
+	err = SetHomeDir(original)
+	checkFatal(t, err)
+}
+
+func TestServerConnectTimeout(t *testing.T) {
+	t.Parallel()
+	err := SetServerConnectTimeout(5000)
+	checkFatal(t, err)
+
+	val, err := ServerConnectTimeout()
+	checkFatal(t, err)
+	if val != 5000 {
+		t.Fatalf("expected 5000, got %d", val)
+	}
+
+	// Reset to default
+	err = SetServerConnectTimeout(0)
+	checkFatal(t, err)
+}
+
+func TestServerTimeout(t *testing.T) {
+	t.Parallel()
+	err := SetServerTimeout(10000)
+	checkFatal(t, err)
+
+	val, err := ServerTimeout()
+	checkFatal(t, err)
+	if val != 10000 {
+		t.Fatalf("expected 10000, got %d", val)
+	}
+
+	// Reset to default
+	err = SetServerTimeout(0)
 	checkFatal(t, err)
 }

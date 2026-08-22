@@ -4,7 +4,7 @@ package git
 #include <string.h>
 
 #include <git2.h>
-#include <git2/sys/cred.h>
+#include <git2/sys/credential.h>
 
 extern void _go_git_populate_remote_callbacks(git_remote_callbacks *callbacks);
 */
@@ -73,18 +73,37 @@ type TransportMessageCallback func(str string) error
 type CompletionCallback func(RemoteCompletion) error
 type CredentialsCallback func(url string, username_from_url string, allowed_types CredentialType) (*Credential, error)
 type TransferProgressCallback func(stats TransferProgress) error
+
+// Deprecated: UpdateTipsCallback is deprecated. Use UpdateRefsCallback instead.
 type UpdateTipsCallback func(refname string, a *Oid, b *Oid) error
+
+// UpdateRefsCallback is called for each updated reference on fetch/push.
+// It provides more information than UpdateTipsCallback, including the refspec.
+type UpdateRefsCallback func(refname string, a *Oid, b *Oid, spec *Refspec) error
+
 type CertificateCheckCallback func(cert *Certificate, valid bool, hostname string) error
 type PackbuilderProgressCallback func(stage int32, current, total uint32) error
 type PushTransferProgressCallback func(current, total uint32, bytes uint) error
 type PushUpdateReferenceCallback func(refname, status string) error
+
+// RemoteUpdateFlags controls how reference updates are handled.
+type RemoteUpdateFlags uint
+
+const (
+	// RemoteUpdateFetchhead writes the fetch results to FETCH_HEAD.
+	RemoteUpdateFetchhead RemoteUpdateFlags = C.GIT_REMOTE_UPDATE_FETCHHEAD
+	// RemoteUpdateReportUnchanged reports unchanged tips in the update_refs callback.
+	RemoteUpdateReportUnchanged RemoteUpdateFlags = C.GIT_REMOTE_UPDATE_REPORT_UNCHANGED
+)
 
 type RemoteCallbacks struct {
 	SidebandProgressCallback TransportMessageCallback
 	CompletionCallback
 	CredentialsCallback
 	TransferProgressCallback
+	// Deprecated: Use UpdateRefsCallback instead.
 	UpdateTipsCallback
+	UpdateRefsCallback
 	CertificateCheckCallback
 	PackProgressCallback PackbuilderProgressCallback
 	PushTransferProgressCallback
@@ -128,9 +147,9 @@ type FetchOptions struct {
 	RemoteCallbacks RemoteCallbacks
 	// Whether to perform a prune after the fetch
 	Prune FetchPrune
-	// Whether to write the results to FETCH_HEAD. Defaults to
-	// on. Leave this default in order to behave like git.
-	UpdateFetchhead bool
+	// How to handle reference updates; see RemoteUpdateFlags.
+	// Defaults to RemoteUpdateFetchhead.
+	UpdateFetchhead RemoteUpdateFlags
 
 	// Determines how to behave regarding tags on the remote, such
 	// as auto-downloading tags for objects we're downloading or
@@ -144,6 +163,9 @@ type FetchOptions struct {
 
 	// Proxy options to use for this fetch operation
 	ProxyOptions ProxyOptions
+
+	// Depth of the fetch to perform, or 0 for full history.
+	Depth int
 }
 
 type RemoteConnectOptions struct {
@@ -305,6 +327,9 @@ type PushOptions struct {
 
 	// Proxy options to use for this push operation
 	ProxyOptions ProxyOptions
+
+	// "Push options" to deliver to the remote.
+	RemotePushOptions []string
 }
 
 type RemoteHead struct {
@@ -436,6 +461,36 @@ func updateTipsCallback(
 	a := newOidFromC(_a)
 	b := newOidFromC(_b)
 	err := data.callbacks.UpdateTipsCallback(refname, a, b)
+	if err != nil {
+		if data.errorTarget != nil {
+			*data.errorTarget = err
+		}
+		return setCallbackError(errorMessage, err)
+	}
+	return C.int(ErrorCodeOK)
+}
+
+//export updateRefsCallback
+func updateRefsCallback(
+	errorMessage **C.char,
+	_refname *C.char,
+	_a *C.git_oid,
+	_b *C.git_oid,
+	_spec *C.git_refspec,
+	handle unsafe.Pointer,
+) C.int {
+	data := pointerHandles.Get(handle).(*remoteCallbacksData)
+	if data.callbacks.UpdateRefsCallback == nil {
+		return C.int(ErrorCodeOK)
+	}
+	refname := C.GoString(_refname)
+	a := newOidFromC(_a)
+	b := newOidFromC(_b)
+	var spec *Refspec
+	if _spec != nil {
+		spec = newRefspecFromC(_spec)
+	}
+	err := data.callbacks.UpdateRefsCallback(refname, a, b, spec)
 	if err != nil {
 		if data.errorTarget != nil {
 			*data.errorTarget = err
@@ -685,7 +740,7 @@ func (c *RemoteCollection) Create(name string, url string) (*Remote, error) {
 	return remote, nil
 }
 
-//CreateWithOptions Creates a repository object with extended options.
+// CreateWithOptions Creates a repository object with extended options.
 func (c *RemoteCollection) CreateWithOptions(url string, option *RemoteCreateOptions) (*Remote, error) {
 	remote := &Remote{repo: c.repo}
 
@@ -983,8 +1038,9 @@ func populateFetchOptions(copts *C.git_fetch_options, opts *FetchOptions, errorT
 	}
 	populateRemoteCallbacks(&copts.callbacks, &opts.RemoteCallbacks, errorTarget)
 	copts.prune = C.git_fetch_prune_t(opts.Prune)
-	copts.update_fetchhead = cbool(opts.UpdateFetchhead)
+	copts.update_fetchhead = C.uint(opts.UpdateFetchhead)
 	copts.download_tags = C.git_remote_autotag_option_t(opts.DownloadTags)
+	copts.depth = C.int(opts.Depth)
 
 	copts.custom_headers = C.git_strarray{
 		count:   C.size_t(len(opts.Headers)),
@@ -1014,6 +1070,12 @@ func populatePushOptions(copts *C.git_push_options, opts *PushOptions, errorTarg
 		count:   C.size_t(len(opts.Headers)),
 		strings: makeCStringsFromStrings(opts.Headers),
 	}
+	if len(opts.RemotePushOptions) > 0 {
+		copts.remote_push_options = C.git_strarray{
+			count:   C.size_t(len(opts.RemotePushOptions)),
+			strings: makeCStringsFromStrings(opts.RemotePushOptions),
+		}
+	}
 	populateRemoteCallbacks(&copts.callbacks, &opts.RemoteCallbacks, errorTarget)
 	populateProxyOptions(&copts.proxy_opts, &opts.ProxyOptions)
 	return copts
@@ -1025,6 +1087,9 @@ func freePushOptions(copts *C.git_push_options) {
 	}
 	untrackCallbacksPayload(&copts.callbacks)
 	freeStrarray(&copts.custom_headers)
+	if copts.remote_push_options.count > 0 {
+		freeStrarray(&copts.remote_push_options)
+	}
 	freeProxyOptions(&copts.proxy_opts)
 }
 

@@ -197,3 +197,15 @@ func TestEmptyOid(t *testing.T) {
 		t.Fatal("Should have returned invalid error")
 	}
 }
+
+// defaultBranchName returns the default branch name for the given repo
+// (typically "master" or "main" depending on git config).
+func defaultBranchName(t *testing.T, repo *Repository) string {
+	head, err := repo.Head()
+	checkFatal(t, err)
+	defer head.Free()
+
+	branch, err := head.Branch().Name()
+	checkFatal(t, err)
+	return branch
+}

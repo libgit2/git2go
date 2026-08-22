@@ -92,14 +92,14 @@ type Blame struct {
 }
 
 func (blame *Blame) HunkCount() int {
-	ret := int(C.git_blame_get_hunk_count(blame.ptr))
+	ret := int(C.git_blame_hunkcount(blame.ptr))
 	runtime.KeepAlive(blame)
 
 	return ret
 }
 
 func (blame *Blame) HunkByIndex(index int) (BlameHunk, error) {
-	ptr := C.git_blame_get_hunk_byindex(blame.ptr, C.uint32_t(index))
+	ptr := C.git_blame_hunk_byindex(blame.ptr, C.size_t(index))
 	runtime.KeepAlive(blame)
 	if ptr == nil {
 		return BlameHunk{}, ErrInvalid
@@ -108,7 +108,7 @@ func (blame *Blame) HunkByIndex(index int) (BlameHunk, error) {
 }
 
 func (blame *Blame) HunkByLine(lineno int) (BlameHunk, error) {
-	ptr := C.git_blame_get_hunk_byline(blame.ptr, C.size_t(lineno))
+	ptr := C.git_blame_hunk_byline(blame.ptr, C.size_t(lineno))
 	runtime.KeepAlive(blame)
 	if ptr == nil {
 		return BlameHunk{}, ErrInvalid
@@ -144,10 +144,13 @@ type BlameHunk struct {
 	FinalCommitId        *Oid
 	FinalStartLineNumber uint16
 	FinalSignature       *Signature
+	FinalCommitter       *Signature // The committer of final_commit_id (v1.9+)
 	OrigCommitId         *Oid
 	OrigPath             string
 	OrigStartLineNumber  uint16
 	OrigSignature        *Signature
+	OrigCommitter        *Signature // The committer of orig_commit_id (v1.9+)
+	Summary              string     // The commit summary (v1.9+)
 	Boundary             bool
 }
 
@@ -157,10 +160,13 @@ func blameHunkFromC(hunk *C.git_blame_hunk) BlameHunk {
 		FinalCommitId:        newOidFromC(&hunk.final_commit_id),
 		FinalStartLineNumber: uint16(hunk.final_start_line_number),
 		FinalSignature:       newSignatureFromC(hunk.final_signature),
+		FinalCommitter:       newSignatureFromC(hunk.final_committer),
 		OrigCommitId:         newOidFromC(&hunk.orig_commit_id),
 		OrigPath:             C.GoString(hunk.orig_path),
 		OrigStartLineNumber:  uint16(hunk.orig_start_line_number),
 		OrigSignature:        newSignatureFromC(hunk.orig_signature),
+		OrigCommitter:        newSignatureFromC(hunk.orig_committer),
+		Summary:              C.GoString(hunk.summary),
 		Boundary:             hunk.boundary == 1,
 	}
 }

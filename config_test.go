@@ -117,3 +117,27 @@ func TestOpenDefault(t *testing.T) {
 	}
 	defer c.Free()
 }
+
+func TestConfigEntryBackendType(t *testing.T) {
+	t.Parallel()
+
+	cfg, err := setupConfig()
+	defer cleanupConfig()
+	checkFatal(t, err)
+	defer cfg.Free()
+
+	iter, err := cfg.NewIterator()
+	checkFatal(t, err)
+
+	entry, err := iter.Next()
+	checkFatal(t, err)
+
+	// A file-backed config should have backend_type = "file"
+	if entry.BackendType != "file" {
+		t.Errorf("expected BackendType 'file', got %q", entry.BackendType)
+	}
+
+	if entry.OriginPath == "" {
+		t.Error("expected non-empty OriginPath for file-backed config")
+	}
+}

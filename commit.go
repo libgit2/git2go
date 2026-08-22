@@ -4,6 +4,10 @@ package git
 #include <git2.h>
 
 extern int _go_git_treewalk(git_tree *tree, git_treewalk_mode mode, void *ptr);
+
+static void _go_git_commit_create_options_set_allow_empty(git_commit_create_options *opts, int allow) {
+	opts->allow_empty_commit = allow ? 1 : 0;
+}
 */
 import "C"
 
@@ -223,6 +227,70 @@ func (c *Commit) Amend(refname string, author, committer *Signature, message str
 	runtime.KeepAlive(tree)
 	if cerr < 0 {
 		return nil, MakeGitError(cerr)
+	}
+
+	return oid, nil
+}
+
+// CommitCreateOptions contains options for creating a commit from stage.
+type CommitCreateOptions struct {
+	// If set, allow an empty commit (no changes from parent).
+	AllowEmptyCommit bool
+	// The commit author, or nil for the default.
+	Author *Signature
+	// The committer, or nil for the default.
+	Committer *Signature
+	// Encoding for the commit message; leave empty for default (UTF-8).
+	MessageEncoding string
+}
+
+// CreateCommitFromStage commits the staged changes in the repository.
+// This is a near analog to `git commit -m message`.
+// By default, empty commits are not allowed.
+func (v *Repository) CreateCommitFromStage(message string, opts *CommitCreateOptions) (*Oid, error) {
+	oid := new(Oid)
+
+	cmsg := C.CString(message)
+	defer C.free(unsafe.Pointer(cmsg))
+
+	var copts C.git_commit_create_options
+	copts.version = C.GIT_COMMIT_CREATE_OPTIONS_VERSION
+
+	var authorSig *C.git_signature
+	var committerSig *C.git_signature
+
+	if opts != nil {
+		if opts.AllowEmptyCommit {
+			C._go_git_commit_create_options_set_allow_empty(&copts, 1)
+		}
+		if opts.Author != nil {
+			authorSig, _ = opts.Author.toC()
+			if authorSig != nil {
+				defer C.git_signature_free(authorSig)
+				copts.author = authorSig
+			}
+		}
+		if opts.Committer != nil {
+			committerSig, _ = opts.Committer.toC()
+			if committerSig != nil {
+				defer C.git_signature_free(committerSig)
+				copts.committer = committerSig
+			}
+		}
+		if opts.MessageEncoding != "" {
+			cenc := C.CString(opts.MessageEncoding)
+			defer C.free(unsafe.Pointer(cenc))
+			copts.message_encoding = cenc
+		}
+	}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_commit_create_from_stage(oid.toC(), v.ptr, cmsg, &copts)
+	runtime.KeepAlive(v)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
 	}
 
 	return oid, nil

@@ -24,8 +24,8 @@ const (
 	CheckoutNotifyIgnored   CheckoutNotifyType = C.GIT_CHECKOUT_NOTIFY_IGNORED
 	CheckoutNotifyAll       CheckoutNotifyType = C.GIT_CHECKOUT_NOTIFY_ALL
 
-	CheckoutNone                      CheckoutStrategy = C.GIT_CHECKOUT_NONE                         // Dry run, no actual updates
-	CheckoutSafe                      CheckoutStrategy = C.GIT_CHECKOUT_SAFE                         // Allow safe updates that cannot overwrite uncommitted data
+	CheckoutNone                      CheckoutStrategy = C.GIT_CHECKOUT_NONE                         // Do not do a checkout and do not fire callbacks
+	CheckoutSafe                      CheckoutStrategy = C.GIT_CHECKOUT_SAFE                         // Allow safe updates that cannot overwrite uncommitted data (default)
 	CheckoutForce                     CheckoutStrategy = C.GIT_CHECKOUT_FORCE                        // Allow all updates to force working directory to look like index
 	CheckoutRecreateMissing           CheckoutStrategy = C.GIT_CHECKOUT_RECREATE_MISSING             // Allow checkout to recreate missing files
 	CheckoutAllowConflicts            CheckoutStrategy = C.GIT_CHECKOUT_ALLOW_CONFLICTS              // Allow checkout to make safe updates even if conflicts are found
@@ -44,6 +44,8 @@ const (
 	CheckoutConflictStyleDiff3        CheckoutStrategy = C.GIT_CHECKOUT_CONFLICT_STYLE_DIFF3         // Include common ancestor data in diff3 format files for conflicts
 	CheckoutDontRemoveExisting        CheckoutStrategy = C.GIT_CHECKOUT_DONT_REMOVE_EXISTING         // Don't overwrite existing files or folders
 	CheckoutDontWriteIndex            CheckoutStrategy = C.GIT_CHECKOUT_DONT_WRITE_INDEX             // Normally checkout writes the index upon completion; this prevents that
+	CheckoutDryRun                    CheckoutStrategy = C.GIT_CHECKOUT_DRY_RUN                      // Dry run: check for conflicts but don't make changes
+	CheckoutConflictStyleZdiff3       CheckoutStrategy = C.GIT_CHECKOUT_CONFLICT_STYLE_ZDIFF3        // Include common ancestor data in zdiff3 format for conflicts
 	CheckoutUpdateSubmodules          CheckoutStrategy = C.GIT_CHECKOUT_UPDATE_SUBMODULES            // Recursively checkout submodules with same options (NOT IMPLEMENTED)
 	CheckoutUpdateSubmodulesIfChanged CheckoutStrategy = C.GIT_CHECKOUT_UPDATE_SUBMODULES_IF_CHANGED // Recursively checkout submodules if HEAD moved in super repo (NOT IMPLEMENTED)
 )

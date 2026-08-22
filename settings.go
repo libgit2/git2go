@@ -32,6 +32,26 @@ int _go_git_opts_get_size_t_size_t(int opt, size_t *val1, size_t *val2)
 {
     return git_libgit2_opts(opt, val1, val2);
 }
+
+int _go_git_opts_get_homedir(git_buf *buf)
+{
+    return git_libgit2_opts(GIT_OPT_GET_HOMEDIR, buf);
+}
+
+int _go_git_opts_set_homedir(const char *path)
+{
+    return git_libgit2_opts(GIT_OPT_SET_HOMEDIR, path);
+}
+
+int _go_git_opts_get_int(int opt, int *val)
+{
+    return git_libgit2_opts(opt, val);
+}
+
+int _go_git_opts_set_int(int opt, int val)
+{
+    return git_libgit2_opts(opt, val);
+}
 */
 import "C"
 import (
@@ -171,4 +191,83 @@ func setSizet(opt C.int, val int) error {
 	}
 
 	return nil
+}
+
+// HomeDir returns the home directory used by libgit2 for file lookups.
+func HomeDir() (string, error) {
+	var buf C.git_buf
+	defer C.git_buf_dispose(&buf)
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	err := C._go_git_opts_get_homedir(&buf)
+	if err < 0 {
+		return "", MakeGitError(err)
+	}
+
+	return C.GoString(buf.ptr), nil
+}
+
+// SetHomeDir sets the directory used as the current user's home directory.
+func SetHomeDir(path string) error {
+	cpath := C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	err := C._go_git_opts_set_homedir(cpath)
+	if err < 0 {
+		return MakeGitError(err)
+	}
+
+	return nil
+}
+
+func getInt(opt C.int) (int, error) {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var val C.int
+	err := C._go_git_opts_get_int(opt, &val)
+	if err < 0 {
+		return 0, MakeGitError(err)
+	}
+	return int(val), nil
+}
+
+func setInt(opt C.int, val int) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	err := C._go_git_opts_set_int(opt, C.int(val))
+	if err < 0 {
+		return MakeGitError(err)
+	}
+	return nil
+}
+
+// ServerConnectTimeout returns the timeout (in milliseconds) to attempt
+// connections to a remote server.
+func ServerConnectTimeout() (int, error) {
+	return getInt(C.GIT_OPT_GET_SERVER_CONNECT_TIMEOUT)
+}
+
+// SetServerConnectTimeout sets the timeout (in milliseconds) to attempt
+// connections to a remote server. Set to 0 to use the system default.
+func SetServerConnectTimeout(timeout int) error {
+	return setInt(C.GIT_OPT_SET_SERVER_CONNECT_TIMEOUT, timeout)
+}
+
+// ServerTimeout returns the timeout (in milliseconds) for reading from
+// and writing to a remote server.
+func ServerTimeout() (int, error) {
+	return getInt(C.GIT_OPT_GET_SERVER_TIMEOUT)
+}
+
+// SetServerTimeout sets the timeout (in milliseconds) for reading from
+// and writing to a remote server. Set to 0 to use the system default.
+func SetServerTimeout(timeout int) error {
+	return setInt(C.GIT_OPT_SET_SERVER_TIMEOUT, timeout)
 }

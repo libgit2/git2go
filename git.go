@@ -47,6 +47,11 @@ const (
 	ErrorClassCallback   ErrorClass = C.GIT_ERROR_CALLBACK
 	ErrorClassRebase     ErrorClass = C.GIT_ERROR_REBASE
 	ErrorClassPatch      ErrorClass = C.GIT_ERROR_PATCH
+	ErrorClassWorktree   ErrorClass = C.GIT_ERROR_WORKTREE
+	ErrorClassSHA        ErrorClass = C.GIT_ERROR_SHA
+	ErrorClassHTTP       ErrorClass = C.GIT_ERROR_HTTP
+	ErrorClassInternal   ErrorClass = C.GIT_ERROR_INTERNAL
+	ErrorClassGrafts     ErrorClass = C.GIT_ERROR_GRAFTS
 )
 
 //go:generate stringer -type ErrorCode -trimprefix ErrorCode -tags static
@@ -119,6 +124,16 @@ const (
 	ErrorCodeIndexDirty ErrorCode = C.GIT_EINDEXDIRTY
 	// ErrorCodeApplyFail represents that a patch application failed.
 	ErrorCodeApplyFail ErrorCode = C.GIT_EAPPLYFAIL
+	// ErrorCodeOwner represents that the object is not owned by the current user.
+	ErrorCodeOwner ErrorCode = C.GIT_EOWNER
+	// ErrorCodeTimeout represents that the operation timed out.
+	ErrorCodeTimeout ErrorCode = C.GIT_TIMEOUT
+	// ErrorCodeUnchanged represents that there were no changes.
+	ErrorCodeUnchanged ErrorCode = C.GIT_EUNCHANGED
+	// ErrorCodeNotSupported represents that an option is not supported.
+	ErrorCodeNotSupported ErrorCode = C.GIT_ENOTSUPPORTED
+	// ErrorCodeReadOnly represents that the subject is read-only.
+	ErrorCodeReadOnly ErrorCode = C.GIT_EREADONLY
 )
 
 var (

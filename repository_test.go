@@ -1,9 +1,60 @@
 package git
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 )
+
+func TestOpenBareRepository(t *testing.T) {
+	t.Parallel()
+
+	repo := createBareTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	opened, err := OpenBareRepository(repo.Path())
+	checkFatal(t, err)
+	defer opened.Free()
+
+	if !opened.IsBare() {
+		t.Fatal("expected opened repository to be bare")
+	}
+
+	if opened.Workdir() != "" {
+		t.Fatalf("expected bare repository to have empty workdir, got %q", opened.Workdir())
+	}
+}
+
+func TestOpenBareRepositoryFromGitDir(t *testing.T) {
+	t.Parallel()
+
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	opened, err := OpenBareRepository(repo.Path())
+	checkFatal(t, err)
+	defer opened.Free()
+
+	if !opened.IsBare() {
+		t.Fatal("expected repository opened from .git dir to be bare")
+	}
+}
+
+func TestOpenBareRepositoryNotFound(t *testing.T) {
+	t.Parallel()
+
+	missingPath := filepath.Join(os.TempDir(), "git2go-does-not-exist-open-bare")
+	opened, err := OpenBareRepository(missingPath)
+
+	if opened != nil {
+		t.Fatal("expected nil repository for missing path")
+	}
+
+	if err == nil {
+		t.Fatal("expected error for missing path")
+	}
+}
 
 func TestCreateCommitBuffer(t *testing.T) {
 	t.Parallel()
@@ -155,5 +206,33 @@ func TestRepositoryItemPath(t *testing.T) {
 	checkFatal(t, err)
 	if gitDir == "" {
 		t.Error("expected not empty gitDir")
+	}
+}
+
+func TestCommitParents(t *testing.T) {
+	t.Parallel()
+	repo := createTestRepo(t)
+	defer cleanupTestRepo(t, repo)
+
+	seedTestRepo(t, repo)
+
+	parents, err := repo.CommitParents()
+	checkFatal(t, err)
+
+	if len(parents) != 1 {
+		t.Fatalf("expected 1 parent, got %d", len(parents))
+	}
+
+	// The parent should be HEAD
+	head, err := repo.Head()
+	checkFatal(t, err)
+	defer head.Free()
+
+	if !parents[0].Id().Equal(head.Target()) {
+		t.Fatalf("expected parent to be HEAD (%s), got %s", head.Target(), parents[0].Id())
+	}
+
+	for _, p := range parents {
+		p.Free()
 	}
 }

@@ -269,3 +269,31 @@ func CallbackGitTreeWalk(_root *C.char, entry *C.git_tree_entry, ptr unsafe.Poin
 	}
 	return C.int(ErrorCodeOK)
 }
+
+// git.go (v35 deprecations)
+
+const (
+	// Deprecated: ErrClassWorktree is a deprecated alias of ErrorClassWorktree.
+	ErrClassWorktree = ErrorClassWorktree
+	// Deprecated: ErrClassSHA is a deprecated alias of ErrorClassSHA.
+	ErrClassSHA = ErrorClassSHA
+	// Deprecated: ErrClassHTTP is a deprecated alias of ErrorClassHTTP.
+	ErrClassHTTP = ErrorClassHTTP
+	// Deprecated: ErrClassInternal is a deprecated alias of ErrorClassInternal.
+	ErrClassInternal = ErrorClassInternal
+	// Deprecated: ErrClassGrafts is a deprecated alias of ErrorClassGrafts.
+	ErrClassGrafts = ErrorClassGrafts
+)
+
+const (
+	// Deprecated: ErrOwner is a deprecated alias of ErrorCodeOwner.
+	ErrOwner = ErrorCodeOwner
+	// Deprecated: ErrTimeout is a deprecated alias of ErrorCodeTimeout.
+	ErrTimeout = ErrorCodeTimeout
+	// Deprecated: ErrUnchanged is a deprecated alias of ErrorCodeUnchanged.
+	ErrUnchanged = ErrorCodeUnchanged
+	// Deprecated: ErrNotSupported is a deprecated alias of ErrorCodeNotSupported.
+	ErrNotSupported = ErrorCodeNotSupported
+	// Deprecated: ErrReadOnly is a deprecated alias of ErrorCodeReadOnly.
+	ErrReadOnly = ErrorCodeReadOnly
+)

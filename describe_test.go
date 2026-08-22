@@ -78,7 +78,8 @@ func TestDescribeCommit(t *testing.T) {
 	checkFatal(t, err)
 	resultStr, err = result.Format(&formatOpts)
 	checkFatal(t, err)
-	compareStrings(t, "heads/master", resultStr)
+	branchName := defaultBranchName(t, repo)
+	compareStrings(t, "heads/"+branchName, resultStr)
 
 	repo.CreateBranch("hotfix", commit, false)
 

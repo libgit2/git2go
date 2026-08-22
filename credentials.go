@@ -73,7 +73,7 @@ func (t CredentialType) String() string {
 	}
 
 	if t != 0 {
-		parts = append(parts, fmt.Sprintf("CredentialType(%#x)", t))
+		parts = append(parts, fmt.Sprintf("CredentialType(%#x)", uint(t)))
 	}
 
 	return strings.Join(parts, "|")

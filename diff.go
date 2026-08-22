@@ -406,10 +406,12 @@ func diffForEachLineCallback(delta *C.git_diff_delta, hunk *C.git_diff_hunk, lin
 		panic("could not retrieve data for handle")
 	}
 
-	err := data.lineCallback(diffLineFromC(line))
-	if err != nil {
-		*data.errorTarget = err
-		return C.int(ErrorCodeUser)
+	if data.lineCallback != nil {
+		err := data.lineCallback(diffLineFromC(line))
+		if err != nil {
+			*data.errorTarget = err
+			return C.int(ErrorCodeUser)
+		}
 	}
 
 	return C.int(ErrorCodeOK)

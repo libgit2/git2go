@@ -3,7 +3,8 @@
 #include <git2.h>
 #include <git2/sys/odb_backend.h>
 #include <git2/sys/refdb_backend.h>
-#include <git2/sys/cred.h>
+#include <git2/sys/credential.h>
+#include <git2/sys/errors.h>
 
 // There are two ways in which to declare a callback:
 //
@@ -296,6 +297,25 @@ static int update_tips_callback(const char *refname, const git_oid *a, const git
 	return set_callback_error(error_message, ret);
 }
 
+static int update_refs_callback(
+		const char *refname,
+		const git_oid *a,
+		const git_oid *b,
+		git_refspec *spec,
+		void *data)
+{
+	char *error_message = NULL;
+	const int ret = updateRefsCallback(
+			&error_message,
+			(char *)refname,
+			(git_oid *)a,
+			(git_oid *)b,
+			spec,
+			data
+	);
+	return set_callback_error(error_message, ret);
+}
+
 static int certificate_check_callback(git_cert *cert, int valid, const char *host, void *data)
 {
 	char *error_message = NULL;
@@ -362,6 +382,7 @@ void _go_git_populate_remote_callbacks(git_remote_callbacks *callbacks)
 	callbacks->pack_progress = pack_progress_callback;
 	callbacks->push_transfer_progress = push_transfer_progress_callback;
 	callbacks->push_update_reference = push_update_reference_callback;
+	callbacks->update_refs = update_refs_callback;
 }
 
 int _go_git_index_add_all(git_index *index, const git_strarray *pathspec, unsigned int flags, void *callback)

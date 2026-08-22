@@ -5,6 +5,10 @@ package git
 #include <git2/sys/repository.h>
 #include <git2/sys/commit.h>
 #include <string.h>
+
+static git_commit *_go_git_commitarray_get(git_commitarray *array, size_t idx) {
+	return array->commits[idx];
+}
 */
 import "C"
 import (
@@ -67,6 +71,22 @@ func OpenRepository(path string) (*Repository, error) {
 
 	var ptr *C.git_repository
 	ret := C.git_repository_open(&ptr, cpath)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+
+	return newRepositoryFromC(ptr), nil
+}
+
+func OpenBareRepository(path string) (*Repository, error) {
+	cpath := C.CString(path)
+	defer C.free(unsafe.Pointer(cpath))
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	var ptr *C.git_repository
+	ret := C.git_repository_open_bare(&ptr, cpath)
 	if ret < 0 {
 		return nil, MakeGitError(ret)
 	}
@@ -873,4 +893,38 @@ func (r *Repository) ItemPath(item RepositoryItem) (string, error) {
 		return "", MakeGitError(ret)
 	}
 	return C.GoString(c_buf.ptr), nil
+}
+
+// CommitParents gets the parents of the next commit, given the current
+// repository state. Generally, this is the HEAD commit, except when
+// performing a merge, in which case it is two or more commits.
+func (v *Repository) CommitParents() ([]*Commit, error) {
+	var carray C.git_commitarray
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_repository_commit_parents(&carray, v.ptr)
+	runtime.KeepAlive(v)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+	defer C.git_commitarray_dispose(&carray)
+
+	count := int(carray.count)
+	commits := make([]*Commit, count)
+	for i := 0; i < count; i++ {
+		ccommit := C._go_git_commitarray_get(&carray, C.size_t(i))
+		var dup *C.git_commit
+		cErr := C.git_commit_dup(&dup, ccommit)
+		if cErr < 0 {
+			for j := 0; j < i; j++ {
+				commits[j].Free()
+			}
+			return nil, MakeGitError(cErr)
+		}
+		commits[i] = allocCommit(dup, v)
+	}
+
+	return commits, nil
 }

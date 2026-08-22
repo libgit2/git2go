@@ -34,6 +34,7 @@ func TestBlame(t *testing.T) {
 		OrigPath:             "README",
 		OrigStartLineNumber:  1,
 		Boundary:             true,
+		Summary:              "This is a commit",
 	}
 	wantHunk2 := BlameHunk{
 		LinesInHunk:          2,
@@ -43,6 +44,7 @@ func TestBlame(t *testing.T) {
 		OrigPath:             "README",
 		OrigStartLineNumber:  2,
 		Boundary:             false,
+		Summary:              "This is a commit",
 	}
 
 	hunk1, err := blame.HunkByIndex(0)
@@ -67,6 +69,10 @@ func checkHunk(t *testing.T, label string, hunk, want BlameHunk) {
 	want.FinalSignature = nil
 	hunk.OrigSignature = nil
 	want.OrigSignature = nil
+	hunk.FinalCommitter = nil
+	want.FinalCommitter = nil
+	hunk.OrigCommitter = nil
+	want.OrigCommitter = nil
 	if !reflect.DeepEqual(hunk, want) {
 		t.Fatalf("%s: got hunk %+v, want %+v", label, hunk, want)
 	}

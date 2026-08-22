@@ -76,3 +76,38 @@ func (repo *Repository) DefaultSignature() (*Signature, error) {
 
 	return newSignatureFromC(out), nil
 }
+
+// DefaultSignatureFromEnv creates default author and/or committer signatures
+// using environment variables and configuration.
+//
+// Environment variables GIT_AUTHOR_NAME, GIT_AUTHOR_EMAIL,
+// GIT_COMMITTER_NAME, GIT_COMMITTER_EMAIL are honored, falling back
+// to user.name and user.email configuration. For timestamps,
+// GIT_AUTHOR_DATE and GIT_COMMITTER_DATE are used if set.
+//
+// Returns (author, committer, error). Either author or committer may be nil
+// if not requested (pass false for the corresponding parameter).
+func (repo *Repository) DefaultSignatureFromEnv() (author *Signature, committer *Signature, err error) {
+	var authorOut *C.git_signature
+	var committerOut *C.git_signature
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	cErr := C.git_signature_default_from_env(&authorOut, &committerOut, repo.ptr)
+	runtime.KeepAlive(repo)
+	if cErr < 0 {
+		return nil, nil, MakeGitError(cErr)
+	}
+
+	if authorOut != nil {
+		defer C.git_signature_free(authorOut)
+		author = newSignatureFromC(authorOut)
+	}
+	if committerOut != nil {
+		defer C.git_signature_free(committerOut)
+		committer = newSignatureFromC(committerOut)
+	}
+
+	return author, committer, nil
+}

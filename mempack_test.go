@@ -58,3 +58,58 @@ func TestMempack(t *testing.T) {
 		}
 	}
 }
+
+func TestMempackObjectCount(t *testing.T) {
+	t.Parallel()
+
+	odb, err := NewOdb()
+	checkFatal(t, err)
+
+	mempack, err := NewMempack(odb)
+	checkFatal(t, err)
+
+	count, err := mempack.ObjectCount()
+	checkFatal(t, err)
+	if count != 0 {
+		t.Fatalf("expected 0 objects, got %d", count)
+	}
+
+	_, err = odb.Write([]byte("hello, world!"), ObjectBlob)
+	checkFatal(t, err)
+
+	count, err = mempack.ObjectCount()
+	checkFatal(t, err)
+	if count != 1 {
+		t.Fatalf("expected 1 object, got %d", count)
+	}
+}
+
+func TestMempackWriteThinPack(t *testing.T) {
+	t.Parallel()
+
+	odb, err := NewOdb()
+	checkFatal(t, err)
+
+	repo, err := NewRepositoryWrapOdb(odb)
+	checkFatal(t, err)
+
+	mempack, err := NewMempack(odb)
+	checkFatal(t, err)
+
+	blobId, err := odb.Write([]byte("thin pack content"), ObjectBlob)
+	checkFatal(t, err)
+
+	pb, err := repo.NewPackbuilder()
+	checkFatal(t, err)
+	defer pb.Free()
+
+	err = pb.Insert(blobId, "")
+	checkFatal(t, err)
+
+	err = mempack.WriteThinPack(pb)
+	checkFatal(t, err)
+
+	if pb.ObjectCount() == 0 {
+		t.Fatal("expected some objects in the packbuilder")
+	}
+}

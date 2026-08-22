@@ -3,6 +3,7 @@ package git
 /*
 #include <git2.h>
 #include <git2/sys/mempack.h>
+#include <git2/pack.h>
 
 extern int git_mempack_new(git_odb_backend **out);
 extern int git_mempack_dump(git_buf *pack, git_repository *repo, git_odb_backend *backend);
@@ -89,4 +90,35 @@ func (mempack *Mempack) Reset() error {
 		return MakeGitError(ret)
 	}
 	return nil
+}
+
+// WriteThinPack writes a thin packfile with the objects in the memory store
+// into the given packbuilder. A thin packfile does not contain its transitive
+// closure of references. This does not reset the in-memory object database.
+func (mempack *Mempack) WriteThinPack(pb *Packbuilder) error {
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_mempack_write_thin_pack(mempack.ptr, pb.ptr)
+	runtime.KeepAlive(mempack)
+	runtime.KeepAlive(pb)
+	if ret < 0 {
+		return MakeGitError(ret)
+	}
+	return nil
+}
+
+// ObjectCount returns the total number of objects in the mempack.
+func (mempack *Mempack) ObjectCount() (uint, error) {
+	var count C.size_t
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_mempack_object_count(&count, mempack.ptr)
+	runtime.KeepAlive(mempack)
+	if ret < 0 {
+		return 0, MakeGitError(ret)
+	}
+	return uint(count), nil
 }

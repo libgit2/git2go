@@ -30,6 +30,10 @@ const (
 	// StashIncludeIgnored means all ignored files are also
 	// stashed and then cleaned up from the working directory.
 	StashIncludeIgnored StashFlag = C.GIT_STASH_INCLUDE_IGNORED
+
+	// StashKeepAll means all changes in the index and working
+	// directory are left intact.
+	StashKeepAll StashFlag = C.GIT_STASH_KEEP_ALL
 )
 
 // StashCollection represents the possible operations that can be
@@ -64,6 +68,58 @@ func (c *StashCollection) Save(
 	ret := C.git_stash_save(
 		oid.toC(), c.repo.ptr,
 		stasherC, messageC, C.uint32_t(flags))
+	runtime.KeepAlive(c)
+	if ret < 0 {
+		return nil, MakeGitError(ret)
+	}
+	return oid, nil
+}
+
+// StashSaveOptions contains options for stash save with options.
+type StashSaveOptions struct {
+	Flags   StashFlag
+	Stasher *Signature
+	Message string
+	Paths   []string
+}
+
+// SaveWithOptions saves the local modifications to a new stash with extended options.
+// This allows stashing specific files using the Paths field.
+func (c *StashCollection) SaveWithOptions(opts *StashSaveOptions) (*Oid, error) {
+	oid := new(Oid)
+
+	var copts C.git_stash_save_options
+	C.git_stash_save_options_init(&copts, C.GIT_STASH_SAVE_OPTIONS_VERSION)
+
+	if opts != nil {
+		copts.flags = C.uint32_t(opts.Flags)
+
+		if opts.Stasher != nil {
+			stasherC, err := opts.Stasher.toC()
+			if err != nil {
+				return nil, err
+			}
+			defer C.git_signature_free(stasherC)
+			copts.stasher = stasherC
+		}
+
+		if opts.Message != "" {
+			cmsg := C.CString(opts.Message)
+			defer C.free(unsafe.Pointer(cmsg))
+			copts.message = cmsg
+		}
+
+		if len(opts.Paths) > 0 {
+			copts.paths.strings = makeCStringsFromStrings(opts.Paths)
+			copts.paths.count = C.size_t(len(opts.Paths))
+			defer freeStrarray(&copts.paths)
+		}
+	}
+
+	runtime.LockOSThread()
+	defer runtime.UnlockOSThread()
+
+	ret := C.git_stash_save_with_opts(oid.toC(), c.repo.ptr, &copts)
 	runtime.KeepAlive(c)
 	if ret < 0 {
 		return nil, MakeGitError(ret)

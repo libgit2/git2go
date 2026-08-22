@@ -8,8 +8,8 @@ package git
 #cgo CFLAGS: -DLIBGIT2_DYNAMIC
 #include <git2.h>
 
-#if LIBGIT2_VER_MAJOR != 1 || LIBGIT2_VER_MINOR < 5 || LIBGIT2_VER_MINOR > 5
-# error "Invalid libgit2 version; this git2go supports libgit2 between v1.5.0 and v1.5.0"
+#if LIBGIT2_VER_MAJOR != 1 || LIBGIT2_VER_MINOR < 9 || LIBGIT2_VER_MINOR > 9
+# error "Invalid libgit2 version; this git2go supports libgit2 between v1.9.0 and v1.9.x"
 #endif
 */
 import "C"

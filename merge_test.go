@@ -12,7 +12,8 @@ func TestAnnotatedCommitFromRevspec(t *testing.T) {
 
 	seedTestRepo(t, repo)
 
-	mergeHead, err := repo.AnnotatedCommitFromRevspec("refs/heads/master")
+	branchName := defaultBranchName(t, repo)
+	mergeHead, err := repo.AnnotatedCommitFromRevspec("refs/heads/" + branchName)
 	checkFatal(t, err)
 
 	expectedId := "473bf778b67b6d53e2ab289e0f1a2e8addef2fc2"
@@ -28,7 +29,8 @@ func TestMergeWithSelf(t *testing.T) {
 
 	seedTestRepo(t, repo)
 
-	master, err := repo.References.Lookup("refs/heads/master")
+	branchName := defaultBranchName(t, repo)
+	master, err := repo.References.Lookup("refs/heads/" + branchName)
 	checkFatal(t, err)
 
 	mergeHead, err := repo.AnnotatedCommitFromRef(master)
@@ -47,7 +49,7 @@ func TestMergeWithSelf(t *testing.T) {
 	mergeMessage, err := repo.Message()
 	checkFatal(t, err)
 
-	expectedMessage := "Merge branch 'master'\n"
+	expectedMessage := "Merge branch '" + branchName + "'\n"
 	if mergeMessage != expectedMessage {
 		t.Errorf("merge Message = %v, want %v", mergeMessage, expectedMessage)
 	}
@@ -60,7 +62,8 @@ func TestMergeAnalysisWithSelf(t *testing.T) {
 
 	seedTestRepo(t, repo)
 
-	master, err := repo.References.Lookup("refs/heads/master")
+	branchName := defaultBranchName(t, repo)
+	master, err := repo.References.Lookup("refs/heads/" + branchName)
 	checkFatal(t, err)
 
 	mergeHead, err := repo.AnnotatedCommitFromRef(master)

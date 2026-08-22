@@ -69,7 +69,7 @@ fi
 mkdir -p "${BUILD_PATH}/build" &&
 cd "${BUILD_PATH}/build" &&
 cmake -DTHREADSAFE=ON \
-      -DBUILD_CLAR=OFF \
+      -DBUILD_TESTS=OFF \
       -DBUILD_SHARED_LIBS"=${BUILD_SHARED_LIBS}" \
       -DREGEX_BACKEND=builtin \
       -DUSE_BUNDLED_ZLIB="${USE_BUNDLED_ZLIB}" \
@@ -79,7 +79,7 @@ cmake -DTHREADSAFE=ON \
       -DCMAKE_BUILD_TYPE="RelWithDebInfo" \
       -DCMAKE_INSTALL_PREFIX="${BUILD_INSTALL_PREFIX}" \
       -DCMAKE_INSTALL_LIBDIR="lib" \
-      -DDEPRECATE_HARD="${BUILD_DEPRECATE_HARD}" \
+      -DDEPRECATE_HARD="${BUILD_DEPRECATED_HARD}" \
       "${VENDORED_PATH}"
 
 if which make nproc >/dev/null && [ -f Makefile ]; then

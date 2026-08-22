@@ -37,10 +37,11 @@ func TestRevparseExt(t *testing.T) {
 
 	_, treeId := seedTestRepo(t, repo)
 
-	ref, err := repo.References.Create("refs/heads/master", treeId, true, "")
+	branchName := defaultBranchName(t, repo)
+	ref, err := repo.References.Create("refs/heads/"+branchName, treeId, true, "")
 	checkFatal(t, err)
 
-	obj, ref, err := repo.RevparseExt("master")
+	obj, ref, err := repo.RevparseExt(branchName)
 	checkFatal(t, err)
 
 	checkObject(t, obj, treeId)
